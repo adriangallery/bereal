@@ -32,6 +32,16 @@
       padding: 1rem 0;
       border-top: 1px solid #ccc;
     }
+    /* Botón personalizado en tono azul para anaglyph */
+    .btn-anaglyph-blue {
+      background-color: #007bff; /* Puedes ajustar este color; ejemplo: #007bff es el azul primario de Bootstrap */
+      border-color: #007bff;
+      color: #fff;
+    }
+    .btn-anaglyph-blue:hover {
+      background-color: #0069d9;
+      border-color: #0062cc;
+    }
   </style>
 </head>
 <body>
@@ -72,7 +82,7 @@
 
     <!-- Connect Section -->
     <div class="text-center mb-4">
-      <button id="connectButton" class="btn btn-primary">Connect MetaMask</button>
+      <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
       <p id="accountDisplay" class="mt-2"></p>
     </div>
 
@@ -116,21 +126,20 @@
     <div class="card">
       <div class="card-header">
         My Position
-        <button id="myPositionButton" class="btn btn-sm btn-info float-end">Check My Position</button>
+        <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
       </div>
       <div class="card-body">
         <div id="myPositionDisplay">Not checked</div>
       </div>
     </div>
 
-    <!-- Place a Bid -->
+    <!-- Place a Bid: Approve & Deposit -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
         <div class="input-group">
           <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="approveButton" class="btn btn-secondary">Approve ADRIAN</button>
-          <button id="depositButton" class="btn btn-success">Deposit Tokens</button>
+          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
         </div>
       </div>
     </div>
@@ -140,8 +149,8 @@
   <footer class="text-center mt-5 mb-3">
     <p>
       Contract Address: 
-      <a href="https://base.blockscout.com/address/0x38e3d055761ee112ba8cd7b12a8e818f2e4b783f" target="_blank">
-        0x38e3d055761ee112ba8cd7b12a8e818f2e4b783f
+      <a href="https://base.blockscout.com/address/0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a" target="_blank">
+        0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a
       </a>
     </p>
   </footer>
@@ -151,7 +160,8 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    const auctionAddress = "0x38e3d055761ee112ba8cd7b12a8e818f2e4b783f";
+    // Nuevo contrato: 0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a
+    const auctionAddress = "0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a";
     const auctionABI = [
       "function depositTokens(uint256 amount) external",
       "function highestBid() view returns (uint256)",
@@ -280,7 +290,7 @@
     
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
     
-    async function approveTokens() {
+    async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
         alert("Please enter a valid amount");
@@ -288,40 +298,26 @@
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
       try {
-        const tx = await tokenContract.approve(auctionAddress, amount);
+        // Aprobar tokens
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
         alert("Approval transaction sent. Wait for confirmation.");
-        await tx.wait();
-        alert("Approval confirmed");
-      } catch (error) {
-        console.error("Error during approval:", error);
-        alert("Error during approval");
-      }
-    }
-    
-    document.getElementById("approveButton").addEventListener("click", approveTokens);
-    
-    async function depositTokens() {
-      const amountInput = document.getElementById("amountInput").value;
-      if (!amountInput || amountInput <= 0) {
-        alert("Please enter a valid amount");
-        return;
-      }
-      const amount = ethers.utils.parseUnits(amountInput, 18);
-      try {
-        const tx = await auctionContract.depositTokens(amount);
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
+        // Depositar tokens
+        const txDeposit = await auctionContract.depositTokens(amount);
         alert("Deposit transaction sent. Wait for confirmation.");
-        await tx.wait();
-        alert("Deposit confirmed");
+        await txDeposit.wait();
+        alert("Deposit confirmed.");
         updateHighestBid();
         updateTop10();
         updateAuctionStats();
       } catch (error) {
-        console.error("Error depositing tokens:", error);
-        alert("Error depositing tokens");
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit");
       }
     }
     
-    document.getElementById("depositButton").addEventListener("click", depositTokens);
+    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   </script>
   
   <!-- Bootstrap JS Bundle -->
