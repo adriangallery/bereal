@@ -34,7 +34,7 @@
     }
     /* Botón personalizado en tono azul para anaglyph */
     .btn-anaglyph-blue {
-      background-color: #007bff; 
+      background-color: #007bff; /* Puedes ajustar este color; ejemplo: #007bff es el azul primario de Bootstrap */
       border-color: #007bff;
       color: #fff;
     }
@@ -133,13 +133,13 @@
       </div>
     </div>
 
-    <!-- Place a Bid: Permit & Deposit -->
+    <!-- Place a Bid: Approve & Deposit -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
         <div class="input-group">
           <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="permitDepositButton" class="btn btn-anaglyph-blue">Deposit with Permit</button>
+          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
         </div>
       </div>
     </div>
@@ -149,8 +149,8 @@
   <footer class="text-center mt-5 mb-3">
     <p>
       Contract Address: 
-      <a href="https://base.blockscout.com/address/0x67926a2b7d65fc8463AADB3BD7018C61E7c5F705" target="_blank">
-        0x67926a2b7d65fc8463AADB3BD7018C61E7c5F705
+      <a href="https://base.blockscout.com/address/0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a" target="_blank">
+        0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a
       </a>
     </p>
   </footer>
@@ -160,10 +160,10 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    // Dirección del contrato de subasta que ya implementa depositTokensWithPermit
-    const auctionAddress = "0x67926a2b7d65fc8463AADB3BD7018C61E7c5F705";
+    // Nuevo contrato: 0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a
+    const auctionAddress = "0xaa131011181FF5AF0e779B10C3dfB5c0E8A6669a";
     const auctionABI = [
-      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function depositTokens(uint256 amount) external",
       "function highestBid() view returns (uint256)",
       "function highestBidder() view returns (address)",
       "function auctionEndTime() view returns (uint256)",
@@ -176,13 +176,11 @@
       "event TokensDeposited(address indexed bidder, uint256 amount)"
     ];
     
-    // Dirección del token que soporta permit
     const tokenAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
     const tokenABI = [
-      "function balanceOf(address account) view returns (uint256)",
-      "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
-      "function name() view returns (string)",
-      "function nonces(address owner) view returns (uint256)"
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function balanceOf(address account) view returns (uint256)"
     ];
     
     async function connectWallet() {
@@ -292,75 +290,34 @@
     
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
     
-    // Función para firmar con permit (ERC-2612) y depositar en una sola transacción
-    async function permitAndDeposit() {
+    async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
         alert("Please enter a valid amount");
         return;
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
-      
       try {
-        // Deadline de 1 hora a partir de ahora (puedes ajustarlo)
-        const deadline = Math.floor(Date.now() / 1000) + 3600;
-        
-        // Obtener el nonce actual para el usuario
-        const nonce = await tokenContract.nonces(userAccount);
-        
-        // Obtener el nombre del token para el dominio EIP-712
-        const tokenName = await tokenContract.name();
-        const { chainId } = await provider.getNetwork();
-        
-        // Dominio EIP-712
-        const domain = {
-          name: tokenName,
-          version: "1",
-          chainId: chainId,
-          verifyingContract: tokenAddress
-        };
-        
-        // Estructura de datos Permit según ERC-2612
-        const types = {
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" }
-          ]
-        };
-        
-        const message = {
-          owner: userAccount,
-          spender: auctionAddress,
-          value: amount.toString(),
-          nonce: nonce.toString(),
-          deadline: deadline
-        };
-        
-        // Firmar el mensaje EIP-712
-        const signature = await signer._signTypedData(domain, types, message);
-        const { v, r, s } = ethers.utils.splitSignature(signature);
-        
-        // Llamar a depositTokensWithPermit en el contrato de subasta
-        const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
+        // Aprobar tokens
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
+        alert("Approval transaction sent. Wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
+        // Depositar tokens
+        const txDeposit = await auctionContract.depositTokens(amount);
         alert("Deposit transaction sent. Wait for confirmation.");
-        await tx.wait();
+        await txDeposit.wait();
         alert("Deposit confirmed.");
-        
-        // Actualizar info tras depositar
         updateHighestBid();
         updateTop10();
         updateAuctionStats();
       } catch (error) {
-        console.error("Error during permit & deposit:", error);
-        alert("Error during permit & deposit. Revisa la consola para más detalles.");
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit");
       }
     }
     
-    // Cambiamos el listener para usar permitAndDeposit en lugar de approve
-    document.getElementById("permitDepositButton").addEventListener("click", permitAndDeposit);
+    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   </script>
   
   <!-- Bootstrap JS Bundle -->
