@@ -163,18 +163,18 @@
     // Nuevo contrato de subasta: 0xbC1C0E450C33cD50E2772D18aE166d847D801723
     const auctionAddress = "0xbC1C0E450C33cD50E2772D18aE166d847D801723";
     const auctionABI = [
-      "function depositTokens(uint256 amount) external",
-      "function highestBid() view returns (uint256)",
-      "function highestBidder() view returns (address)",
-      "function auctionEndTime() view returns (uint256)",
-      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
-      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
-      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)",
-      "function pauseAuction() external",
-      "function unpauseAuction() external",
-      "function resetAuction(uint256 newDuration) external",
-      "event TokensDeposited(address indexed bidder, uint256 amount)"
-    ];
+  "function depositTokens(uint256 amount) external",
+  "function highestBid() view returns (uint256)",
+  "function highestBidder() view returns (address)",
+  "function auctionEndTime() view returns (uint256)",
+  "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
+  "function getBidderPosition(address bidder) view returns (uint256, uint256)",
+  "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)",
+  "function pauseAuction() external",
+  "function unpauseAuction() external",
+  "function cancelAndResetAuction(uint256 newDuration) external",
+  "event TokensDeposited(address indexed bidder, uint256 amount)"
+];
     
     // Nuevo token ADRIAN: 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
