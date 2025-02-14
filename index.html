@@ -34,7 +34,7 @@
     }
     /* Botón personalizado en tono azul para anaglyph */
     .btn-anaglyph-blue {
-      background-color: #007bff; /* Puedes ajustar este color; ejemplo: #007bff es el azul primario de Bootstrap */
+      background-color: #007bff;
       border-color: #007bff;
       color: #fff;
     }
@@ -80,13 +80,13 @@
       <h1 class="mt-3">$ADRIAN Auction</h1>
     </header>
 
-    <!-- Connect Section -->
+    <!-- Sección de conexión -->
     <div class="text-center mb-4">
       <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
       <p id="accountDisplay" class="mt-2"></p>
     </div>
 
-    <!-- Auction Info Cards -->
+    <!-- Tarjetas de información de la subasta -->
     <div class="row">
       <div class="col-md-6">
         <div class="card">
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <!-- Auction Stats -->
+    <!-- Estadísticas de la subasta -->
     <div class="card">
       <div class="card-header">Auction Stats</div>
       <div class="card-body">
@@ -122,7 +122,7 @@
       </div>
     </div>
 
-    <!-- My Position -->
+    <!-- Mi posición -->
     <div class="card">
       <div class="card-header">
         My Position
@@ -133,7 +133,7 @@
       </div>
     </div>
 
-    <!-- Place a Bid: Approve & Deposit -->
+    <!-- Depositar puja -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
@@ -159,31 +159,36 @@
   <script>
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
-    
-    // Nuevo contrato de subasta: 0xbC1C0E450C33cD50E2772D18aE166d847D801723
+
+    // Direcciones actualizadas
     const auctionAddress = "0xbC1C0E450C33cD50E2772D18aE166d847D801723";
-    const auctionABI = [
-  "function depositTokens(uint256 amount) external",
-  "function highestBid() view returns (uint256)",
-  "function highestBidder() view returns (address)",
-  "function auctionEndTime() view returns (uint256)",
-  "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
-  "function getBidderPosition(address bidder) view returns (uint256, uint256)",
-  "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)",
-  "function pauseAuction() external",
-  "function unpauseAuction() external",
-  "function cancelAndResetAuction(uint256 newDuration) external",
-  "event TokensDeposited(address indexed bidder, uint256 amount)"
-];
-    
-    // Nuevo token ADRIAN: 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+
+    // ABI del contrato de subasta (según el código proporcionado)
+    const auctionABI = [
+      "function depositTokens(uint256 amount) external",
+      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function auctionEndTime() view returns (uint256)",
+      "function highestBid() view returns (uint256)",
+      "function highestBidder() view returns (address)",
+      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
+      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
+      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)",
+      "function cancelAndResetAuction(uint256 newDuration) external",
+      "function pauseAuction() external",
+      "function unpauseAuction() external",
+      "function endAuction() external",
+      "function rescueTokens(address to) external"
+    ];
+
+    // ABI del token (estándar ERC20)
     const tokenABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function balanceOf(address account) view returns (uint256)"
     ];
-    
+
+    // Conectar wallet
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -192,15 +197,16 @@
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
           document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
-          
+
           auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
           tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-          
+
           updateHighestBid();
           updateTimeRemaining();
-          updateTop10();
           updateAuctionStats();
-          
+          updateTop10();
+
+          // Actualizar cada cierto intervalo
           setInterval(updateTimeRemaining, 5000);
           setInterval(updateTop10, 10000);
           setInterval(updateAuctionStats, 15000);
@@ -212,9 +218,10 @@
         alert("MetaMask is not installed");
       }
     }
-    
+
     document.getElementById("connectButton").addEventListener("click", connectWallet);
-    
+
+    // Actualizar Highest Bid
     async function updateHighestBid() {
       try {
         const highestBidRaw = await auctionContract.highestBid();
@@ -223,11 +230,12 @@
         console.error("Error fetching highest bid:", error);
       }
     }
-    
+
+    // Actualizar tiempo restante de la subasta
     async function updateTimeRemaining() {
       try {
-        const auctionEndTimeRaw = await auctionContract.auctionEndTime();
-        const endTime = parseInt(auctionEndTimeRaw.toString());
+        const endTimeRaw = await auctionContract.auctionEndTime();
+        const endTime = parseInt(endTimeRaw.toString());
         const now = Math.floor(Date.now() / 1000);
         let secondsRemaining = endTime - now;
         if (secondsRemaining < 0) secondsRemaining = 0;
@@ -235,18 +243,37 @@
         const minutes = Math.floor((secondsRemaining % 3600) / 60);
         const seconds = secondsRemaining % 60;
         document.getElementById("timeRemainingDisplay").innerText =
-          hours + "h " + minutes + "m " + seconds + "s";
+          `${hours}h ${minutes}m ${seconds}s`;
       } catch (error) {
         console.error("Error updating time remaining:", error);
         document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
       }
     }
-    
+
+    // Actualizar estadísticas de la subasta
+    async function updateAuctionStats() {
+      try {
+        const [highestBid, highestBidder, totalTokens, bidderCount, auctionEnd] = await auctionContract.getAuctionStats();
+        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
+        statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Number of Bidders: ${bidderCount}</p>`;
+        const endDate = new Date(auctionEnd.toNumber() * 1000);
+        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
+        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
+      } catch (error) {
+        console.error("Error fetching auction stats:", error);
+        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
+      }
+    }
+
+    // Actualizar Top 10 Bidders
     async function updateTop10() {
       try {
         const [topBidders, topBids] = await auctionContract.getTop10Bidders();
         let html = "";
         for (let i = 0; i < topBidders.length; i++) {
+          // Mostramos las últimas 4 cifras de la dirección para mayor claridad
           const truncated = topBidders[i].slice(-4);
           const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
           html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
@@ -257,23 +284,8 @@
         document.getElementById("top10Display").innerText = "Error loading top 10.";
       }
     }
-    
-    async function updateAuctionStats() {
-      try {
-        const [highestBid, highestBidder, totalTokens, bidderCount, endTime] = await auctionContract.getAuctionStats();
-        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
-        statsHtml += `<p>Total Tokens: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Number of Bidders: ${bidderCount}</p>`;
-        const endDate = new Date(endTime.toNumber() * 1000);
-        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
-        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
-      } catch (error) {
-        console.error("Error fetching auction stats:", error);
-        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
-      }
-    }
-    
+
+    // Actualizar Mi Posición
     async function updateMyPosition() {
       if (!userAccount) {
         document.getElementById("myPositionDisplay").innerText = "Not connected";
@@ -288,9 +300,10 @@
         document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
       }
     }
-    
+
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
-    
+
+    // Función para aprobar y depositar tokens
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -299,28 +312,31 @@
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
       try {
-        // Aprobar tokens
+        // Aprobar tokens para el contrato de subasta
         const txApprove = await tokenContract.approve(auctionAddress, amount);
-        alert("Approval transaction sent. Wait for confirmation.");
+        alert("Approval transaction sent. Please wait for confirmation.");
         await txApprove.wait();
         alert("Approval confirmed. Proceeding to deposit.");
-        // Depositar tokens
+
+        // Depositar tokens en la subasta
         const txDeposit = await auctionContract.depositTokens(amount);
-        alert("Deposit transaction sent. Wait for confirmation.");
+        alert("Deposit transaction sent. Please wait for confirmation.");
         await txDeposit.wait();
         alert("Deposit confirmed.");
+
+        // Actualizar datos de la subasta
         updateHighestBid();
         updateTop10();
         updateAuctionStats();
       } catch (error) {
         console.error("Error during approve & deposit:", error);
-        alert("Error during approve & deposit");
+        alert("Error during approve & deposit. Check console for details.");
       }
     }
-    
+
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   </script>
-  
+
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
