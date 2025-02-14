@@ -153,8 +153,8 @@
   <footer class="text-center mt-5 mb-3">
     <p>
       Contract Address: 
-      <a href="https://base.blockscout.com/address/0xbC1C0E450C33cD50E2772D18aE166d847D801723" target="_blank">
-        0xbC1C0E450C33cD50E2772D18aE166d847D801723
+      <a href="https://base.blockscout.com/address/0x34c9b2a524f882b754feab9a09f06fb64f5d73ed" target="_blank">
+        0x34c9b2a524f882b754feab9a09f06fb64f5d73ed
       </a>
     </p>
   </footer>
@@ -164,8 +164,8 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
 
-    // Dirección del contrato de subasta
-    const auctionAddress = "0xbC1C0E450C33cD50E2772D18aE166d847D801723";
+    // Dirección del contrato de subasta actualizada
+    const auctionAddress = "0x34c9b2a524f882b754feab9a09f06fb64f5d73ed";
     const auctionABI = [
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
       "function depositTokens(uint256 amount) external",
@@ -300,6 +300,11 @@
     
     // Función para solicitar el permit (se ejecuta en una transacción separada)
     async function requestPermit() {
+      if (!tokenContract || !userAccount) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
         alert("Please enter a valid amount");
@@ -307,36 +312,37 @@
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
       const deadline = Math.floor(Date.now() / 1000) + 3600;
-      const nonce = await tokenContract.nonces(userAccount);
-      const tokenName = await tokenContract.name();
-      const { chainId } = await provider.getNetwork();
-      
-      const domain = {
-        name: tokenName,
-        version: "1",
-        chainId: chainId,
-        verifyingContract: tokenAddress
-      };
-      
-      const types = {
-        Permit: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" },
-          { name: "value", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" }
-        ]
-      };
-      
-      const message = {
-        owner: userAccount,
-        spender: auctionAddress,
-        value: amount.toString(),
-        nonce: nonce.toString(),
-        deadline: deadline
-      };
       
       try {
+        const nonce = await tokenContract.nonces(userAccount);
+        const tokenName = await tokenContract.name();
+        const { chainId } = await provider.getNetwork();
+        
+        const domain = {
+          name: tokenName,
+          version: "1",
+          chainId: chainId,
+          verifyingContract: tokenAddress
+        };
+        
+        const types = {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
+          ]
+        };
+        
+        const message = {
+          owner: userAccount,
+          spender: auctionAddress,
+          value: amount.toString(),
+          nonce: nonce.toString(),
+          deadline: deadline
+        };
+        
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
         const tx = await tokenContract.permit(userAccount, auctionAddress, amount, deadline, v, r, s);
