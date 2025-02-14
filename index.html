@@ -293,8 +293,7 @@
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
     
     // Función para firmar con permit (ERC-2612) y depositar en una sola transacción.
-    // Se limita el "spending cap" a la cantidad exacta de la puja para evitar aprobaciones ilimitadas,
-    // lo que reduce riesgos y posibles advertencias en MetaMask, además de ahorrar gas.
+    // Se establece el "spending cap" exactamente igual a la cantidad de la puja para evitar aprobaciones ilimitadas.
     async function permitAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -302,6 +301,9 @@
         return;
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
+      // Definimos el spending cap igual al monto de la puja
+      const spendingCap = amount;
+      console.log("Spending cap limitado a:", spendingCap.toString());
       
       try {
         // Deadline de 1 hora a partir de ahora (puedes ajustarlo)
@@ -323,7 +325,7 @@
         };
         
         // Estructura de datos Permit según ERC-2612.
-        // Se firma exactamente por el "amount" a gastar, evitando spending caps ilimitados.
+        // El parámetro "value" se establece en spendingCap, limitando la aprobación a la cantidad exacta.
         const types = {
           Permit: [
             { name: "owner", type: "address" },
@@ -337,7 +339,7 @@
         const message = {
           owner: userAccount,
           spender: auctionAddress,
-          value: amount.toString(), // El spending cap se limita al monto ingresado
+          value: spendingCap.toString(),
           nonce: nonce.toString(),
           deadline: deadline
         };
