@@ -133,13 +133,17 @@
       </div>
     </div>
 
-    <!-- Place a Bid: Permit & Deposit -->
+    <!-- Place a Bid: Permit & Deposit (2 botones separados) -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
         <div class="input-group">
           <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="permitDepositButton" class="btn btn-anaglyph-blue">Deposit with Permit</button>
+        </div>
+        <br>
+        <div class="d-flex justify-content-around">
+          <button id="permitButton" class="btn btn-anaglyph-blue">Request Permit</button>
+          <button id="depositButton" class="btn btn-anaglyph-blue">Deposit Tokens</button>
         </div>
       </div>
     </div>
@@ -159,11 +163,12 @@
   <script>
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
-    
-    // Dirección del contrato de subasta actualizada
+
+    // Dirección del contrato de subasta
     const auctionAddress = "0xbC1C0E450C33cD50E2772D18aE166d847D801723";
     const auctionABI = [
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function depositTokens(uint256 amount) external",
       "function highestBid() view returns (uint256)",
       "function highestBidder() view returns (address)",
       "function auctionEndTime() view returns (uint256)",
@@ -175,16 +180,17 @@
       "function resetAuction(uint256 newDuration) external",
       "event TokensDeposited(address indexed bidder, uint256 amount)"
     ];
-    
-    // Dirección del token que soporta permit (ya actualizada)
+
+    // Dirección del token que soporta permit
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
       "function name() view returns (string)",
-      "function nonces(address owner) view returns (uint256)"
+      "function nonces(address owner) view returns (uint256)",
+      "function allowance(address owner, address spender) view returns (uint256)"
     ];
-    
+
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -292,80 +298,81 @@
     
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
     
-    // Función para firmar con permit (ERC-2612) y depositar en una sola transacción.
-    // Se establece el "spending cap" exactamente igual a la cantidad de la puja para evitar aprobaciones ilimitadas.
-    async function permitAndDeposit() {
+    // Función para solicitar el permit (se ejecuta en una transacción separada)
+    async function requestPermit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
         alert("Please enter a valid amount");
         return;
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
-      // Definimos el spending cap igual al monto de la puja
-      const spendingCap = amount;
-      console.log("Spending cap limitado a:", spendingCap.toString());
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+      const nonce = await tokenContract.nonces(userAccount);
+      const tokenName = await tokenContract.name();
+      const { chainId } = await provider.getNetwork();
+      
+      const domain = {
+        name: tokenName,
+        version: "1",
+        chainId: chainId,
+        verifyingContract: tokenAddress
+      };
+      
+      const types = {
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" }
+        ]
+      };
+      
+      const message = {
+        owner: userAccount,
+        spender: auctionAddress,
+        value: amount.toString(),
+        nonce: nonce.toString(),
+        deadline: deadline
+      };
       
       try {
-        // Deadline de 1 hora a partir de ahora (puedes ajustarlo)
-        const deadline = Math.floor(Date.now() / 1000) + 3600;
-        
-        // Obtener el nonce actual para el usuario
-        const nonce = await tokenContract.nonces(userAccount);
-        
-        // Obtener el nombre del token para el dominio EIP-712
-        const tokenName = await tokenContract.name();
-        const { chainId } = await provider.getNetwork();
-        
-        // Dominio EIP-712
-        const domain = {
-          name: tokenName,
-          version: "1",
-          chainId: chainId,
-          verifyingContract: tokenAddress
-        };
-        
-        // Estructura de datos Permit según ERC-2612.
-        // El parámetro "value" se establece en spendingCap, limitando la aprobación a la cantidad exacta.
-        const types = {
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" }
-          ]
-        };
-        
-        const message = {
-          owner: userAccount,
-          spender: auctionAddress,
-          value: spendingCap.toString(),
-          nonce: nonce.toString(),
-          deadline: deadline
-        };
-        
-        // Firmar el mensaje EIP-712
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
-        
-        // Llamar a depositTokensWithPermit en el contrato de subasta
-        const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
+        const tx = await tokenContract.permit(userAccount, auctionAddress, amount, deadline, v, r, s);
+        alert("Permit transaction sent. Wait for confirmation.");
+        await tx.wait();
+        alert("Permit confirmed. You can now deposit tokens.");
+      } catch (error) {
+        console.error("Error during permit:", error);
+        alert("Error during permit. Check the console for details.");
+      }
+    }
+    
+    // Función para depositar tokens (usando la aprobación ya establecida)
+    async function depositTokens() {
+      const amountInput = document.getElementById("amountInput").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      try {
+        const tx = await auctionContract.depositTokens(amount);
         alert("Deposit transaction sent. Wait for confirmation.");
         await tx.wait();
         alert("Deposit confirmed.");
-        
-        // Actualizar información tras depositar
         updateHighestBid();
         updateTop10();
         updateAuctionStats();
       } catch (error) {
-        console.error("Error during permit & deposit:", error);
-        alert("Error during permit & deposit. Check the console for details.");
+        console.error("Error during deposit:", error);
+        alert("Error during deposit. Check the console for details.");
       }
     }
     
-    // Listener para usar permitAndDeposit
-    document.getElementById("permitDepositButton").addEventListener("click", permitAndDeposit);
+    document.getElementById("permitButton").addEventListener("click", requestPermit);
+    document.getElementById("depositButton").addEventListener("click", depositTokens);
   </script>
   
   <!-- Bootstrap JS Bundle -->
