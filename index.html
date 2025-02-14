@@ -45,7 +45,9 @@
   </div>
 
   <script>
-    let provider, signer, auctionContract, tokenContract, userAccount;
+    let provider, signer, auctionContract, tokenContract;
+    let userAccount = "";
+
     // Direcciones y ABIs (ajusta según corresponda)
     const auctionAddress = "0x34c9b2a524f882b754feab9a09f06fb64f5d73ed";
     const auctionABI = [
@@ -57,7 +59,6 @@
       "function name() view returns (string)"
     ];
     
-    // Conectar wallet
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -79,9 +80,9 @@
     }
     document.getElementById("connectButton").addEventListener("click", connectWallet);
     
-    // Función para depositar tokens usando permit (permit + deposit en 1 tx)
+    // Función para depositar tokens usando el flujo de permit (permit + deposit en 1 tx)
     async function depositTokens() {
-      if (!userAccount) {
+      if (!userAccount || !tokenContract) {
         alert("Please connect your wallet first.");
         return;
       }
@@ -95,9 +96,9 @@
       try {
         // Obtenemos el nonce actual
         const nonce = await tokenContract.nonces(userAccount);
-        // Aquí forzamos el uso del nombre correcto, "ADRIAN", que debe coincidir con el token desplegado.
+        // Construir el dominio EIP-712 con el nombre "ADRIANToken"
         const domain = {
-          name: "ADRIAN",
+          name: "ADRIANToken", // Debe coincidir exactamente con el nombre usado en el token
           version: "1",
           chainId: (await provider.getNetwork()).chainId,
           verifyingContract: tokenAddress
@@ -122,14 +123,21 @@
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
         
-        // Ejecutar la transacción de depositTokensWithPermit
+        // Opcional: verificar la firma (puedes comentar esta parte si ya está bien)
+        const recovered = ethers.utils.verifyTypedData(domain, types, message, signature);
+        console.log("Recovered address:", recovered, "User account:", userAccount);
+        if (recovered.toLowerCase() !== userAccount.toLowerCase()) {
+          throw new Error("La firma recuperada no coincide con la cuenta del usuario");
+        }
+        
         document.getElementById("status").innerText = "Sending deposit transaction...";
+        // Llamamos a depositTokensWithPermit para ejecutar permit y deposit en una transacción
         const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
         await tx.wait();
         document.getElementById("status").innerText = "Deposit confirmed!";
       } catch (error) {
         console.error("Error during deposit:", error);
-        document.getElementById("status").innerText = "Error during deposit. See console for details.";
+        document.getElementById("status").innerText = "Error during deposit. Check the console for details.";
       }
     }
     document.getElementById("depositButton").addEventListener("click", depositTokens);
