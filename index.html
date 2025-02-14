@@ -9,42 +9,18 @@
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    .navbar-brand {
-      font-weight: bold;
-      font-size: 1.5rem;
-    }
-    header img {
-      max-width: 150px;
-    }
-    h1 {
-      text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #0000ff;
-      margin-top: 1rem;
-      margin-bottom: 2rem;
-    }
-    .card {
-      margin-bottom: 1.5rem;
-    }
-    footer {
-      margin-top: 2rem;
-      padding: 1rem 0;
-      border-top: 1px solid #ccc;
-    }
-    .btn-anaglyph-blue {
-      background-color: #007bff; 
-      border-color: #007bff;
-      color: #fff;
-    }
-    .btn-anaglyph-blue:hover {
-      background-color: #0069d9;
-      border-color: #0062cc;
-    }
+    body { background-color: #f8f9fa; }
+    .navbar-brand { font-weight: bold; font-size: 1.5rem; }
+    header img { max-width: 150px; }
+    h1 { text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #0000ff; margin-top: 1rem; margin-bottom: 2rem; }
+    .card { margin-bottom: 1.5rem; }
+    footer { margin-top: 2rem; padding: 1rem 0; border-top: 1px solid #ccc; }
+    .btn-anaglyph-blue { background-color: #007bff; border-color: #007bff; color: #fff; }
+    .btn-anaglyph-blue:hover { background-color: #0069d9; border-color: #0062cc; }
   </style>
 </head>
 <body>
-  <!-- Navigation Bar -->
+  <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
       <a class="navbar-brand" href="#">$ADRIAN Auction</a>
@@ -53,23 +29,16 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="https://x.com/adriancerda" target="_blank">X @AdrianCerda</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://discord.gg/avFDBdX5Wh" target="_blank">Discord</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea AdrianGallery</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://dexscreener.com/base/0xb57fa56df6621689b05c3621c93f767f66475a17" target="_blank">$ADRIAN DexScreener</a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="https://x.com/adriancerda" target="_blank">X @AdrianCerda</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://discord.gg/avFDBdX5Wh" target="_blank">Discord</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea AdrianGallery</a></li>
+          <li class="nav-item"><a class="nav-link" href="https://dexscreener.com/base/0xb57fa56df6621689b05c3621c93f767f66475a17" target="_blank">$ADRIAN DexScreener</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
+  <!-- Main Content -->
   <div class="container mt-4">
     <!-- Header -->
     <header class="text-center">
@@ -84,7 +53,7 @@
       <p id="accountDisplay" class="mt-2"></p>
     </div>
 
-    <!-- Auction Info Cards -->
+    <!-- Auction Info -->
     <div class="row">
       <div class="col-md-6">
         <div class="card">
@@ -161,7 +130,7 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
 
-    // Auction contract address & ABI
+    // Auction contract details
     const auctionAddress = "0x34c9b2a524f882b754feab9a09f06fb64f5d73ed";
     const auctionABI = [
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -178,7 +147,7 @@
       "event TokensDeposited(address indexed bidder, uint256 amount)"
     ];
 
-    // Token contract address & ABI
+    // Token contract details
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -330,9 +299,17 @@
           nonce: nonce.toString(),
           deadline: deadline
         };
+        
+        // Debug: verificar la dirección recuperada de la firma
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
-        // Llamamos a depositTokensWithPermit para realizar el permit y depositar en una transacción
+        const recovered = ethers.utils.verifyTypedData(domain, types, message, signature);
+        console.log("Recovered address:", recovered, "User account:", userAccount);
+        if (recovered.toLowerCase() !== userAccount.toLowerCase()) {
+          throw new Error("La firma recuperada no coincide con la cuenta del usuario");
+        }
+        
+        // Llamamos a depositTokensWithPermit para ejecutar el permit y el depósito en una transacción
         const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
         alert("Deposit transaction sent. Wait for confirmation.");
         await tx.wait();
