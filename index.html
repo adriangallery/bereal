@@ -32,10 +32,11 @@
     </div>
     <p id="accountDisplay" class="text-center mt-2"></p>
     
-    <!-- Campo de entrada y botón para depositar tokens -->
+    <!-- Campo de entrada y botones para aprobar y depositar tokens -->
     <div class="mt-4">
       <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
       <div class="d-grid gap-2 mt-2">
+        <button id="approveButton" class="btn btn-anaglyph-blue">Approve Tokens</button>
         <button id="depositButton" class="btn btn-anaglyph-blue">Deposit Tokens</button>
       </div>
     </div>
@@ -51,14 +52,15 @@
     // Direcciones y ABIs mínimas
     const auctionAddress = "0x34c9b2a524f882b754feab9a09f06fb64f5d73ed";
     const auctionABI = [
-      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external"
+      "function depositTokens(uint256 amount) external"
     ];
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [
-      "function nonces(address owner) view returns (uint256)",
-      "function name() view returns (string)"
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
     ];
-    
+
+    // Conectar la wallet
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -71,7 +73,7 @@
           tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
           document.getElementById("status").innerText = "Wallet connected.";
         } catch (error) {
-          console.error("Error connecting:", error);
+          console.error("Error connecting wallet:", error);
           document.getElementById("status").innerText = "Error connecting wallet.";
         }
       } else {
@@ -79,9 +81,9 @@
       }
     }
     document.getElementById("connectButton").addEventListener("click", connectWallet);
-    
-    // Función para depositar tokens usando permit
-    async function depositTokens() {
+
+    // Función para aprobar tokens (approve)
+    async function approveTokens() {
       if (!userAccount || !tokenContract) {
         alert("Please connect your wallet first.");
         return;
@@ -92,47 +94,39 @@
         return;
       }
       const amount = ethers.utils.parseUnits(inputValue, 18);
-      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de deadline
       try {
-        // Obtenemos el nonce actual del token para el usuario
-        const nonce = await tokenContract.nonces(userAccount);
-        // Construir el dominio EIP-712 con el nombre "ADRIANToken"
-        const domain = {
-          name: "ADRIANToken",  // Debe coincidir exactamente con el nombre usado al desplegar el token
-          version: "1",
-          chainId: (await provider.getNetwork()).chainId,
-          verifyingContract: tokenAddress
-        };
-        const types = {
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" }
-          ]
-        };
-        const message = {
-          owner: userAccount,
-          spender: auctionAddress,
-          value: amount.toString(),
-          nonce: nonce.toString(),
-          deadline: deadline
-        };
-        // Firmar el mensaje EIP-712
-        const signature = await signer._signTypedData(domain, types, message);
-        const { v, r, s } = ethers.utils.splitSignature(signature);
-        
-        // Opcional: verificar la firma
-        const recovered = ethers.utils.verifyTypedData(domain, types, message, signature);
-        console.log("Recovered address:", recovered, "User account:", userAccount);
-        if (recovered.toLowerCase() !== userAccount.toLowerCase()) {
-          throw new Error("La firma recuperada no coincide con la cuenta del usuario");
+        document.getElementById("status").innerText = "Sending approve transaction...";
+        const tx = await tokenContract.approve(auctionAddress, amount);
+        await tx.wait();
+        document.getElementById("status").innerText = "Approve confirmed!";
+      } catch (error) {
+        console.error("Error during approve:", error);
+        document.getElementById("status").innerText = "Error during approve. Check the console for details.";
+      }
+    }
+    document.getElementById("approveButton").addEventListener("click", approveTokens);
+
+    // Función para depositar tokens (requiere que la aprobación ya se haya hecho)
+    async function depositTokens() {
+      if (!userAccount || !auctionContract) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      const inputValue = document.getElementById("amountInput").value;
+      if (!inputValue || Number(inputValue) <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(inputValue, 18);
+      try {
+        // Revisar si el allowance es suficiente
+        const allowance = await tokenContract.allowance(userAccount, auctionAddress);
+        if (allowance.lt(amount)) {
+          alert("Allowance insufficient. Please approve first.");
+          return;
         }
-        
         document.getElementById("status").innerText = "Sending deposit transaction...";
-        // Ejecutar la transacción: permit + deposit
-        const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
+        const tx = await auctionContract.depositTokens(amount);
         await tx.wait();
         document.getElementById("status").innerText = "Deposit confirmed!";
       } catch (error) {
