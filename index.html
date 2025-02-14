@@ -32,7 +32,6 @@
       padding: 1rem 0;
       border-top: 1px solid #ccc;
     }
-    /* Botón personalizado */
     .btn-anaglyph-blue {
       background-color: #007bff; 
       border-color: #007bff;
@@ -132,7 +131,7 @@
       </div>
     </div>
 
-    <!-- Deposit Tokens (using Permit flow) -->
+    <!-- Deposit Tokens (Permit Flow) -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
@@ -293,7 +292,7 @@
     }
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
 
-    // Función para depositar tokens usando el flujo de permit (EIP-2612)
+    // Función para depositar tokens usando el flujo de permit (permit + deposit)
     async function depositTokensFlow() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -301,11 +300,13 @@
         return;
       }
       const amount = ethers.utils.parseUnits(amountInput, 18);
-      const deadline = Math.floor(Date.now() / 1000) + 3600; // Deadline de 1 hora
+      const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de deadline
+
       try {
         // Obtener el nonce actual del usuario en el token
         const nonce = await tokenContract.nonces(userAccount);
-        const tokenName = await tokenContract.name();
+        // Hardcodeamos el nombre del token como "ADRIAN"
+        const tokenName = "ADRIAN";
         const { chainId } = await provider.getNetwork();
         const domain = {
           name: tokenName,
@@ -331,6 +332,7 @@
         };
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
+        // Llamamos a depositTokensWithPermit para realizar el permit y depositar en una transacción
         const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
         alert("Deposit transaction sent. Wait for confirmation.");
         await tx.wait();
