@@ -96,7 +96,7 @@
         <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
       </div>
       <div class="card-body">
-        <div id="myPositionDisplay">Not checked</div>
+        <div id="myPositionDisplay">Not connected</div>
       </div>
     </div>
 
@@ -274,13 +274,15 @@
       try {
         // Obtener el nonce actual del usuario en el token
         const nonce = await tokenContract.nonces(userAccount);
-        // Hardcodeamos el nombre del token como "ADRIAN"
+        // Usamos el nombre del token "ADRIAN" (asegúrate de que coincide con lo desplegado)
         const tokenName = "ADRIAN";
         const { chainId } = await provider.getNetwork();
+        // Si el chainId obtenido no es el esperado, prueba a forzarlo manualmente (por ejemplo, 8453 para Base)
+        console.log("ChainId:", chainId);
         const domain = {
           name: tokenName,
           version: "1",
-          chainId: chainId,
+          chainId: chainId, // Si es necesario, reemplazar con el valor correcto, ej. 8453
           verifyingContract: tokenAddress
         };
         const types = {
@@ -300,7 +302,7 @@
           deadline: deadline
         };
         
-        // Debug: verificar la dirección recuperada de la firma
+        // Verificar la firma y recuperar la dirección
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
         const recovered = ethers.utils.verifyTypedData(domain, types, message, signature);
