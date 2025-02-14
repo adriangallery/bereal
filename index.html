@@ -292,7 +292,9 @@
     
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
     
-    // Función para firmar con permit (ERC-2612) y depositar en una sola transacción
+    // Función para firmar con permit (ERC-2612) y depositar en una sola transacción.
+    // Se limita el "spending cap" a la cantidad exacta de la puja para evitar aprobaciones ilimitadas,
+    // lo que reduce riesgos y posibles advertencias en MetaMask, además de ahorrar gas.
     async function permitAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -320,7 +322,8 @@
           verifyingContract: tokenAddress
         };
         
-        // Estructura de datos Permit según ERC-2612
+        // Estructura de datos Permit según ERC-2612.
+        // Se firma exactamente por el "amount" a gastar, evitando spending caps ilimitados.
         const types = {
           Permit: [
             { name: "owner", type: "address" },
@@ -334,7 +337,7 @@
         const message = {
           owner: userAccount,
           spender: auctionAddress,
-          value: amount.toString(),
+          value: amount.toString(), // El spending cap se limita al monto ingresado
           nonce: nonce.toString(),
           deadline: deadline
         };
@@ -349,17 +352,17 @@
         await tx.wait();
         alert("Deposit confirmed.");
         
-        // Actualizar info tras depositar
+        // Actualizar información tras depositar
         updateHighestBid();
         updateTop10();
         updateAuctionStats();
       } catch (error) {
         console.error("Error during permit & deposit:", error);
-        alert("Error during permit & deposit. Revisa la consola para más detalles.");
+        alert("Error during permit & deposit. Check the console for details.");
       }
     }
     
-    // Cambiamos el listener para usar permitAndDeposit en lugar de approve
+    // Listener para usar permitAndDeposit
     document.getElementById("permitDepositButton").addEventListener("click", permitAndDeposit);
   </script>
   
