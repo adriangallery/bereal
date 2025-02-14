@@ -48,7 +48,7 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
 
-    // Direcciones y ABIs (ajusta según corresponda)
+    // Direcciones y ABIs mínimas
     const auctionAddress = "0x34c9b2a524f882b754feab9a09f06fb64f5d73ed";
     const auctionABI = [
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external"
@@ -80,7 +80,7 @@
     }
     document.getElementById("connectButton").addEventListener("click", connectWallet);
     
-    // Función para depositar tokens usando el flujo de permit (permit + deposit en 1 tx)
+    // Función para depositar tokens usando permit
     async function depositTokens() {
       if (!userAccount || !tokenContract) {
         alert("Please connect your wallet first.");
@@ -94,11 +94,11 @@
       const amount = ethers.utils.parseUnits(inputValue, 18);
       const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de deadline
       try {
-        // Obtenemos el nonce actual
+        // Obtenemos el nonce actual del token para el usuario
         const nonce = await tokenContract.nonces(userAccount);
         // Construir el dominio EIP-712 con el nombre "ADRIANToken"
         const domain = {
-          name: "ADRIANToken", // Debe coincidir exactamente con el nombre usado en el token
+          name: "ADRIANToken",  // Debe coincidir exactamente con el nombre usado al desplegar el token
           version: "1",
           chainId: (await provider.getNetwork()).chainId,
           verifyingContract: tokenAddress
@@ -119,11 +119,11 @@
           nonce: nonce.toString(),
           deadline: deadline
         };
-        // Firmar el mensaje
+        // Firmar el mensaje EIP-712
         const signature = await signer._signTypedData(domain, types, message);
         const { v, r, s } = ethers.utils.splitSignature(signature);
         
-        // Opcional: verificar la firma (puedes comentar esta parte si ya está bien)
+        // Opcional: verificar la firma
         const recovered = ethers.utils.verifyTypedData(domain, types, message, signature);
         console.log("Recovered address:", recovered, "User account:", userAccount);
         if (recovered.toLowerCase() !== userAccount.toLowerCase()) {
@@ -131,7 +131,7 @@
         }
         
         document.getElementById("status").innerText = "Sending deposit transaction...";
-        // Llamamos a depositTokensWithPermit para ejecutar permit y deposit en una transacción
+        // Ejecutar la transacción: permit + deposit
         const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
         await tx.wait();
         document.getElementById("status").innerText = "Deposit confirmed!";
