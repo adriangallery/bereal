@@ -20,9 +20,6 @@
       font-weight: bold;
       font-size: 1.5rem;
     }
-    header img {
-      max-width: 200px;
-    }
     h1 {
       font-family: 'Impact', sans-serif;
       text-shadow: 3px 3px 5px #ff0000;
@@ -51,13 +48,6 @@
       border-top: 1px solid #444;
       text-align: center;
     }
-    .pump-animation {
-      animation: pump 1s infinite alternate;
-    }
-    @keyframes pump {
-      from { transform: scale(1); }
-      to { transform: scale(1.05); }
-    }
   </style>
 </head>
 <body>
@@ -83,7 +73,6 @@
 
   <div class="container mt-4">
     <header class="text-center">
-      <img src="https://via.placeholder.com/200?text=Steroids" class="img-fluid pump-animation rounded mx-auto d-block" alt="Inyección de esteroides">
       <h1>Boost Your ADRIANS!</h1>
       <p class="lead">Inject some steroids into your tokens to make your ADRIANS super strong!</p>
     </header>
@@ -109,71 +98,78 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Dirección del contrato swap
-    const contractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
-    
-    // ABI mínima con la función swap
-    const abi = [
-      {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
+    document.addEventListener("DOMContentLoaded", function() {
+      // Dirección del contrato swap
+      const contractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+      
+      // ABI mínima con la función swap
+      const abi = [
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "swap",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ];
+      
+      let provider;
+      let signer;
+      let contract;
+      
+      // Conectar a MetaMask
+      document.getElementById("connectWallet").onclick = async () => {
+        if (window.ethereum) {
+          try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            const address = await signer.getAddress();
+            document.getElementById("walletAddress").innerText = "Conectado: " + address;
+            // Instanciar el contrato con el signer
+            contract = new ethers.Contract(contractAddress, abi, signer);
+          } catch (error) {
+            console.error("Error al conectar la wallet:", error);
+            alert("Error al conectar la wallet. Revisa la consola para más detalles.");
           }
-        ],
-        "name": "swap",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      }
-    ];
-    
-    let provider;
-    let signer;
-    let contract;
-    
-    // Conectar a MetaMask
-    document.getElementById("connectWallet").onclick = async () => {
-      if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = "Conectado: " + address;
-        // Instanciar el contrato con el signer
-        contract = new ethers.Contract(contractAddress, abi, signer);
-      } else {
-        alert("Necesitas instalar MetaMask");
-      }
-    };
-    
-    // Ejecutar la función swap
-    document.getElementById("swapButton").onclick = async () => {
-      if (!contract) {
-        alert("Conecta tu wallet primero.");
-        return;
-      }
+        } else {
+          alert("Necesitas instalar MetaMask");
+        }
+      };
       
-      const amountInput = document.getElementById("amount").value;
-      if (!amountInput || amountInput <= 0) {
-        alert("Introduce una cantidad válida.");
-        return;
-      }
-      
-      // Convertir la cantidad a la unidad mínima (suponiendo 18 decimales)
-      const amount = ethers.utils.parseUnits(amountInput, 18);
-      
-      try {
-        const tx = await contract.swap(amount);
-        alert("Transacción enviada: " + tx.hash);
-        await tx.wait();
-        alert("Swap completado exitosamente.");
-      } catch (error) {
-        console.error(error);
-        alert("Error en la transacción: " + error.message);
-      }
-    };
+      // Ejecutar la función swap
+      document.getElementById("swapButton").onclick = async () => {
+        if (!contract) {
+          alert("Conecta tu wallet primero.");
+          return;
+        }
+        
+        const amountInput = document.getElementById("amount").value;
+        if (!amountInput || amountInput <= 0) {
+          alert("Introduce una cantidad válida.");
+          return;
+        }
+        
+        // Convertir la cantidad a la unidad mínima (suponiendo 18 decimales)
+        const amount = ethers.utils.parseUnits(amountInput, 18);
+        
+        try {
+          const tx = await contract.swap(amount);
+          alert("Transacción enviada: " + tx.hash);
+          await tx.wait();
+          alert("Swap completado exitosamente.");
+        } catch (error) {
+          console.error(error);
+          alert("Error en la transacción: " + error.message);
+        }
+      };
+    });
   </script>
 </body>
 </html>
