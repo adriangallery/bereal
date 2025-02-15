@@ -1,1 +1,87 @@
-
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Frontend - Token Swap</title>
+  <!-- Incluir ethers.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <h1>Token Swap</h1>
+  <button id="connectWallet">Conectar Wallet</button>
+  <div id="walletAddress"></div>
+  
+  <h3>Realizar Swap</h3>
+  <!-- Se asume que el usuario ingresa la cantidad en tokens (ej. 100) -->
+  <input type="number" id="amount" placeholder="Cantidad de tokens" />
+  <button id="swapButton">Ejecutar Swap</button>
+  
+  <script>
+    // Dirección del contrato swap
+    const contractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+    
+    // ABI mínima con la función swap (se asume que la función swap tiene el siguiente signature)
+    const abi = [
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "swap",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+    
+    let provider;
+    let signer;
+    let contract;
+    
+    // Conectar a MetaMask
+    document.getElementById("connectWallet").onclick = async () => {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById("walletAddress").innerText = "Conectado: " + address;
+        // Instanciar el contrato con el signer
+        contract = new ethers.Contract(contractAddress, abi, signer);
+      } else {
+        alert("Necesitas instalar MetaMask");
+      }
+    };
+    
+    // Ejecutar la función swap
+    document.getElementById("swapButton").onclick = async () => {
+      if (!contract) {
+        alert("Conecta tu wallet primero.");
+        return;
+      }
+      
+      const amountInput = document.getElementById("amount").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Introduce una cantidad válida.");
+        return;
+      }
+      
+      // Convertir la cantidad a la unidad mínima (suponiendo 18 decimales)
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      
+      try {
+        const tx = await contract.swap(amount);
+        alert("Transacción enviada: " + tx.hash);
+        await tx.wait();
+        alert("Swap completado exitosamente.");
+      } catch (error) {
+        console.error(error);
+        alert("Error en la transacción: " + error.message);
+      }
+    };
+  </script>
+</body>
+</html>
