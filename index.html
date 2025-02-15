@@ -71,20 +71,17 @@
   </nav>
 
   <div class="container mt-4">
-    <!-- Header -->
     <header class="text-center">
       <img src="https://i2.seadn.io/ethereum/0x789e35a999c443fe6089544056f728239b8ffee7/9fabb4aed11c9f8c2b761971e6e0c9/149fabb4aed11c9f8c2b761971e6e0c9.gif?w=1000" 
            class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
       <h1 class="mt-3">$ADRIAN Auction</h1>
     </header>
 
-    <!-- Conexión -->
     <div class="text-center mb-4">
       <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
       <p id="accountDisplay" class="mt-2"></p>
     </div>
 
-    <!-- Información de la subasta -->
     <div class="row">
       <div class="col-md-6">
         <div class="card">
@@ -104,7 +101,6 @@
       </div>
     </div>
 
-    <!-- Auction Stats -->
     <div class="card">
       <div class="card-header">Auction Stats</div>
       <div class="card-body">
@@ -112,7 +108,6 @@
       </div>
     </div>
 
-    <!-- Top 10 Bidders -->
     <div class="card">
       <div class="card-header">Top 10 Bidders</div>
       <div class="card-body">
@@ -120,7 +115,6 @@
       </div>
     </div>
 
-    <!-- My Position -->
     <div class="card">
       <div class="card-header">
         My Position
@@ -131,7 +125,6 @@
       </div>
     </div>
 
-    <!-- Place a Bid -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
@@ -143,7 +136,6 @@
     </div>
   </div>
 
-  <!-- Footer -->
   <footer class="text-center mt-5 mb-3">
     <p>
       Contract Address: 
@@ -157,7 +149,7 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    // Nueva dirección del contrato y del token
+    // Nueva dirección del contrato
     const auctionAddress = "0x3cb01d27cd9f70421d2620c6713df3d9378bef7c";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
@@ -175,7 +167,7 @@
       "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
     ];
 
-    // ABI del token (ERC20)
+    // ABI del token (ERC20 estándar)
     const tokenABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -286,38 +278,32 @@
 
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
 
-async function approveAndDeposit() {
-  const amountInput = document.getElementById("amountInput").value;
-  if (!amountInput || amountInput <= 0) {
-    alert("Please enter a valid amount");
-    return;
-  }
-  const amount = ethers.utils.parseUnits(amountInput, 18);
-  try {
-    // Siempre reseteamos el allowance a 0, sin condicionar
-    const txReset = await tokenContract.approve(auctionAddress, 0);
-    alert("Resetting allowance...");
-    await txReset.wait();
+    async function approveAndDeposit() {
+      const amountInput = document.getElementById("amountInput").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      try {
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
+        alert("Approval transaction sent. Please wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
 
-    // Ahora aprobamos exactamente el monto ingresado
-    const txApprove = await tokenContract.approve(auctionAddress, amount);
-    alert("Approval transaction sent. Please wait for confirmation.");
-    await txApprove.wait();
-    alert("Approval confirmed. Proceeding to deposit.");
+        const txDeposit = await auctionContract.depositTokens(amount);
+        alert("Deposit transaction sent. Please wait for confirmation.");
+        await txDeposit.wait();
+        alert("Deposit confirmed.");
 
-    const txDeposit = await auctionContract.depositTokens(amount);
-    alert("Deposit transaction sent. Please wait for confirmation.");
-    await txDeposit.wait();
-    alert("Deposit confirmed.");
-
-    updateHighestBid();
-    updateTop10();
-    updateAuctionStats();
-  } catch (error) {
-    console.error("Error during approve & deposit:", error);
-    alert("Error during approve & deposit. Check console for details.");
-  }
-}
+        updateHighestBid();
+        updateTop10();
+        updateAuctionStats();
+      } catch (error) {
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit. Check console for details.");
+      }
+    }
 
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   </script>
