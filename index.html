@@ -286,41 +286,38 @@
 
     document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
 
-    async function approveAndDeposit() {
-      const amountInput = document.getElementById("amountInput").value;
-      if (!amountInput || amountInput <= 0) {
-        alert("Please enter a valid amount");
-        return;
-      }
-      const amount = ethers.utils.parseUnits(amountInput, 18);
-      try {
-        // Revisar el allowance actual
-        const currentAllowance = await tokenContract.allowance(userAccount, auctionAddress);
-        // Si existe un allowance distinto de 0 y no es igual al monto deseado, reseteamos a 0
-        if (currentAllowance.gt(0) && !currentAllowance.eq(amount)) {
-          const txReset = await tokenContract.approve(auctionAddress, 0);
-          alert("Resetting allowance...");
-          await txReset.wait();
-        }
-        // Aprobamos el monto ingresado
-        const txApprove = await tokenContract.approve(auctionAddress, amount);
-        alert("Approval transaction sent. Please wait for confirmation.");
-        await txApprove.wait();
-        alert("Approval confirmed. Proceeding to deposit.");
+async function approveAndDeposit() {
+  const amountInput = document.getElementById("amountInput").value;
+  if (!amountInput || amountInput <= 0) {
+    alert("Please enter a valid amount");
+    return;
+  }
+  const amount = ethers.utils.parseUnits(amountInput, 18);
+  try {
+    // Siempre reseteamos el allowance a 0, sin condicionar
+    const txReset = await tokenContract.approve(auctionAddress, 0);
+    alert("Resetting allowance...");
+    await txReset.wait();
 
-        const txDeposit = await auctionContract.depositTokens(amount);
-        alert("Deposit transaction sent. Please wait for confirmation.");
-        await txDeposit.wait();
-        alert("Deposit confirmed.");
+    // Ahora aprobamos exactamente el monto ingresado
+    const txApprove = await tokenContract.approve(auctionAddress, amount);
+    alert("Approval transaction sent. Please wait for confirmation.");
+    await txApprove.wait();
+    alert("Approval confirmed. Proceeding to deposit.");
 
-        updateHighestBid();
-        updateTop10();
-        updateAuctionStats();
-      } catch (error) {
-        console.error("Error during approve & deposit:", error);
-        alert("Error during approve & deposit. Check console for details.");
-      }
-    }
+    const txDeposit = await auctionContract.depositTokens(amount);
+    alert("Deposit transaction sent. Please wait for confirmation.");
+    await txDeposit.wait();
+    alert("Deposit confirmed.");
+
+    updateHighestBid();
+    updateTop10();
+    updateAuctionStats();
+  } catch (error) {
+    console.error("Error during approve & deposit:", error);
+    alert("Error during approve & deposit. Check console for details.");
+  }
+}
 
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   </script>
