@@ -110,6 +110,9 @@
         Steroid Pump Action
       </div>
       <div class="card-body text-center">
+        <div class="input-group mb-3">
+          <input id="tokenAmountInput" type="number" class="form-control" placeholder="Enter token amount" min="0" step="any">
+        </div>
         <button id="pumpButton" class="btn btn-pump btn-lg">Pump Now!</button>
         <p class="mt-3">Watch your ADRIANS get pumped up with steroids!</p>
       </div>
@@ -156,16 +159,21 @@
 
     document.getElementById("connectButton").addEventListener("click", connectWallet);
 
-    // Función dummy para la acción de pump
+    // Función para la acción de pump, ahora usando la cantidad de tokens ingresada
     document.getElementById("pumpButton").addEventListener("click", () => {
       if (!userAccount) {
         alert("Please connect your wallet first!");
         return;
       }
-      // Aquí se llamaría a la función del contrato para inyectar "esteroides" en tus ADRIANS.
-      alert("Your ADRIANS are now pumped up and super strong!");
+      const amountInput = document.getElementById("tokenAmountInput").value;
+      if (!amountInput || Number(amountInput) <= 0) {
+        alert("Please enter a valid token amount.");
+        return;
+      }
+      // Aquí se llamaría a la función del contrato para realizar el swap o pump
+      alert(`Pumping ${amountInput} ADRIANS... Your ADRIANS are now pumped up and super strong!`);
       // Actualiza las estadísticas de pump si fuera necesario.
-      document.getElementById("pumpStats").innerText = "Last pump: " + new Date().toLocaleString();
+      document.getElementById("pumpStats").innerText = "Last pump: " + new Date().toLocaleString() + " using " + amountInput + " tokens.";
     });
   </script>
 </body>
