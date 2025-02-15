@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Pump Your ADRIANS</title>
+  <title>Token Swap & Pump Your ADRIANS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -27,12 +27,13 @@
       font-family: 'Impact', sans-serif;
       text-shadow: 3px 3px 5px #ff0000;
       margin-top: 1rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
     }
     .card {
       background-color: #2a2a2a;
       border: 1px solid #444;
       margin-bottom: 1.5rem;
+      padding: 1rem;
     }
     .btn-pump {
       background-color: #28a745;
@@ -50,7 +51,6 @@
       border-top: 1px solid #444;
       text-align: center;
     }
-    /* Animación divertida para enfatizar la "pumping" */
     .pump-animation {
       animation: pump 1s infinite alternate;
     }
@@ -69,61 +69,35 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link active" href="pumpit.html">Pump Your ADRIANS</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="auction.html">Adrian Auctions</a>
-          </li>
-        </ul>
+         <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+               <a class="nav-link" href="pumpit.html">Pump Your ADRIANS</a>
+            </li>
+            <li class="nav-item">
+               <a class="nav-link" href="auction.html">Adrian Auctions</a>
+            </li>
+         </ul>
       </div>
     </div>
   </nav>
 
   <div class="container mt-4">
     <header class="text-center">
-      <!-- Imagen temporal: reemplaza la URL por la que desees -->
-      <img src="https://via.placeholder.com/200?text=Steroids" 
-           class="img-fluid pump-animation rounded mx-auto d-block" 
-           alt="Steroid Injection">
+      <img src="https://via.placeholder.com/200?text=Steroids" class="img-fluid pump-animation rounded mx-auto d-block" alt="Inyección de esteroides">
       <h1>Boost Your ADRIANS!</h1>
-      <p class="lead">Inject some steroids into your ADRIANS to make them super strong!</p>
+      <p class="lead">Inject some steroids into your tokens to make your ADRIANS super strong!</p>
     </header>
 
-    <div class="text-center mb-4">
-      <button id="connectButton" class="btn btn-pump">Connect Wallet</button>
-      <p id="accountDisplay" class="mt-2"></p>
+    <div class="card text-center">
+      <button id="connectWallet" class="btn btn-pump">Conectar Wallet</button>
+      <div id="walletAddress" class="mt-2"></div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        Your Current ADRIANS
-      </div>
-      <div class="card-body">
-        <p id="currentAdrians" class="card-text">Loading your ADRIANS...</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        Steroid Pump Action
-      </div>
-      <div class="card-body text-center">
-        <div class="input-group mb-3">
-          <input id="tokenAmountInput" type="number" class="form-control" placeholder="Enter token amount" min="0" step="any">
-        </div>
-        <button id="pumpButton" class="btn btn-pump btn-lg">Pump Now!</button>
-        <p class="mt-3">Watch your ADRIANS get pumped up with steroids!</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        Pump Stats
-      </div>
-      <div class="card-body">
-        <p id="pumpStats" class="card-text">No pumping data available yet.</p>
+      <h3 class="text-center">Realizar Swap</h3>
+      <div class="input-group my-3">
+        <input type="number" id="amount" class="form-control" placeholder="Cantidad de tokens">
+        <button id="swapButton" class="btn btn-pump">Ejecutar Swap</button>
       </div>
     </div>
   </div>
@@ -135,46 +109,71 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let provider, signer;
-    let userAccount = "";
-
-    async function connectWallet() {
+    // Dirección del contrato swap
+    const contractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+    
+    // ABI mínima con la función swap
+    const abi = [
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "swap",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+    
+    let provider;
+    let signer;
+    let contract;
+    
+    // Conectar a MetaMask
+    document.getElementById("connectWallet").onclick = async () => {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
-        try {
-          await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
-          userAccount = await signer.getAddress();
-          document.getElementById("accountDisplay").innerText = "Connected: " + userAccount;
-          // Aquí puedes integrar la lógica para consultar el balance de ADRIANS
-          document.getElementById("currentAdrians").innerText = "You have 0 ADRIANS (demo).";
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
-          alert("Error connecting wallet. Check console for details.");
-        }
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById("walletAddress").innerText = "Conectado: " + address;
+        // Instanciar el contrato con el signer
+        contract = new ethers.Contract(contractAddress, abi, signer);
       } else {
-        alert("MetaMask is not installed.");
+        alert("Necesitas instalar MetaMask");
       }
-    }
-
-    document.getElementById("connectButton").addEventListener("click", connectWallet);
-
-    // Función para la acción de pump, ahora usando la cantidad de tokens ingresada
-    document.getElementById("pumpButton").addEventListener("click", () => {
-      if (!userAccount) {
-        alert("Please connect your wallet first!");
+    };
+    
+    // Ejecutar la función swap
+    document.getElementById("swapButton").onclick = async () => {
+      if (!contract) {
+        alert("Conecta tu wallet primero.");
         return;
       }
-      const amountInput = document.getElementById("tokenAmountInput").value;
-      if (!amountInput || Number(amountInput) <= 0) {
-        alert("Please enter a valid token amount.");
+      
+      const amountInput = document.getElementById("amount").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Introduce una cantidad válida.");
         return;
       }
-      // Aquí se llamaría a la función del contrato para realizar el swap o pump
-      alert(`Pumping ${amountInput} ADRIANS... Your ADRIANS are now pumped up and super strong!`);
-      // Actualiza las estadísticas de pump si fuera necesario.
-      document.getElementById("pumpStats").innerText = "Last pump: " + new Date().toLocaleString() + " using " + amountInput + " tokens.";
-    });
+      
+      // Convertir la cantidad a la unidad mínima (suponiendo 18 decimales)
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      
+      try {
+        const tx = await contract.swap(amount);
+        alert("Transacción enviada: " + tx.hash);
+        await tx.wait();
+        alert("Swap completado exitosamente.");
+      } catch (error) {
+        console.error(error);
+        alert("Error en la transacción: " + error.message);
+      }
+    };
   </script>
 </body>
 </html>
