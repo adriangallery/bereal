@@ -132,11 +132,11 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    // Nueva dirección del contrato y del token
+    // Dirección del contrato y del token
     const auctionAddress = "0x3cb01d27cd9f70421d2620c6713df3d9378bef7c";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-    // ABI actualizado del contrato de subasta
+    // ABI del contrato de subasta
     const auctionABI = [
       "function depositTokens(uint256 amount) external",
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -150,7 +150,7 @@
       "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
     ];
 
-    // ABI del token ERC20 + permit (se añade nonces)
+    // ABI del token ERC20 + funciones permit
     const tokenABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -277,7 +277,6 @@
           // Flujo depositTokensWithPermit usando EIP-2612
           const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de validez
           const chainId = await signer.getChainId();
-          // Suponiendo que el token se llama "ADRIAN" y tiene versión "1"
           const tokenName = await tokenContract.name();
           const domain = {
             name: tokenName,
