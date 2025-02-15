@@ -136,7 +136,7 @@
     const auctionAddress = "0x3cb01d27cd9f70421d2620c6713df3d9378bef7c";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-    // ABI actualizado del contrato
+    // ABI actualizado del contrato de subasta
     const auctionABI = [
       "function depositTokens(uint256 amount) external",
       "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -150,11 +150,13 @@
       "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
     ];
 
-    // ABI del token (ERC20)
+    // ABI del token ERC20 + permit (se añade nonces)
     const tokenABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
+      "function balanceOf(address account) view returns (uint256)",
+      "function nonces(address owner) view returns (uint256)",
+      "function name() view returns (string)"
     ];
 
     async function connectWallet() {
@@ -272,19 +274,40 @@
 
       try {
         if (usePermit) {
-          // Solicitar al usuario firmar un mensaje para depositar sin approval
-          // Para depositTokensWithPermit se necesita un deadline y los parámetros v, r, s
-          // Aquí se requiere que el usuario genere su firma off-chain. En este ejemplo,
-          // se asume que el dApp dispone de la lógica para obtener esos valores.
-          // Por simplicidad, mostraremos un error si no se implementa el proceso de firma.
-          alert("Deposit with Permit not implemented in this demo. Use Approve & Deposit instead.");
-          return;
-          // Ejemplo (pseudo código):
-          // const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de validez
-          // const signature = await signer.signMessage( ... );
-          // Extraer v, r, s de la firma...
-          // const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
-          // await tx.wait();
+          // Flujo depositTokensWithPermit usando EIP-2612
+          const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hora de validez
+          const chainId = await signer.getChainId();
+          // Suponiendo que el token se llama "ADRIAN" y tiene versión "1"
+          const tokenName = await tokenContract.name();
+          const domain = {
+            name: tokenName,
+            version: "1",
+            chainId: chainId,
+            verifyingContract: tokenAddress,
+          };
+          const types = {
+            Permit: [
+              { name: "owner", type: "address" },
+              { name: "spender", type: "address" },
+              { name: "value", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "deadline", type: "uint256" }
+            ]
+          };
+          const nonce = await tokenContract.nonces(userAccount);
+          const message = {
+            owner: userAccount,
+            spender: auctionAddress,
+            value: amount.toString(),
+            nonce: nonce.toNumber(),
+            deadline: deadline,
+          };
+          const signature = await signer._signTypedData(domain, types, message);
+          const { v, r, s } = ethers.utils.splitSignature(signature);
+          const tx = await auctionContract.depositTokensWithPermit(amount, deadline, v, r, s);
+          alert("Deposit with Permit transaction sent. Please wait for confirmation.");
+          await tx.wait();
+          alert("Deposit with Permit confirmed.");
         } else {
           // Flujo tradicional: resetear allowance a 0 y aprobar el monto exacto
           const txReset = await tokenContract.approve(auctionAddress, 0);
