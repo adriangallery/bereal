@@ -225,7 +225,8 @@
     async function updateHighestBid() {
       try {
         const highestBidRaw = await auctionContract.highestBid();
-        document.getElementById("highestBidDisplay").innerText = ethers.utils.formatUnits(highestBidRaw, 18);
+        const formatted = ethers.utils.formatUnits(highestBidRaw, 18);
+        document.getElementById("highestBidDisplay").innerText = formatted;
       } catch (error) {
         console.error("Error fetching highest bid:", error);
       }
@@ -235,6 +236,7 @@
     async function updateTimeRemaining() {
       try {
         const endTimeRaw = await auctionContract.auctionEndTime();
+        // Convertir a número (suponiendo que el timestamp es razonable)
         const endTime = parseInt(endTimeRaw.toString());
         const now = Math.floor(Date.now() / 1000);
         let secondsRemaining = endTime - now;
@@ -257,8 +259,10 @@
         let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
         statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
         statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Number of Bidders: ${bidderCount}</p>`;
-        const endDate = new Date(auctionEnd.toNumber() * 1000);
+        statsHtml += `<p>Number of Bidders: ${bidderCount.toString()}</p>`;
+        // Convertir el timestamp a número y luego a fecha
+        const auctionEndNum = auctionEnd.toNumber();
+        const endDate = new Date(auctionEndNum * 1000);
         statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
         document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
       } catch (error) {
@@ -273,7 +277,7 @@
         const [topBidders, topBids] = await auctionContract.getTop10Bidders();
         let html = "";
         for (let i = 0; i < topBidders.length; i++) {
-          // Mostramos las últimas 4 cifras de la dirección para mayor claridad
+          // Mostrar las últimas 4 cifras de la dirección para mayor claridad
           const truncated = topBidders[i].slice(-4);
           const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
           html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
