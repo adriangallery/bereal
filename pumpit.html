@@ -11,30 +11,30 @@
     body {
       background-color: #f8f9fa;
     }
-    h1 {
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    /* Mejorar la apariencia del encabezado */
+    .navbar-brand {
+      background-color: rgba(0, 123, 255, 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
       font-weight: bold;
     }
-    .btn-primary {
-      background-color: #007bff;
-      border-color: #007bff;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
+    /* Asegurar que la wallet address no se desborde */
+    #walletAddress {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .btn-primary:hover {
-      background-color: #0069d9;
-      border-color: #0069d9;
+    /* Ajustes para el card y sus elementos internos */
+    .card {
+      margin-top: 1rem;
     }
-    .btn-primary:active {
-      background-color: #0062cc;
-      border-color: #0062cc;
+    .card .btn {
+      margin-top: 0.5rem;
     }
-    .container {
-      padding-top: 2rem;
-    }
-    footer {
-      padding: 1rem 0;
-      background-color: #e9ecef;
-      text-align: center;
+    /* Asegurar márgenes y paddings adecuados en el formulario */
+    .form-section {
+      margin: 1rem 0;
     }
   </style>
 </head>
@@ -77,18 +77,17 @@
       <div class="col-md-6">
         <div class="card shadow-sm">
           <div class="card-body">
+            <!-- Formulario unificado -->
             <div class="d-grid gap-3">
               <button id="connectWallet" class="btn btn-primary">Pump Up Your Wallet!</button>
-              <div id="walletAddress" class="text-center"></div>
-              <div class="mb-3">
+              <div id="walletAddress" class="text-center border p-2" title="Wallet Address"></div>
+              <div class="form-section">
                 <label for="amount" class="form-label">
                   How many ADRIANS do you want to pump today?
                 </label>
                 <input type="number" class="form-control" id="amount" placeholder="Enter amount">
               </div>
-              <button id="actionButton" class="btn btn-primary">
-                Inject Steroids & Pump!
-              </button>
+              <button id="actionButton" class="btn btn-primary">Inject Steroids & Pump!</button>
             </div>
           </div>
         </div>
@@ -143,7 +142,7 @@
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = "Wallet Pumped: " + address;
+        document.getElementById("walletAddress").innerText = address;
         // Instantiate the swap contract and Token A contract
         swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
         tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
