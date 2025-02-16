@@ -11,17 +11,23 @@
   <button id="connectWallet">Conectar Wallet</button>
   <div id="walletAddress"></div>
   
+  <h3>Aprobar Token A para el Swap</h3>
+  <p>Primero aprueba el contrato para gastar tus tokens A</p>
+  <input type="number" id="approveAmount" placeholder="Cantidad de tokens a aprobar" />
+  <button id="approveButton">Aprobar Token A</button>
+  
   <h3>Realizar Swap</h3>
-  <!-- Se asume que el usuario ingresa la cantidad en tokens (ej. 100) -->
-  <input type="number" id="amount" placeholder="Cantidad de tokens" />
+  <p>Intercambia Token A por Token B 1:1</p>
+  <input type="number" id="swapAmount" placeholder="Cantidad de tokens a swapear" />
   <button id="swapButton">Ejecutar Swap</button>
   
   <script>
-    // Dirección del contrato swap
-    const contractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+    // Dirección del contrato swap y del token A
+    const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+    const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
     
-    // ABI mínima con la función swap (se asume que la función swap tiene el siguiente signature)
-    const abi = [
+    // ABI mínima para la función swap del contrato TokenSwap
+    const swapAbi = [
       {
         "inputs": [
           {
@@ -37,11 +43,18 @@
       }
     ];
     
+    // ABI mínima ERC20 para la función approve (y allowance si se requiere)
+    const erc20Abi = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) external view returns (uint256)"
+    ];
+    
     let provider;
     let signer;
-    let contract;
+    let swapContract;
+    let tokenAContract;
     
-    // Conectar a MetaMask
+    // Conectar a MetaMask y crear instancias de contrato
     document.getElementById("connectWallet").onclick = async () => {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -49,23 +62,24 @@
         signer = provider.getSigner();
         const address = await signer.getAddress();
         document.getElementById("walletAddress").innerText = "Conectado: " + address;
-        // Instanciar el contrato con el signer
-        contract = new ethers.Contract(contractAddress, abi, signer);
+        // Instanciar el contrato de swap y el contrato de Token A
+        swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
+        tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
       } else {
         alert("Necesitas instalar MetaMask");
       }
     };
     
-    // Ejecutar la función swap
-    document.getElementById("swapButton").onclick = async () => {
-      if (!contract) {
+    // Botón para aprobar Token A
+    document.getElementById("approveButton").onclick = async () => {
+      if (!tokenAContract) {
         alert("Conecta tu wallet primero.");
         return;
       }
       
-      const amountInput = document.getElementById("amount").value;
+      const amountInput = document.getElementById("approveAmount").value;
       if (!amountInput || amountInput <= 0) {
-        alert("Introduce una cantidad válida.");
+        alert("Introduce una cantidad válida para aprobar.");
         return;
       }
       
@@ -73,13 +87,40 @@
       const amount = ethers.utils.parseUnits(amountInput, 18);
       
       try {
-        const tx = await contract.swap(amount);
-        alert("Transacción enviada: " + tx.hash);
+        const tx = await tokenAContract.approve(swapContractAddress, amount);
+        alert("Aprobación enviada: " + tx.hash);
+        await tx.wait();
+        alert("Token A aprobado exitosamente.");
+      } catch (error) {
+        console.error(error);
+        alert("Error al aprobar: " + error.message);
+      }
+    };
+    
+    // Botón para ejecutar el swap
+    document.getElementById("swapButton").onclick = async () => {
+      if (!swapContract) {
+        alert("Conecta tu wallet primero.");
+        return;
+      }
+      
+      const amountInput = document.getElementById("swapAmount").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Introduce una cantidad válida para swapear.");
+        return;
+      }
+      
+      // Convertir la cantidad a la unidad mínima (suponiendo 18 decimales)
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      
+      try {
+        const tx = await swapContract.swap(amount);
+        alert("Swap enviado: " + tx.hash);
         await tx.wait();
         alert("Swap completado exitosamente.");
       } catch (error) {
         console.error(error);
-        alert("Error en la transacción: " + error.message);
+        alert("Error en el swap: " + error.message);
       }
     };
   </script>
