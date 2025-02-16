@@ -2,21 +2,114 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pump Your ADRIANS with Steroids!</title>
-  <!-- Include ethers.js from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Bootstrap 5.3.0 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    h1 {
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      font-weight: bold;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    .btn-primary:hover {
+      background-color: #0069d9;
+      border-color: #0069d9;
+    }
+    .btn-primary:active {
+      background-color: #0062cc;
+      border-color: #0062cc;
+    }
+    .container {
+      padding-top: 2rem;
+    }
+    footer {
+      padding: 1rem 0;
+      background-color: #e9ecef;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <h1>Pump Your ADRIANS with Steroids!</h1>
-  <button id="connectWallet">Pump Up Your Wallet!</button>
-  <div id="walletAddress"></div>
-  <br>
-  <label for="amount">How many ADRIANS do you want to pump today?</label>
-  <input type="number" id="amount" placeholder="Enter amount" />
-  <button id="actionButton">Inject Steroids & Pump!</button>
-  
+  <!-- Header with Navigation -->
+  <header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="#">ADRIAN Platform</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#navbarNav" aria-controls="navbarNav" 
+                aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link active" href="#">Auction</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Gallery</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Profile</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div class="text-center">
+      <h1>Pump Your ADRIANS with Steroids!</h1>
+      <p class="lead">Get ready to supercharge your old ADRIANS!</p>
+    </div>
+    
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-grid gap-3">
+              <button id="connectWallet" class="btn btn-primary">Pump Up Your Wallet!</button>
+              <div id="walletAddress" class="text-center"></div>
+              <div class="mb-3">
+                <label for="amount" class="form-label">
+                  How many ADRIANS do you want to pump today?
+                </label>
+                <input type="number" class="form-control" id="amount" placeholder="Enter amount">
+              </div>
+              <button id="actionButton" class="btn btn-primary">
+                Inject Steroids & Pump!
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 ADRIAN Platform. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5.3.0 JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Custom JavaScript -->
   <script>
-    // Addresses: Swap contract and Token A
+    // Addresses for the swap contract and Token A
     const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
     const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
     
@@ -43,7 +136,7 @@
     let swapContract;
     let tokenAContract;
     
-    // Connect to MetaMask
+    // Connect to MetaMask and instantiate contracts
     document.getElementById("connectWallet").onclick = async () => {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -51,7 +144,7 @@
         signer = provider.getSigner();
         const address = await signer.getAddress();
         document.getElementById("walletAddress").innerText = "Wallet Pumped: " + address;
-        // Instantiate contracts
+        // Instantiate the swap contract and Token A contract
         swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
         tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
       } else {
@@ -59,7 +152,7 @@
       }
     };
     
-    // Single button for approving and swapping
+    // Single button for both approving and swapping
     document.getElementById("actionButton").onclick = async () => {
       if (!swapContract || !tokenAContract) {
         alert("Please pump up your wallet first!");
@@ -76,13 +169,13 @@
       const amount = ethers.utils.parseUnits(inputAmount, 18);
       
       try {
-        // First transaction: Approve the swap contract to spend your Token A
+        // First: Approve the swap contract to spend your Token A
         const approveTx = await tokenAContract.approve(swapContractAddress, amount);
         alert("Steroid injection initiated: " + approveTx.hash);
         await approveTx.wait();
         alert("Steroids approved! Now pumping your ADRIANS...");
         
-        // Second transaction: Execute the swap
+        // Second: Execute the swap
         const swapTx = await swapContract.swap(amount);
         alert("Pumping in progress: " + swapTx.hash);
         await swapTx.wait();
