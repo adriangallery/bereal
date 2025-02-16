@@ -1,34 +1,30 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Aprobar y Swapear Tokens</title>
-  <!-- Incluir ethers.js desde CDN -->
+  <title>Pump Your ADRIANS with Steroids!</title>
+  <!-- Include ethers.js from CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <h1>Aprobar y Swapear Tokens</h1>
-  <button id="connectWallet">Conectar Wallet</button>
+  <h1>Pump Your ADRIANS with Steroids!</h1>
+  <button id="connectWallet">Pump Up Your Wallet!</button>
   <div id="walletAddress"></div>
   <br>
-  <label for="amount">Cantidad de tokens a swapear:</label>
-  <input type="number" id="amount" placeholder="Ingrese cantidad" />
-  <button id="actionButton">Aprobar y Swapear</button>
+  <label for="amount">How many ADRIANS do you want to pump today?</label>
+  <input type="number" id="amount" placeholder="Enter amount" />
+  <button id="actionButton">Inject Steroids & Pump!</button>
   
   <script>
-    // Direcciones: contrato swap y token A
+    // Addresses: Swap contract and Token A
     const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
     const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
     
-    // ABI mínima para la función swap del contrato TokenSwap
+    // Minimal ABI for the swap function
     const swapAbi = [
       {
         "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          }
+          { "internalType": "uint256", "name": "amount", "type": "uint256" }
         ],
         "name": "swap",
         "outputs": [],
@@ -37,7 +33,7 @@
       }
     ];
     
-    // ABI mínima ERC20 para la función approve
+    // Minimal ERC20 ABI for the approve function
     const erc20Abi = [
       "function approve(address spender, uint256 amount) external returns (bool)"
     ];
@@ -47,53 +43,53 @@
     let swapContract;
     let tokenAContract;
     
-    // Conectar con MetaMask
+    // Connect to MetaMask
     document.getElementById("connectWallet").onclick = async () => {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = "Conectado: " + address;
-        // Instanciar los contratos
+        document.getElementById("walletAddress").innerText = "Wallet Pumped: " + address;
+        // Instantiate contracts
         swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
         tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
       } else {
-        alert("Necesitas instalar MetaMask");
+        alert("You need to install MetaMask to pump your ADRIANS!");
       }
     };
     
-    // Botón que ejecuta la aprobación y el swap
+    // Single button for approving and swapping
     document.getElementById("actionButton").onclick = async () => {
       if (!swapContract || !tokenAContract) {
-        alert("Conecta tu wallet primero.");
+        alert("Please pump up your wallet first!");
         return;
       }
       
       const inputAmount = document.getElementById("amount").value;
       if (!inputAmount || inputAmount <= 0) {
-        alert("Introduce una cantidad válida.");
+        alert("Enter a valid amount of ADRIANS to pump!");
         return;
       }
       
-      // Convertir la cantidad a unidades mínimas (suponiendo 18 decimales)
+      // Convert to the token's smallest unit (assuming 18 decimals)
       const amount = ethers.utils.parseUnits(inputAmount, 18);
       
       try {
-        // Primera transacción: aprobar el gasto del token A para el contrato swap
+        // First transaction: Approve the swap contract to spend your Token A
         const approveTx = await tokenAContract.approve(swapContractAddress, amount);
-        alert("Aprobación enviada: " + approveTx.hash);
+        alert("Steroid injection initiated: " + approveTx.hash);
         await approveTx.wait();
-        alert("Aprobación completada, iniciando swap...");
+        alert("Steroids approved! Now pumping your ADRIANS...");
         
-        // Segunda transacción: ejecutar el swap
+        // Second transaction: Execute the swap
         const swapTx = await swapContract.swap(amount);
-        alert("Swap enviado: " + swapTx.hash);
+        alert("Pumping in progress: " + swapTx.hash);
         await swapTx.wait();
-        alert("Swap completado exitosamente.");
+        alert("Your ADRIANS have been pumped with steroids! Enjoy your supercharged tokens!");
       } catch (error) {
         console.error(error);
-        alert("Error: " + error.message);
+        alert("Pump failed: " + error.message);
       }
     };
   </script>
