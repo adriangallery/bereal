@@ -2,59 +2,44 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Prueba ADRIANTokenSpender</title>
-  <!-- Cargamos ethers.js desde un CDN -->
+  <title>Ejecutar Permit</title>
+  <!-- Se carga ethers.js desde CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
-    label { display: block; margin-top: 1rem; }
-    input { width: 100%; padding: 0.5rem; font-size: 1rem; }
-    button { margin-top: 1rem; padding: 0.7rem; font-size: 1rem; }
-    .status { margin-top: 1rem; padding: 0.5rem; background: #eee; }
+    body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 20px; }
+    input, button { font-size: 16px; padding: 8px; margin-top: 10px; width: 100%; }
+    .status { margin-top: 20px; background: #f0f0f0; padding: 10px; }
   </style>
 </head>
 <body>
-  <h1>Prueba ADRIANTokenSpender</h1>
-
+  <h1>Ejecutar Permit</h1>
+  <button id="connectButton">Conectar Wallet</button>
+  <div id="walletAddress"></div>
+  
   <div>
-    <label for="tokenAddress">Dirección del Token (ADRIANToken):</label>
-    <input type="text" id="tokenAddress" value="0xTU_TOKEN_ADDRESS_AQUI">
+    <label for="permitAmount">Cantidad de tokens a permitir (en unidades):</label>
+    <!-- Se asume que el token tiene 18 decimales -->
+    <input type="number" id="permitAmount" placeholder="Ej. 100" />
   </div>
-
-  <div>
-    <label for="spenderAddress">Dirección del Contrato Spender:</label>
-    <input type="text" id="spenderAddress" value="0xTU_SPENDER_ADDRESS_AQUI">
-  </div>
-
-  <div>
-    <label for="recipient">Dirección del Destinatario:</label>
-    <input type="text" id="recipient" value="0xDIRECCION_DESTINO_AQUI">
-  </div>
-
-  <div>
-    <label for="amount">Cantidad a gastar (en wei):</label>
-    <input type="number" id="amount" value="1000000000000000000">
-  </div>
-
-  <button id="spendPermitButton">Ejecutar spendWithPermit</button>
-
+  
+  <button id="permitButton">Ejecutar Permit</button>
+  
   <div class="status" id="status">Estado: Esperando acción...</div>
-
+  
   <script>
-    // ABIs mínimos para interactuar con el token y el contrato spender
+    // Direcciones actualizadas:
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Dirección del token (ADRIANToken)
+    const spenderAddress = "0x5e96070d1c72c091663346ce390877d80c0ed2d5"; // Dirección del contrato spender
+    
+    // ABI mínimo del token que implementa permit (EIP-2612)
     const tokenAbi = [
       "function name() view returns (string)",
       "function nonces(address) view returns (uint256)",
       "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external"
     ];
-
-    const spenderAbi = [
-      "function spendWithPermit(address owner, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s, address to) external"
-    ];
-
-    // Conexión con MetaMask y definición de variables globales
-    let provider, signer, userAddress;
-
+    
+    let provider, signer, userAddress, tokenContract;
+    
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -62,17 +47,19 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
           signer = provider.getSigner();
           userAddress = await signer.getAddress();
-          document.getElementById("status").innerText = `Wallet conectada: ${userAddress}`;
+          document.getElementById("walletAddress").innerText = "Wallet conectada: " + userAddress;
+          tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+          document.getElementById("status").innerText = "Wallet conectada. Listo para ejecutar permit.";
         } catch (error) {
-          console.error("Error conectando wallet:", error);
-          document.getElementById("status").innerText = "Error conectando wallet.";
+          console.error("Error al conectar wallet:", error);
+          document.getElementById("status").innerText = "Error al conectar wallet.";
         }
       } else {
-        alert("Instala MetaMask!");
+        alert("Por favor, instala MetaMask.");
       }
     }
-
-    // Función para separar la firma en r, s, v
+    
+    // Función para separar la firma en sus componentes
     function splitSignature(signature) {
       const sig = signature.substring(2);
       const r = "0x" + sig.substring(0, 64);
@@ -81,103 +68,88 @@
       if (v < 27) v += 27;
       return { r, s, v };
     }
-
-    // Función que arma y firma el mensaje permit
-    async function signPermit(tokenContract, spenderAddress, amount, deadline) {
-      // Obtenemos el token name y el nonce actual
-      const tokenName = await tokenContract.name();
-      const nonce = await tokenContract.nonces(userAddress);
-
-      // Definimos el dominio EIP712 (según EIP-2612)
-      const chainId = (await provider.getNetwork()).chainId;
-      const domain = {
-        name: tokenName,
-        version: "1",
-        chainId: chainId,
-        verifyingContract: tokenContract.address
-      };
-
-      // Definimos el tipo Permit (el orden y nombres deben coincidir con la implementación)
-      const types = {
-        Permit: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" },
-          { name: "value", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" }
-        ]
-      };
-
-      // Mensaje a firmar
-      const message = {
-        owner: userAddress,
-        spender: spenderAddress,
-        value: amount,
-        nonce: nonce.toNumber(),
-        deadline: deadline
-      };
-
-      const data = JSON.stringify({
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" }
-          ],
-          ...types
-        },
-        domain: domain,
-        primaryType: "Permit",
-        message: message
-      });
-
-      // Solicitamos la firma mediante el método eth_signTypedData_v4
-      const signature = await provider.send("eth_signTypedData_v4", [userAddress, data]);
-      return splitSignature(signature);
-    }
-
-    // Función que ejecuta spendWithPermit
-    async function spendWithPermit() {
+    
+    // Función que ejecuta el flujo completo del permit
+    async function executePermit() {
       try {
-        document.getElementById("status").innerText = "Preparando datos...";
-
-        // Leemos datos del formulario
-        const tokenAddress = document.getElementById("tokenAddress").value.trim();
-        const spenderAddress = document.getElementById("spenderAddress").value.trim();
-        const recipient = document.getElementById("recipient").value.trim();
-        const amount = document.getElementById("amount").value.trim();
-        // Definimos un deadline (por ejemplo, 1 hora a partir de ahora)
+        const amountInput = document.getElementById("permitAmount").value;
+        if (!amountInput || Number(amountInput) <= 0) {
+          alert("Ingresa una cantidad válida.");
+          return;
+        }
+        // Convertir la cantidad ingresada (en tokens) a wei (suponiendo 18 decimales)
+        const amount = ethers.utils.parseUnits(amountInput, 18);
+        // Establecer deadline: 1 hora a partir del momento actual
         const deadline = Math.floor(Date.now() / 1000) + 3600;
-
-        // Instanciamos los contratos
-        const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
-        const spenderContract = new ethers.Contract(spenderAddress, spenderAbi, signer);
-
+        
+        // Obtener información necesaria del token: nombre y nonce
+        const tokenName = await tokenContract.name();
+        const nonce = await tokenContract.nonces(userAddress);
+        const { chainId } = await provider.getNetwork();
+        
+        // Construir el dominio EIP712
+        const domain = {
+          name: tokenName,
+          version: "1",
+          chainId: chainId,
+          verifyingContract: tokenAddress
+        };
+        
+        // Construir el mensaje Permit
+        const message = {
+          owner: userAddress,
+          spender: spenderAddress,
+          value: amount.toString(),
+          nonce: nonce.toNumber(),
+          deadline: deadline
+        };
+        
+        // Definir los tipos para la estructura Permit
+        const types = {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
+          ]
+        };
+        
+        // Armar el objeto de datos tipados según EIP-712
+        const typedData = {
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" }
+            ],
+            ...types
+          },
+          domain: domain,
+          primaryType: "Permit",
+          message: message
+        };
+        
         document.getElementById("status").innerText = "Solicitando firma permit...";
-
-        // Firma del mensaje permit
-        const { r, s, v } = await signPermit(tokenContract, spenderAddress, amount, deadline);
-        document.getElementById("status").innerText = "Firma obtenida, enviando transacción...";
-
-        // Ejecutamos spendWithPermit en el contrato spender
-        const tx = await spenderContract.spendWithPermit(userAddress, amount, deadline, v, r, s, recipient);
+        // Solicitar la firma mediante eth_signTypedData_v4
+        const signature = await provider.send("eth_signTypedData_v4", [userAddress, JSON.stringify(typedData)]);
+        const { r, s, v } = splitSignature(signature);
+        
+        document.getElementById("status").innerText = "Enviando transacción de permit...";
+        // Ejecutar la función permit en el token
+        const tx = await tokenContract.permit(userAddress, spenderAddress, amount, deadline, v, r, s);
         document.getElementById("status").innerText = "Transacción enviada. Esperando confirmación...";
-
-        // Esperamos a que se mine la transacción
         await tx.wait();
-        document.getElementById("status").innerText = "Transacción confirmada: " + tx.hash;
+        document.getElementById("status").innerText = "Permit ejecutado. Tx hash: " + tx.hash;
       } catch (error) {
-        console.error("Error en spendWithPermit:", error);
-        document.getElementById("status").innerText = "Error: " + (error.message || error);
+        console.error("Error en executePermit:", error);
+        document.getElementById("status").innerText = "Error: " + error.message;
       }
     }
-
-    // Al cargar la página, conectamos el wallet
-    window.addEventListener('load', async () => {
-      await connectWallet();
-      document.getElementById("spendPermitButton").addEventListener("click", spendWithPermit);
-    });
+    
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    document.getElementById("permitButton").addEventListener("click", executePermit);
   </script>
 </body>
 </html>
