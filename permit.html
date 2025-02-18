@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Verificación de Permit en ADRIANToken</title>
+  <!-- Carga ethers.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+</head>
+<body>
+  <h1>Verificar función Permit de ADRIANToken</h1>
+  <button id="connectButton">Conectar MetaMask</button>
+  <div id="userAddress"></div>
+  <hr>
+  <form id="permitForm">
+    <label for="spender">Spender (dirección a autorizar):</label><br>
+    <input type="text" id="spender" name="spender" placeholder="0x..."><br><br>
+    
+    <label for="amount">Cantidad a aprobar (sin decimales):</label><br>
+    <input type="number" id="amount" name="amount" placeholder="Ej. 1000"><br><br>
+    
+    <label for="deadline">Deadline (timestamp Unix, en futuro):</label><br>
+    <input type="number" id="deadline" name="deadline" placeholder="Ej. 1700000000"><br><br>
+    
+    <button type="submit">Ejecutar Permit</button>
+  </form>
+  <div id="result" style="margin-top:20px;"></div>
+
+  <script>
+    // Dirección del token desplegado en basescan
+    const tokenAddress = "0x5e96070d1c72c091663346ce390877d80c0ed2d5";
+    // ABI mínima necesaria para interactuar con permit, name, nonces y allowance.
+    const tokenABI = [
+      "function name() view returns (string)",
+      "function nonces(address) view returns (uint256)",
+      "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)",
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ];
+
+    let provider, signer, userAddress, tokenContract;
+    const connectButton = document.getElementById("connectButton");
+    const userAddressDiv = document.getElementById("userAddress");
+    const permitForm = document.getElementById("permitForm");
+    const resultDiv = document.getElementById("result");
+
+    // Conectar MetaMask
+    connectButton.onclick = async () => {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        userAddressDiv.innerText = "Conectado: " + userAddress;
+        tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+      } else {
+        alert("Por favor, instala MetaMask!");
+      }
+    };
+
+    permitForm.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!tokenContract) {
+        alert("Conecta MetaMask primero.");
+        return;
+      }
+
+      const spender = document.getElementById("spender").value;
+      const amount = document.getElementById("amount").value;
+      const deadline = document.getElementById("deadline").value;
+
+      // Validaciones básicas
+      if (!spender || !amount || !deadline) {
+        alert("Completa todos los campos.");
+        return;
+      }
+
+      try {
+        // Obtener el nonce actual para el usuario
+        const nonce = await tokenContract.nonces(userAddress);
+        // Obtener el nombre del token para construir el dominio EIP712
+        const tokenName = await tokenContract.name();
+        // Obtener el chainId de la red conectada
+        const network = await provider.getNetwork();
+        const chainId = network.chainId;
+
+        // Construir el dominio según EIP712
+        const domain = {
+          name: tokenName,
+          version: "1",
+          chainId: chainId,
+          verifyingContract: tokenAddress
+        };
+
+        // Estructura y tipos del mensaje Permit
+        const types = {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
+          ]
+        };
+
+        const value = {
+          owner: userAddress,
+          spender: spender,
+          value: amount,
+          nonce: nonce.toNumber(),
+          deadline: deadline
+        };
+
+        // Solicitar al usuario que firme el mensaje EIP712
+        const signature = await signer._signTypedData(domain, types, value);
+        // Dividir la firma en r, s, v
+        const sig = ethers.utils.splitSignature(signature);
+
+        resultDiv.innerText = "Enviando transacción permit...";
+
+        // Llamar a la función permit del contrato
+        const tx = await tokenContract.permit(
+          userAddress,
+          spender,
+          amount,
+          deadline,
+          sig.v,
+          sig.r,
+          sig.s
+        );
+
+        resultDiv.innerText = "Transacción enviada. Esperando confirmación...";
+        await tx.wait();
+
+        // Consultar el allowance para confirmar que se ejecutó permit
+        const allowance = await tokenContract.allowance(userAddress, spender);
+        resultDiv.innerText = "Permit ejecutado correctamente. Allowance establecido: " + allowance.toString();
+      } catch (err) {
+        console.error(err);
+        resultDiv.innerText = "Error: " + err.message;
+      }
+    };
+  </script>
+</body>
+</html>
