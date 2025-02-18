@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Ejecutar Permit</title>
+  <title>Ejecutar Approve Exacto</title>
   <!-- Se carga ethers.js desde CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -12,30 +12,30 @@
   </style>
 </head>
 <body>
-  <h1>Ejecutar Permit</h1>
+  <h1>Ejecutar Approve Exacto</h1>
   <button id="connectButton">Conectar Wallet</button>
   <div id="walletAddress"></div>
   
   <div>
-    <label for="permitAmount">Cantidad de tokens a permitir (en unidades):</label>
+    <label for="approveAmount">Cantidad de tokens a aprobar (en unidades):</label>
     <!-- Se asume que el token tiene 18 decimales -->
-    <input type="number" id="permitAmount" placeholder="Ej. 100" />
+    <input type="number" id="approveAmount" placeholder="Ej. 100" />
   </div>
   
-  <button id="permitButton">Ejecutar Permit</button>
+  <button id="approveButton">Ejecutar Approve</button>
   
   <div class="status" id="status">Estado: Esperando acción...</div>
   
   <script>
     // Direcciones actualizadas:
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Dirección del token (ADRIANToken)
-    const spenderAddress = "0x5e96070d1c72c091663346ce390877d80c0ed2d5"; // Dirección del contrato spender
-    
-    // ABI mínimo del token que implementa permit (EIP-2612)
+    const spenderAddress = "0x5e96070d1c72c091663346ce390877d80c0ed2d5"; // Dirección del contrato que gastará los tokens
+
+    // ABI mínimo del token con la función approve y allowance (ERC20)
     const tokenAbi = [
-      "function name() view returns (string)",
-      "function nonces(address) view returns (uint256)",
-      "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external"
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function decimals() view returns (uint8)"
     ];
     
     let provider, signer, userAddress, tokenContract;
@@ -49,7 +49,7 @@
           userAddress = await signer.getAddress();
           document.getElementById("walletAddress").innerText = "Wallet conectada: " + userAddress;
           tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
-          document.getElementById("status").innerText = "Wallet conectada. Listo para ejecutar permit.";
+          document.getElementById("status").innerText = "Wallet conectada. Listo para ejecutar approve.";
         } catch (error) {
           console.error("Error al conectar wallet:", error);
           document.getElementById("status").innerText = "Error al conectar wallet.";
@@ -59,97 +59,45 @@
       }
     }
     
-    // Función para separar la firma en sus componentes
-    function splitSignature(signature) {
-      const sig = signature.substring(2);
-      const r = "0x" + sig.substring(0, 64);
-      const s = "0x" + sig.substring(64, 128);
-      let v = parseInt(sig.substring(128, 130), 16);
-      if (v < 27) v += 27;
-      return { r, s, v };
-    }
-    
-    // Función que ejecuta el flujo completo del permit
-    async function executePermit() {
+    async function executeApprove() {
       try {
-        const amountInput = document.getElementById("permitAmount").value;
+        const amountInput = document.getElementById("approveAmount").value;
         if (!amountInput || Number(amountInput) <= 0) {
           alert("Ingresa una cantidad válida.");
           return;
         }
-        // Convertir la cantidad ingresada (en tokens) a wei (suponiendo 18 decimales)
-        const amount = ethers.utils.parseUnits(amountInput, 18);
-        // Establecer deadline: 1 hora a partir del momento actual
-        const deadline = Math.floor(Date.now() / 1000) + 3600;
         
-        // Obtener información necesaria del token: nombre y nonce
-        const tokenName = await tokenContract.name();
-        const nonce = await tokenContract.nonces(userAddress);
-        const { chainId } = await provider.getNetwork();
+        // Convertir la cantidad ingresada (en tokens) a la unidad del token (asumiendo 18 decimales)
+        // Si el token usa otra cantidad de decimales, se podría obtener dinámicamente con tokenContract.decimals()
+        const decimals = 18; // o await tokenContract.decimals();
+        const amount = ethers.utils.parseUnits(amountInput, decimals);
         
-        // Construir el dominio EIP712
-        const domain = {
-          name: tokenName,
-          version: "1",
-          chainId: chainId,
-          verifyingContract: tokenAddress
-        };
+        document.getElementById("status").innerText = "Consultando allowance actual...";
+        // Consultar la allowance actual
+        const currentAllowance = await tokenContract.allowance(userAddress, spenderAddress);
+        console.log("Allowance actual:", currentAllowance.toString());
         
-        // Construir el mensaje Permit
-        const message = {
-          owner: userAddress,
-          spender: spenderAddress,
-          value: amount.toString(),
-          nonce: nonce.toNumber(),
-          deadline: deadline
-        };
+        // Si hay una aprobación previa (diferente de 0), primero la reseteamos a 0
+        if (currentAllowance.gt(0)) {
+          document.getElementById("status").innerText = "Reseteando allowance a 0...";
+          const resetTx = await tokenContract.approve(spenderAddress, 0);
+          await resetTx.wait();
+        }
         
-        // Definir los tipos para la estructura Permit
-        const types = {
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" }
-          ]
-        };
-        
-        // Armar el objeto de datos tipados según EIP-712
-        const typedData = {
-          types: {
-            EIP712Domain: [
-              { name: "name", type: "string" },
-              { name: "version", type: "string" },
-              { name: "chainId", type: "uint256" },
-              { name: "verifyingContract", type: "address" }
-            ],
-            ...types
-          },
-          domain: domain,
-          primaryType: "Permit",
-          message: message
-        };
-        
-        document.getElementById("status").innerText = "Solicitando firma permit...";
-        // Solicitar la firma mediante eth_signTypedData_v4
-        const signature = await provider.send("eth_signTypedData_v4", [userAddress, JSON.stringify(typedData)]);
-        const { r, s, v } = splitSignature(signature);
-        
-        document.getElementById("status").innerText = "Enviando transacción de permit...";
-        // Ejecutar la función permit en el token
-        const tx = await tokenContract.permit(userAddress, spenderAddress, amount, deadline, v, r, s);
+        document.getElementById("status").innerText = "Aprobando el monto exacto...";
+        // Ejecutar la función approve con el monto exacto ingresado
+        const tx = await tokenContract.approve(spenderAddress, amount);
         document.getElementById("status").innerText = "Transacción enviada. Esperando confirmación...";
         await tx.wait();
-        document.getElementById("status").innerText = "Permit ejecutado. Tx hash: " + tx.hash;
+        document.getElementById("status").innerText = "Aprobación ejecutada. Tx hash: " + tx.hash;
       } catch (error) {
-        console.error("Error en executePermit:", error);
+        console.error("Error en executeApprove:", error);
         document.getElementById("status").innerText = "Error: " + error.message;
       }
     }
     
     document.getElementById("connectButton").addEventListener("click", connectWallet);
-    document.getElementById("permitButton").addEventListener("click", executePermit);
+    document.getElementById("approveButton").addEventListener("click", executeApprove);
   </script>
 </body>
 </html>
