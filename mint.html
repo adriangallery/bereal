@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mint NFT con ADRIAN Tokens | ADRIAN gallery</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Estilos personalizados de ADRIAN gallery -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Manifold CSS -->
+  <link rel="stylesheet" href="https://identity.manifoldxyz.dev/3.2.2/walletIdentity.css">
+  <link rel="stylesheet" href="https://restrictedtoken.manifoldxyz.dev/0.1.0/restrictedToken.css">
+  <link rel="stylesheet" href="https://subscribe.manifoldxyz.dev/0.2.0/widget.css">
+  <link rel="stylesheet" href="https://activityleaderboard.manifoldxyz.dev/0.1.6/activity-leaderboard.css">
+  <link rel="stylesheet" href="https://claims.manifoldxyz.dev/1.21.3/claimComplete.css">
+  <link rel="stylesheet" href="https://recommendations.manifoldxyz.dev/1.0.3/recommendations-widget.css">
+  <meta name="description" content="#0001 Millionaire - NFT (Digital Object): Are you an $ADRIAN millionaire?">
+</head>
+<body>
+  <!-- Menú común -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading menu:', error));
+  </script>
+
+  <!-- Header con imagen de cabecera -->
+  <header class="text-center">
+    <img src="https://adriangallery.com/images/adrian.GIF?w=1000" 
+         class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+  </header>
+
+  <!-- Main Content -->
+  <main class="container my-4">
+    <div class="text-center mb-4">
+      <h1>Mint Your NFT con ADRIAN Tokens</h1>
+      <p class="lead">¿Eres un $ADRIAN millionaire?</p>
+    </div>
+
+    <!-- Widget de Minting (Manifold) -->
+    <div id="minting-widget">
+      <div data-server-rendered="true" id="__nuxt">
+        <div id="__layout">
+          <div id="app" data-v-5f727787>
+            <div data-v-0063e271 data-v-5f727787>
+              <div data-widget="m-claim-complete" data-id="4286804208" data-network="8453" data-fallback-provider="" data-v-0063e271></div>
+              <div data-widget="m-recommendations" data-instance-id="4286804208" class="m-recommendations" data-v-0063e271></div>
+              <div id="manifold-footer" class="footer-container m-layout" data-v-63b93764 data-v-0063e271>
+                <a href="https://manifold.xyz" target="_blank" class="left-side" data-v-63b93764>
+                  <div class="footer-logo" data-v-63b93764>
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDEiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCA0MSAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMCAwLjAwMTczMTExTDYuNjIzOTEgNi42MjU2NEw0MC41NTI1IDYuNjIzOTFMMzMuOTI4NiAwTDAgMC4wMDE3MzExMVoiIGZpbGw9IndoaXRlIi8+CiAgPHBhdGggZD0iTTI2LjYzMzEgMTYuMDc5SDMxLjA0NjhMNDAuNDk3OSA2LjYyNzg5SDMwLjE0N0wyMy42NjQ1IDEzLjExMDRMMjAuNTE5MSA5Ljk2NDkySDEwLjE2ODJMMTkuNjE5MiAxOS40MTZIMjkuOTcwMUwyNi42MzMxIDE2LjA3OVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" data-v-63b93764>
+                  </div>
+                  <span data-v-63b93764>© 2025 MANIFOLD TECHNOLOGIES LTD.</span>
+                </a>
+                <div class="right-side" data-v-63b93764>
+                  <a href="https://studio.manifold.xyz/apps/2522713783/new?utm_source=c&amp;utm_medium=footer&amp;utm_campaign=app-link&amp;utm_content=0001millionaire" target="_blank" data-v-63b93764>
+                    Create your own
+                  </a>
+                  <a href="https://help.manifold.xyz/en/collections/9493388-claim-page" target="_blank" class="faq" data-v-63b93764>
+                    FAQ
+                  </a>
+                  <a href="https://manifold.xyz/privacy/" target="_blank" class="pp" data-v-63b93764>
+                    PRIVACY POLICY
+                  </a>
+                  <a href="https://manifold.xyz/tos/" target="_blank" class="tos" data-v-63b93764>
+                    TERMS OF SERVICE
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer común -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Manifold Scripts -->
+  <script src="https://connect.manifoldxyz.dev/4.1.0/connect.umd.min.js"></script>
+  <script src="https://identity.manifoldxyz.dev/3.2.2/walletIdentity.umd.min.js"></script>
+  <script src="https://claims.manifoldxyz.dev/1.21.3/claimComplete.umd.min.js"></script>
+  <script src="https://restrictedtoken.manifoldxyz.dev/0.1.0/restrictedToken.umd.min.js?version=1"></script>
+  <script src="https://subscribe.manifoldxyz.dev/0.2.0/widget.umd.min.js"></script>
+  <script src="https://activityleaderboard.manifoldxyz.dev/0.1.6/activity-leaderboard.umd.min.js"></script>
+  <script src="https://recommendations.manifoldxyz.dev/1.0.3/recommendations-widget.umd.min.js"></script>
+  <!-- Scripts de Nuxt (mantienen la funcionalidad original del mint) -->
+  <script src="/_nuxt/fa4dca2.modern.js" defer></script>
+  <script src="/_nuxt/6b37c4b.modern.js" defer></script>
+  <script src="/_nuxt/a249973.modern.js" defer></script>
+  <script src="/_nuxt/152a163.modern.js" defer></script>
+  <script src="/_nuxt/6354c82.modern.js" defer></script>
+  <script src="/_nuxt/84fde45.modern.js" defer></script>
+</body>
+</html>
