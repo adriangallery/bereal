@@ -223,11 +223,20 @@
       try {
         const secondsRemaining = await auctionContract.getTimeRemaining();
         let secs = secondsRemaining.toNumber();
+        const days = Math.floor(secs / 86400);
+        secs %= 86400;
         const hours = Math.floor(secs / 3600);
         secs %= 3600;
         const minutes = Math.floor(secs / 60);
         const seconds = secs % 60;
-        document.getElementById("timeRemainingDisplay").innerText = `${hours}h ${minutes}m ${seconds}s`;
+        
+        let timeDisplay = "";
+        if (days > 0) {
+          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
+        }
+        document.getElementById("timeRemainingDisplay").innerText = timeDisplay;
       } catch (error) {
         console.error("Error updating time remaining:", error);
         document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
