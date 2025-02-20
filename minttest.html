@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AdrianGallery Mint & Approve</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, button { padding: 10px; margin: 5px; }
+    #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>AdrianGallery Mint & Approve</h1>
+  <!-- Botón para conectar la wallet -->
+  <button id="connectButton">Connect Wallet</button>
+  <div id="walletAddress"></div>
+
+  <hr>
+
+  <!-- Sección para aprobar tokens ADRIAN -->
+  <h2>Approve ADRIAN Tokens</h2>
+  <label for="approveAmount">Amount to Approve:</label>
+  <input type="number" id="approveAmount" value="100" min="1"><br>
+  <button id="approveButton">Approve Tokens</button>
+
+  <hr>
+
+  <!-- Sección para realizar el mint -->
+  <h2>Mint Token</h2>
+  <label for="eventId">Mint Event ID:</label>
+  <input type="number" id="eventId" value="0" min="0"><br>
+  <label for="quantity">Quantity:</label>
+  <input type="number" id="quantity" value="1" min="1"><br>
+  <button id="mintButton">Mint Token</button>
+
+  <div id="log"></div>
+
+  <script>
+    // Dirección del contrato AdrianGallery desplegado
+    const galleryContractAddress = "0x0647992B738Ca71B1fD78336D322e66b40D76710";
+    // ABI mínimo para AdrianGallery (solo las funciones que usaremos)
+    const galleryABI = [
+      "function mint(uint256 eventId, uint256 quantity) external",
+      "function tokenURI(uint256 tokenId) public view returns (string)"
+    ];
+
+    // Dirección del token ADRIAN (la dirección fija en el constructor del contrato)
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    // ABI mínimo para ERC20: solo la función approve
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)"
+    ];
+
+    let provider;
+    let signer;
+    let galleryContract;
+    let tokenContract;
+
+    // Referencias a elementos del DOM
+    const connectButton = document.getElementById("connectButton");
+    const walletAddressDiv = document.getElementById("walletAddress");
+    const approveButton = document.getElementById("approveButton");
+    const mintButton = document.getElementById("mintButton");
+    const logDiv = document.getElementById("log");
+
+    // Función para agregar mensajes al log
+    function log(message) {
+      logDiv.textContent += message + "\n";
+    }
+
+    // Conectar wallet
+    connectButton.addEventListener("click", async () => {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          const address = await signer.getAddress();
+          walletAddressDiv.textContent = "Connected: " + address;
+          galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+          log("Wallet connected.");
+        } catch (error) {
+          console.error(error);
+          log("Error connecting wallet: " + error.message);
+        }
+      } else {
+        log("No Ethereum provider found. Please install MetaMask.");
+      }
+    });
+
+    // Función para aprobar tokens ADRIAN
+    approveButton.addEventListener("click", async () => {
+      if (!tokenContract || !galleryContractAddress) {
+        log("Conecta primero la wallet.");
+        return;
+      }
+
+      const amount = document.getElementById("approveAmount").value;
+      try {
+        log("Enviando aprobación...");
+        const tx = await tokenContract.approve(galleryContractAddress, amount);
+        log("Transacción de aprobación enviada: " + tx.hash);
+        await tx.wait();
+        log("Tokens aprobados correctamente.");
+      } catch (error) {
+        console.error(error);
+        log("Error en aprobación: " + error.message);
+      }
+    });
+
+    // Función para realizar el mint
+    mintButton.addEventListener("click", async () => {
+      if (!galleryContract) {
+        log("Conecta primero la wallet.");
+        return;
+      }
+
+      const eventId = document.getElementById("eventId").value;
+      const quantity = document.getElementById("quantity").value;
+
+      try {
+        log("Realizando mint...");
+        const tx = await galleryContract.mint(eventId, quantity);
+        log("Transacción enviada: " + tx.hash);
+        await tx.wait();
+        log("Mint completado.");
+      } catch (error) {
+        console.error(error);
+        log("Error en mint: " + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
