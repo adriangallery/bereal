@@ -33,7 +33,7 @@
   <!-- Sección de información del mint event (ocultando el eventId al usuario) -->
   <h2>NFT Details</h2>
   <div id="eventInfo">
-    <!-- Vista previa del NFT -->
+    <!-- Vista previa del NFT con imagen por defecto -->
     <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview">
     <!-- Detalles del mint event -->
     <div class="eventDetails" id="mintDetails">
@@ -82,6 +82,9 @@
     const nftImage = document.getElementById("nftImage");
     const mintDetailsDiv = document.getElementById("mintDetails");
     
+    // Imagen por defecto (la que se muestra antes de conectar la wallet)
+    const defaultImage = "https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4";
+    
     // Mint event activo (definido por el owner, en este ejemplo usamos el 0)
     const activeEventId = 0;
     
@@ -123,10 +126,12 @@
         const remaining = maxSupply - minted;
         const metadataURI = eventData.metadataURI;
         
-        // Si no se ha configurado el mint event (maxSupply = 0), informar al usuario
-        if (maxSupply == 0) {
+        // Si no se ha configurado el mint event (maxSupply = 0 o metadataURI vacío), mostramos un mensaje
+        if (maxSupply == 0 || !metadataURI || metadataURI.trim() === "") {
           mintDetailsDiv.innerHTML = `<p style="color:red;">Mint event not configured. Please contact the owner.</p>`;
-          log("Mint event not available.");
+          log("Mint event not available. Using default image.");
+          // Asegurarse de mantener la imagen por defecto
+          nftImage.src = defaultImage;
           return;
         }
         
@@ -153,19 +158,22 @@
                 }
                 nftImage.src = imageUrl;
               } else {
-                log("No 'image' property found in metadata JSON.");
+                log("No 'image' property found in metadata JSON. Using default image.");
+                nftImage.src = defaultImage;
               }
             })
             .catch(err => {
               console.error("Error fetching metadata:", err);
-              log("Error fetching metadata: " + err.message);
+              log("Error fetching metadata: " + err.message + ". Using default image.");
+              nftImage.src = defaultImage;
             });
         } else {
           nftImage.src = metadataURI;
         }
       } catch (error) {
         console.error("Error loading mint event details:", error);
-        log("Error loading mint event details: " + error.message);
+        log("Error loading mint event details: " + error.message + ". Using default image.");
+        nftImage.src = defaultImage;
       }
     }
     
@@ -179,7 +187,6 @@
       const amount = document.getElementById("approveAmount").value;
       try {
         log("Sending approval...");
-        // Convertir 100 tokens a la unidad base (suponiendo 18 decimales)
         const parsedAmount = ethers.utils.parseUnits(amount.toString(), 18);
         const tx = await tokenContract.approve(galleryContractAddress, parsedAmount);
         log("Approval tx sent: " + tx.hash);
