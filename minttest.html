@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>AdrianGallery Mint & Approve</title>
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <!-- Se carga ethers.js desde un CDN, asegurándonos de que se incluya antes del script principal -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     input, button { padding: 10px; margin: 5px; }
     #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+    img { border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -17,6 +19,11 @@
   <div id="walletAddress"></div>
 
   <hr>
+
+  <!-- Vista previa del NFT -->
+  <h2>NFT Preview</h2>
+  <!-- Aquí se muestra la imagen que se usará en el NFT (convertida a través del gateway de IPFS) -->
+  <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview" style="max-width:300px; display:block; margin-bottom: 20px;">
 
   <!-- Sección para aprobar tokens ADRIAN -->
   <h2>Approve ADRIAN Tokens</h2>
