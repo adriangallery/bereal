@@ -11,11 +11,17 @@
   <!-- Carga ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
+    /* Ajuste para que el menú se extienda de borde a borde */
+    #menu-placeholder {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
     body { font-family: 'Raleway', sans-serif; margin: 20px; }
     input, button { padding: 10px; margin: 5px; }
     #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
     img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
-    .eventDetails { margin-top: 10px; }
+    .eventDetails { margin-top: 10px; text-align: left; }
     /* Puedes agregar aquí ajustes adicionales para adecuar el estilo a ADRIAN gallery */
   </style>
 </head>
@@ -68,7 +74,7 @@
       <div id="eventInfo" class="text-center">
         <!-- Vista previa del NFT -->
         <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview">
-        <!-- Detalles del mint event -->
+        <!-- Detalles del mint event (alineados a la izquierda) -->
         <div class="eventDetails" id="mintDetails">
           <p><strong>Price:</strong> N/A</p>
           <p><strong>Max Supply:</strong> N/A</p>
