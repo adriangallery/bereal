@@ -2,80 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AdrianGallery Mint & Approve</title>
-  <!-- Se carga ethers.js desde un CDN, asegurándonos de que se incluya antes del script principal -->
+  <title>AdrianGallery Mint</title>
+  <!-- Cargamos ethers.js correctamente -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     input, button { padding: 10px; margin: 5px; }
     #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
-    img { border: 1px solid #ccc; }
+    img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
+    .eventDetails { margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>AdrianGallery Mint & Approve</h1>
+  <h1>AdrianGallery Mint</h1>
   <!-- Botón para conectar la wallet -->
   <button id="connectButton">Connect Wallet</button>
   <div id="walletAddress"></div>
-
+  
   <hr>
-
-  <!-- Vista previa del NFT -->
-  <h2>NFT Preview</h2>
-  <!-- Aquí se muestra la imagen que se usará en el NFT (convertida a través del gateway de IPFS) -->
-  <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview" style="max-width:300px; display:block; margin-bottom: 20px;">
 
   <!-- Sección para aprobar tokens ADRIAN -->
   <h2>Approve ADRIAN Tokens</h2>
+  <p>This contract requires approval of ADRIAN tokens before minting.</p>
   <label for="approveAmount">Amount to Approve:</label>
   <input type="number" id="approveAmount" value="100" min="1"><br>
   <button id="approveButton">Approve Tokens</button>
-
+  
   <hr>
 
+  <!-- Sección de información del mint event (oculta el eventId) -->
+  <h2>NFT Details</h2>
+  <div id="eventInfo">
+    <!-- Aquí se mostrará la imagen obtenida del metadata -->
+    <img id="nftImage" src="" alt="NFT Preview">
+    <!-- Detalles del mint event -->
+    <div class="eventDetails" id="mintDetails"></div>
+  </div>
+  
+  <hr>
+  
   <!-- Sección para realizar el mint -->
-  <h2>Mint Token</h2>
-  <label for="eventId">Mint Event ID:</label>
-  <input type="number" id="eventId" value="0" min="0"><br>
+  <h2>Mint NFT</h2>
+  <p>Enter the quantity you want to mint (active event is applied automatically).</p>
   <label for="quantity">Quantity:</label>
   <input type="number" id="quantity" value="1" min="1"><br>
-  <button id="mintButton">Mint Token</button>
-
+  <button id="mintButton">Mint NFT</button>
+  
   <div id="log"></div>
-
+  
   <script>
     // Dirección del contrato AdrianGallery desplegado
     const galleryContractAddress = "0x0647992B738Ca71B1fD78336D322e66b40D76710";
-    // ABI mínimo para AdrianGallery (solo las funciones que usaremos)
+    // ABI mínimo para AdrianGallery, incluye mint() y el getter público de mintEvents(0)
     const galleryABI = [
       "function mint(uint256 eventId, uint256 quantity) external",
-      "function tokenURI(uint256 tokenId) public view returns (string)"
+      "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI)"
     ];
-
+    
     // Dirección del token ADRIAN (la dirección fija en el constructor del contrato)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     // ABI mínimo para ERC20: solo la función approve
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)"
     ];
-
-    let provider;
-    let signer;
-    let galleryContract;
-    let tokenContract;
-
-    // Referencias a elementos del DOM
+    
+    let provider, signer, galleryContract, tokenContract;
+    
+    // Elementos del DOM
     const connectButton = document.getElementById("connectButton");
     const walletAddressDiv = document.getElementById("walletAddress");
     const approveButton = document.getElementById("approveButton");
     const mintButton = document.getElementById("mintButton");
     const logDiv = document.getElementById("log");
-
+    const nftImage = document.getElementById("nftImage");
+    const mintDetailsDiv = document.getElementById("mintDetails");
+    
+    // Mint event ID activo (definido por el owner, en este ejemplo usamos el 0)
+    const activeEventId = 0;
+    
     // Función para agregar mensajes al log
     function log(message) {
       logDiv.textContent += message + "\n";
     }
-
+    
     // Conectar wallet
     connectButton.addEventListener("click", async () => {
       if (window.ethereum) {
@@ -88,6 +97,7 @@
           galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
           tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
           log("Wallet connected.");
+          loadMintEventDetails();
         } catch (error) {
           console.error(error);
           log("Error connecting wallet: " + error.message);
@@ -96,46 +106,102 @@
         log("No Ethereum provider found. Please install MetaMask.");
       }
     });
-
+    
+    // Cargar detalles del mint event activo
+    async function loadMintEventDetails() {
+      try {
+        const eventData = await galleryContract.mintEvents(activeEventId);
+        // eventData: [mintType, price, maxSupply, minted, startTime, endTime, metadataURI]
+        const price = eventData.price;
+        const maxSupply = eventData.maxSupply;
+        const minted = eventData.minted;
+        const remaining = maxSupply - minted;
+        const metadataURI = eventData.metadataURI;
+        
+        // Actualiza los detalles en el DOM
+        mintDetailsDiv.innerHTML = `
+          <p><strong>Price:</strong> ${price} ADRIAN tokens</p>
+          <p><strong>Max Supply:</strong> ${maxSupply}</p>
+          <p><strong>Minted:</strong> ${minted}</p>
+          <p><strong>Remaining:</strong> ${remaining}</p>
+        `;
+        
+        // Si metadataURI es un pointer a JSON, convertirlo a una URL usando un gateway
+        if (metadataURI.startsWith("ipfs://")) {
+          const cid = metadataURI.replace("ipfs://", "");
+          const metadataURL = "https://ipfs.io/ipfs/" + cid;
+          // Buscar la metadata JSON para obtener la imagen
+          fetch(metadataURL)
+            .then(response => response.json())
+            .then(data => {
+              // Si el JSON tiene una propiedad "image", actualizar la imagen de vista previa
+              if (data.image) {
+                // Convertir ipfs:// en una URL accesible
+                let imageUrl = data.image;
+                if (imageUrl.startsWith("ipfs://")) {
+                  imageUrl = "https://ipfs.io/ipfs/" + imageUrl.replace("ipfs://", "");
+                }
+                nftImage.src = imageUrl;
+              } else {
+                log("No image property found in metadata JSON.");
+              }
+            })
+            .catch(err => {
+              console.error("Error fetching metadata:", err);
+              log("Error fetching metadata: " + err.message);
+            });
+        } else {
+          // Si no es ipfs://, asignar directamente
+          nftImage.src = metadataURI;
+        }
+        
+      } catch (error) {
+        console.error("Error loading mint event details:", error);
+        log("Error loading mint event details: " + error.message);
+      }
+    }
+    
     // Función para aprobar tokens ADRIAN
     approveButton.addEventListener("click", async () => {
       if (!tokenContract || !galleryContractAddress) {
-        log("Conecta primero la wallet.");
+        log("Connect your wallet first.");
         return;
       }
-
+    
       const amount = document.getElementById("approveAmount").value;
       try {
-        log("Enviando aprobación...");
+        log("Sending approval...");
         const tx = await tokenContract.approve(galleryContractAddress, amount);
-        log("Transacción de aprobación enviada: " + tx.hash);
+        log("Approval tx sent: " + tx.hash);
         await tx.wait();
-        log("Tokens aprobados correctamente.");
+        log("Tokens approved successfully.");
       } catch (error) {
         console.error(error);
-        log("Error en aprobación: " + error.message);
+        log("Error in approval: " + error.message);
       }
     });
-
+    
     // Función para realizar el mint
     mintButton.addEventListener("click", async () => {
       if (!galleryContract) {
-        log("Conecta primero la wallet.");
+        log("Connect your wallet first.");
         return;
       }
-
-      const eventId = document.getElementById("eventId").value;
+    
       const quantity = document.getElementById("quantity").value;
-
+    
       try {
-        log("Realizando mint...");
-        const tx = await galleryContract.mint(eventId, quantity);
-        log("Transacción enviada: " + tx.hash);
+        log("Minting NFT(s)...");
+        // Llamamos a mint usando el activeEventId (oculto al usuario)
+        const tx = await galleryContract.mint(activeEventId, quantity);
+        log("Mint tx sent: " + tx.hash);
         await tx.wait();
-        log("Mint completado.");
+        log("Mint completed.");
+        // Recargar detalles del mint event para actualizar cantidad mintada
+        loadMintEventDetails();
       } catch (error) {
         console.error(error);
-        log("Error en mint: " + error.message);
+        log("Error in mint: " + error.message);
       }
     });
   </script>
