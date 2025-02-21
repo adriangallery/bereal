@@ -36,42 +36,43 @@
     <main class="container my-4">
       <!-- Aquí va el contenido específico de cada página -->
       <h1 class="text-center mb-4">AdrianGallery Mint</h1>
-  
+
 <!-- Botón para conectar la wallet -->
 <div class="text-center mb-3">
   <button id="connectButton" class="btn btn-primary">Connect Wallet</button>
   <div id="walletAddress" class="mt-2"></div>
 </div>
-  
+
 <hr>
-  
-<!-- Sección de detalles del NFT -->
+
+<!-- Sección de información del mint event -->
 <section class="mb-4">
   <h2>NFT Details</h2>
   <div id="eventInfo" class="text-center">
-    <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" 
-         alt="NFT Preview" style="width:100%; max-width:300px; height:auto; border:1px solid #ccc; margin-bottom:10px;">
+    <!-- Vista previa del NFT -->
+    <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview">
+    <!-- Detalles del mint event -->
     <div class="eventDetails" id="mintDetails">
-      <!-- Se cargarán los detalles del evento de mint -->
+      <!-- Se cargarán los detalles desde loadMintEventDetails() -->
     </div>
   </div>
 </section>
-  
+
 <hr>
-  
+
 <!-- Sección para aprobar tokens y realizar el mint en un solo botón -->
 <section class="mb-4">
   <h2>Mint NFT</h2>
   <p>Presiona el botón para aprobar tokens y mintear el NFT (cantidades fijas).</p>
   <button id="approveAndMintButton" class="btn btn-success">Aprobar y Mint NFT</button>
 </section>
-  
+
 <!-- Log de mensajes -->
 <div id="log"></div>
-  
+
 <!-- Scripts específicos para esta página -->
 <script>
-  // Datos de contrato tomados del ejemplo funcional
+  // Datos del contrato (tomados del código funcional que compartiste)
   const galleryContractAddress = "0x0647992B738Ca71B1fD78336D322e66b40D76710";
   const galleryABI = [
     "function mint(uint256 eventId, uint256 quantity) external",
@@ -85,8 +86,12 @@
   
   let provider, signer, galleryContract, tokenContract;
   let walletConnected = false;
+  
+  // Mint event activo (en este ejemplo usamos el 0)
   const activeEventId = 0;
+  // Aprobación fija de 100 tokens (usa 18 decimales)
   const predefinedApprovalAmount = ethers.utils.parseUnits("100", 18);
+  // Mint fijo de 1 NFT (puedes modificarlo si lo requieres)
   const predefinedMintQuantity = 1;
   
   // Elementos del DOM
@@ -124,7 +129,7 @@
     }
   });
   
-  // Cargar los detalles del mint event activo
+  // Función para cargar los detalles del mint event activo
   async function loadMintEventDetails() {
     try {
       const eventData = await galleryContract.mintEvents(activeEventId);
@@ -133,6 +138,8 @@
       const minted = eventData.minted;
       const remaining = maxSupply - minted;
       let metadataURI = eventData.metadataURI;
+      
+      // Eliminar posibles comillas al inicio y final
       metadataURI = metadataURI.replace(/^"+|"+$/g, "");
       
       if (maxSupply == 0) {
@@ -148,6 +155,7 @@
         <p><strong>Remaining:</strong> ${remaining}</p>
       `;
       
+      // Procesar metadataURI para obtener la imagen del NFT
       if (metadataURI.startsWith("ipfs://")) {
         const cid = metadataURI.replace("ipfs://", "");
         const metadataURL = "https://ipfs.io/ipfs/" + cid;
@@ -177,7 +185,7 @@
     }
   }
   
-  // Aprobar tokens y realizar el mint en un solo flujo
+  // Función para aprobar tokens y realizar el mint en un solo botón
   approveAndMintButton.addEventListener("click", async () => {
     if (!walletConnected) {
       log("Please connect your wallet first.");
@@ -202,7 +210,7 @@
       log("Mint tx sent: " + mintTx.hash);
       await mintTx.wait();
       log("NFT minted successfully.");
-      loadMintEventDetails();
+      loadMintEventDetails(); // Refresca los detalles del mint event
     } catch (error) {
       console.error("Error during minting:", error);
       log("Error during minting: " + error.message);
