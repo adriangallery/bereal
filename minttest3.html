@@ -50,7 +50,7 @@
     <section class="mb-4">
       <h2>NFT Details</h2>
       <div id="eventInfo" class="text-center">
-        <!-- Vista previa del NFT (se actualizará según la metadata) -->
+        <!-- Vista previa del NFT fija -->
         <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiho7ga74moetcpge4pjzkgsoajrwbbcijfpopzoqtyttjyavccmdy" alt="NFT Preview">
         <!-- Detalles del mint event -->
         <div class="eventDetails" id="mintDetails"></div>
@@ -59,7 +59,7 @@
     
     <hr>
     
-    <!-- Sección para aprobar tokens y realizar el mint -->
+    <!-- Sección para aprobar tokens y mintear -->
     <section class="mb-4">
       <h2>Mint NFT</h2>
       <p>Presiona el botón para aprobar tokens y mintear el NFT (cada usuario podrá mintear 1 copia).</p>
@@ -84,6 +84,9 @@
   
   <!-- Scripts de la página -->
   <script>
+    // Definir la URL fija para el preview
+    const desiredPreview = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiho7ga74moetcpge4pjzkgsoajrwbbcijfpopzoqtyttjyavccmdy";
+    
     // Dirección del contrato ERC1155 (mint event)
     const galleryContractAddress = "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD";
     // ABI actualizado (incluye paymentReceiver en mintEvents)
@@ -169,29 +172,26 @@
           <p><strong>Remaining:</strong> ${remaining}</p>
         `;
         
-        // Procesar metadataURI para cargar la imagen del NFT usando el gateway ipfs.io
+        // Cargamos la metadata, pero luego forzamos el preview a la URL deseada
         if (metadataURI.startsWith("ipfs://")) {
           const cid = metadataURI.replace("ipfs://", "");
           const metadataURL = "https://ipfs.io/ipfs/" + cid;
           fetch(metadataURL)
             .then(response => response.json())
             .then(data => {
-              if (data.image) {
-                let imageUrl = data.image.replace(/^"+|"+$/g, "");
-                if (imageUrl.startsWith("ipfs://")) {
-                  imageUrl = "https://ipfs.io/ipfs/" + imageUrl.replace("ipfs://", "");
-                }
-                nftImage.src = imageUrl;
-              } else {
-                log("No 'image' property found in metadata JSON.");
-              }
+              // Si el JSON tiene propiedad "image", podrías usarla;
+              // pero aquí forzamos la imagen de preview a desiredPreview
+              log("Metadata loaded successfully.");
+              nftImage.src = desiredPreview;
             })
             .catch(err => {
               console.error("Error fetching metadata:", err);
               log("Error fetching metadata: " + err.message);
+              // En caso de error, se mantiene la imagen fija
+              nftImage.src = desiredPreview;
             });
         } else {
-          nftImage.src = metadataURI;
+          nftImage.src = desiredPreview;
         }
       } catch (error) {
         console.error("Error loading mint event details:", error);
@@ -205,7 +205,6 @@
         log("Please connect your wallet first.");
         return;
       }
-      
       try {
         log("Sending approval transaction...");
         const approveTx = await tokenContract.approve(galleryContractAddress, predefinedApprovalAmount);
