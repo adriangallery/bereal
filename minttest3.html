@@ -51,7 +51,7 @@
       <h2>NFT Details</h2>
       <div id="eventInfo" class="text-center">
         <!-- Vista previa del NFT (se actualizará según la metadata) -->
-        <img id="nftImage" src="https://ipfs.io/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview">
+        <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiho7ga74moetcpge4pjzkgsoajrwbbcijfpopzoqtyttjyavccmdy" alt="NFT Preview">
         <!-- Detalles del mint event -->
         <div class="eventDetails" id="mintDetails"></div>
       </div>
@@ -59,7 +59,7 @@
     
     <hr>
     
-    <!-- Sección para aprobar tokens y mintear -->
+    <!-- Sección para aprobar tokens y realizar el mint -->
     <section class="mb-4">
       <h2>Mint NFT</h2>
       <p>Presiona el botón para aprobar tokens y mintear el NFT (cada usuario podrá mintear 1 copia).</p>
@@ -92,7 +92,7 @@
       "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
     ];
     
-    // Dirección del token ADRIAN (ERC20) y ABI para approve
+    // Dirección del token ADRIAN (ERC20) y ABI para la función approve
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)"
@@ -101,8 +101,8 @@
     let provider, signer, galleryContract, tokenContract;
     let walletConnected = false;
     
-    // Mint event activo: usaremos eventId = 3
-    const activeEventId = 3;
+    // Mint event activo: usamos eventId = 4
+    const activeEventId = 4;
     // Aprobación fija de 1 ADRIAN token (1 * 10^18)
     const predefinedApprovalAmount = ethers.utils.parseUnits("1", 18);
     // Mint fijo de 1 copia
@@ -120,7 +120,7 @@
       logDiv.textContent += message + "\n";
     }
     
-    // Conectar wallet
+    // Conectar wallet y cargar detalles del mint event
     connectButton.addEventListener("click", async () => {
       if (window.ethereum) {
         try {
@@ -143,7 +143,7 @@
       }
     });
     
-    // Cargar detalles del mint event
+    // Función para cargar los detalles del mint event
     async function loadMintEventDetails() {
       try {
         const eventData = await galleryContract.mintEvents(activeEventId);
@@ -153,7 +153,7 @@
         const remaining = maxSupply - minted;
         let metadataURI = eventData.metadataURI;
         
-        // Eliminar comillas extra, si existen
+        // Eliminar posibles comillas al inicio y final
         metadataURI = metadataURI.replace(/^"+|"+$/g, "");
         
         if (maxSupply == 0) {
@@ -169,7 +169,7 @@
           <p><strong>Remaining:</strong> ${remaining}</p>
         `;
         
-        // Cargar la metadata para obtener la imagen
+        // Procesar metadataURI para cargar la imagen del NFT usando el gateway ipfs.io
         if (metadataURI.startsWith("ipfs://")) {
           const cid = metadataURI.replace("ipfs://", "");
           const metadataURL = "https://ipfs.io/ipfs/" + cid;
@@ -199,12 +199,13 @@
       }
     }
     
-    // Aprobar tokens y mintear NFT
+    // Función para aprobar tokens y mintear NFT
     approveAndMintButton.addEventListener("click", async () => {
       if (!walletConnected) {
         log("Please connect your wallet first.");
         return;
       }
+      
       try {
         log("Sending approval transaction...");
         const approveTx = await tokenContract.approve(galleryContractAddress, predefinedApprovalAmount);
