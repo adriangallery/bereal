@@ -51,7 +51,7 @@
     <section class="mb-4">
       <h2>NFT Details</h2>
       <div id="eventInfo" class="text-center">
-        <!-- Vista previa del NFT -->
+        <!-- Vista previa del NFT (se mostrará la imagen según la metadata) -->
         <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiaadj5yzfpauuhss7733qbrelsfppsi2ca724bled5osichkvgqq4" alt="NFT Preview">
         <!-- Detalles del mint event -->
         <div class="eventDetails" id="mintDetails">
@@ -105,8 +105,8 @@
     let provider, signer, galleryContract, tokenContract;
     let walletConnected = false;
     
-    // Mint event activo: usamos eventId = 1
-    const activeEventId = 1;
+    // Mint event activo: usamos eventId = 2
+    const activeEventId = 2;
     // Aprobación fija de 100 ADRIAN tokens (con 18 decimales)
     const predefinedApprovalAmount = ethers.utils.parseUnits("100", 18);
     // Mint fijo de 1 copia (cada usuario podrá mintear 1 NFT)
@@ -173,17 +173,17 @@
           <p><strong>Remaining:</strong> ${remaining}</p>
         `;
         
-        // Procesar metadataURI para cargar la imagen del NFT usando el gateway de Pinata
+        // Procesar metadataURI para cargar la imagen del NFT usando el gateway de ipfs.io
         if (metadataURI.startsWith("ipfs://")) {
           const cid = metadataURI.replace("ipfs://", "");
-          const metadataURL = "https://emerald-above-tick-265.mypinata.cloud/ipfs/" + cid;
+          const metadataURL = "https://ipfs.io/ipfs/" + cid;
           fetch(metadataURL)
             .then(response => response.json())
             .then(data => {
               if (data.image) {
                 let imageUrl = data.image.replace(/^"+|"+$/g, "");
                 if (imageUrl.startsWith("ipfs://")) {
-                  imageUrl = "https://emerald-above-tick-265.mypinata.cloud/ipfs/" + imageUrl.replace("ipfs://", "");
+                  imageUrl = "https://ipfs.io/ipfs/" + imageUrl.replace("ipfs://", "");
                 }
                 nftImage.src = imageUrl;
               } else {
