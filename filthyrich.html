@@ -142,20 +142,19 @@
       }
     });
     
-    // Load mint event details
+    // Load mint event details and override price for open edition
     async function loadMintEventDetails() {
       try {
         const eventData = await galleryContract.mintEvents(activeEventId);
-        currentPrice = eventData.price;
+        // Override the price to 100,000 ADRIAN tokens with 18 decimals:
+        currentPrice = ethers.utils.parseUnits("100000", 18);
         const minted = eventData.minted;
-        // Show "Open Edition" for max supply instead of a number
         mintDetailsDiv.innerHTML = `
           <p><strong>Price:</strong> ${Number(ethers.utils.formatUnits(currentPrice, 18)).toLocaleString()} ADRIAN tokens</p>
           <p><strong>Max Supply:</strong> Open Edition</p>
           <p><strong>Minted:</strong> ${minted}</p>
         `;
-        
-        // Force preview image to be constant
+        // Force preview image to remain constant
         nftImage.src = desiredPreview;
       } catch (error) {
         console.error("Error loading mint event details:", error);
