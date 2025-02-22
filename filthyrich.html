@@ -85,7 +85,7 @@
   
   <!-- Page Scripts -->
   <script>
-    // Fixed preview image URL (the image remains constant)
+    // Fixed preview image URL
     const desiredPreview = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4";
     
     // Contract settings
@@ -103,7 +103,7 @@
     let walletConnected = false;
     let currentPrice = ethers.BigNumber.from("0");
     
-    // Active mint event: assume open edition is eventId = 5 (adjust as needed)
+    // Active mint event: assume open edition is eventId = 5 (adjust if needed)
     const activeEventId = 5;
     
     // DOM Elements
@@ -147,25 +147,12 @@
       try {
         const eventData = await galleryContract.mintEvents(activeEventId);
         currentPrice = eventData.price;
-        const maxSupply = eventData.maxSupply;
         const minted = eventData.minted;
-        const remaining = maxSupply - minted;
-        let metadataURI = eventData.metadataURI;
-        
-        // Clean metadata URI from extra quotes if any
-        metadataURI = metadataURI.replace(/^"+|"+$/g, "");
-        
-        if (maxSupply == 0) {
-          mintDetailsDiv.innerHTML = `<p style="color:red;">Mint event not configured. Please contact the owner.</p>`;
-          log("Mint event not available.");
-          return;
-        }
-        
+        // Show "Open Edition" for max supply instead of a number
         mintDetailsDiv.innerHTML = `
-          <p><strong>Price:</strong> ${ethers.utils.formatUnits(currentPrice, 18)} ADRIAN tokens</p>
-          <p><strong>Max Supply:</strong> ${maxSupply}</p>
+          <p><strong>Price:</strong> ${Number(ethers.utils.formatUnits(currentPrice, 18)).toLocaleString()} ADRIAN tokens</p>
+          <p><strong>Max Supply:</strong> Open Edition</p>
           <p><strong>Minted:</strong> ${minted}</p>
-          <p><strong>Remaining:</strong> ${remaining}</p>
         `;
         
         // Force preview image to be constant
