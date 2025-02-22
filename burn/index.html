@@ -97,28 +97,25 @@
     
     let provider;
     let contract;
-    let totalBurned = 0;
     
-    // ABI mínima: solo necesitamos el evento Transfer para detectar la quema
-    const tokenABI = [
-      {
-        "anonymous": false,
-        "inputs": [
-          { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
-          { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
-          { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
-        ],
-        "name": "Transfer",
-        "type": "event"
+    // Aquí defines el suministro inicial en tokens (sin decimales)
+    // Ajusta este valor según la cantidad inicial de tu token.
+    const initialSupply = 1000000; // Por ejemplo, 1,000,000 tokens
+    
+    // Asumimos 18 decimales; si tus decimales son diferentes, ajústalo.
+    const decimals = 18;
+    
+    // Función para refrescar el total quemado obteniendo el total supply actual
+    async function refreshBurnedTokens() {
+      try {
+        const currentSupplyBN = await contract.totalSupply();
+        const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
+        // Los tokens quemados se calculan como: suministro inicial - suministro actual
+        const burnedTokens = initialSupply - currentSupply;
+        totalBurnedDiv.textContent = `Total Quemado: ${burnedTokens.toFixed(2)} tokens`;
+      } catch (error) {
+        console.error("Error al refrescar el total quemado:", error);
       }
-    ];
-    
-    // Dirección del contrato
-    const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    
-    // Función para actualizar el total quemado
-    function updateTotalBurned() {
-      totalBurnedDiv.textContent = `Total Quemado: ${totalBurned.toFixed(2)} tokens`;
     }
     
     // Función para agregar un evento (token quemado) a la interfaz con animación
@@ -131,7 +128,6 @@
         <p><strong>Tx:</strong> ${txHash.substring(0,10)}...</p>
       `;
       eventsDiv.prepend(eventCard);
-      // Activar la animación agregando la clase "show"
       setTimeout(() => eventCard.classList.add("show"), 100);
     }
     
@@ -147,18 +143,46 @@
         provider = new ethers.providers.Web3Provider(window.ethereum);
         walletStatus.textContent = "Wallet conectada. Provider configurado.";
         
-        // Instanciar el contrato
+        // Instanciar el contrato utilizando la ABI mínima (incluye totalSupply y Transfer)
+        const tokenABI = [
+          // Función totalSupply
+          {
+            "inputs": [],
+            "name": "totalSupply",
+            "outputs": [
+              { "internalType": "uint256", "name": "", "type": "uint256" }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          // Evento Transfer
+          {
+            "anonymous": false,
+            "inputs": [
+              { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
+              { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
+              { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
+            ],
+            "name": "Transfer",
+            "type": "event"
+          }
+        ];
+        const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
         contract = new ethers.Contract(contractAddress, tokenABI, provider);
         
+        // Al conectar, refrescamos el total quemado
+        refreshBurnedTokens();
+        
         // Escuchar el evento Transfer y filtrar transferencias a la dirección cero (quema)
-        contract.on("Transfer", (from, to, value, event) => {
+        contract.on("Transfer", async (from, to, value, event) => {
           if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
-            const burnedValue = parseFloat(ethers.utils.formatUnits(value, 18));
-            totalBurned += burnedValue;
-            updateTotalBurned();
+            const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
             addEvent(from, burnedValue, event.transactionHash);
+            // Después de cada evento, refrescamos el total mediante consulta al contrato
+            refreshBurnedTokens();
           }
         });
+        
       } catch (error) {
         walletStatus.textContent = "Error al conectar: " + error.message;
         console.error("Error al conectar:", error);
