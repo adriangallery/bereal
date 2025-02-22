@@ -54,6 +54,11 @@
       padding: 15px;
       border-radius: 10px;
     }
+    #chartContainer {
+      margin-top: 30px;
+      width: 100%;
+      height: 300px;
+    }
     #events {
       margin-top: 20px;
     }
@@ -83,8 +88,14 @@
     <button id="connectButton">Conectar Wallet</button>
     <div id="walletStatus"></div>
     <div id="totalBurned">Total Quemado: 0 tokens</div>
+    <div id="chartContainer">
+      <canvas id="burnChart"></canvas>
+    </div>
     <div id="events"></div>
   </div>
+  
+  <!-- Importar Chart.js para el gráfico -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <!-- Usamos ES Modules para importar ethers -->
   <script type="module">
@@ -94,31 +105,57 @@
     const walletStatus = document.getElementById("walletStatus");
     const totalBurnedDiv = document.getElementById("totalBurned");
     const eventsDiv = document.getElementById("events");
+    const ctx = document.getElementById("burnChart").getContext("2d");
     
     let provider;
     let contract;
+    let burnChart;
     
-    // Aquí defines el suministro inicial en tokens (sin decimales)
-    // Ajusta este valor según la cantidad inicial de tu token.
-    const initialSupply = 1000000; // Por ejemplo, 1,000,000 tokens
-    
-    // Asumimos 18 decimales; si tus decimales son diferentes, ajústalo.
+    // Suministro inicial definido en tokens legibles (333 millones)
+    const initialSupply = 333000000;
+    // Asegúrate de que este valor coincida con los decimales de tu token (usamos 18)
     const decimals = 18;
     
-    // Función para refrescar el total quemado obteniendo el total supply actual
+    // Función para refrescar el total quemado consultando el totalSupply actual
     async function refreshBurnedTokens() {
       try {
         const currentSupplyBN = await contract.totalSupply();
         const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
-        // Los tokens quemados se calculan como: suministro inicial - suministro actual
         const burnedTokens = initialSupply - currentSupply;
         totalBurnedDiv.textContent = `Total Quemado: ${burnedTokens.toFixed(2)} tokens`;
+        
+        // Actualiza o crea el gráfico con los datos actuales
+        if (burnChart) {
+          burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
+          burnChart.update();
+        } else {
+          burnChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Quemados', 'En Circulación'],
+              datasets: [{
+                data: [burnedTokens, currentSupply],
+                backgroundColor: ['#FF6384', '#36A2EB']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: 'Distribución de Tokens'
+                }
+              }
+            }
+          });
+        }
       } catch (error) {
         console.error("Error al refrescar el total quemado:", error);
       }
     }
     
-    // Función para agregar un evento (token quemado) a la interfaz con animación
+    // Función para agregar un evento de quema a la interfaz
     function addEvent(from, value, txHash) {
       const eventCard = document.createElement("div");
       eventCard.className = "eventCard";
@@ -131,7 +168,6 @@
       setTimeout(() => eventCard.classList.add("show"), 100);
     }
     
-    // Conectar la wallet y configurar el contrato
     connectButton.addEventListener("click", async () => {
       if (!window.ethereum) {
         walletStatus.textContent = "MetaMask no está instalado.";
@@ -143,9 +179,8 @@
         provider = new ethers.providers.Web3Provider(window.ethereum);
         walletStatus.textContent = "Wallet conectada. Provider configurado.";
         
-        // Instanciar el contrato utilizando la ABI mínima (incluye totalSupply y Transfer)
+        // Definir una ABI mínima que incluya totalSupply y el evento Transfer
         const tokenABI = [
-          // Función totalSupply
           {
             "inputs": [],
             "name": "totalSupply",
@@ -155,7 +190,6 @@
             "stateMutability": "view",
             "type": "function"
           },
-          // Evento Transfer
           {
             "anonymous": false,
             "inputs": [
@@ -167,18 +201,19 @@
             "type": "event"
           }
         ];
+        
         const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
         contract = new ethers.Contract(contractAddress, tokenABI, provider);
         
-        // Al conectar, refrescamos el total quemado
+        // Inicializar la visualización consultando el totalSupply actual
         refreshBurnedTokens();
         
-        // Escuchar el evento Transfer y filtrar transferencias a la dirección cero (quema)
+        // Escuchar el evento Transfer: se asume que la quema ocurre cuando se transfiere a la dirección cero
         contract.on("Transfer", async (from, to, value, event) => {
           if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
             const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
             addEvent(from, burnedValue, event.transactionHash);
-            // Después de cada evento, refrescamos el total mediante consulta al contrato
+            // Actualiza la visualización general de tokens quemados
             refreshBurnedTokens();
           }
         });
