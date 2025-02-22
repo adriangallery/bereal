@@ -2,19 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Visualizador de Quema de Tokens</title>
+  <title>DApp Simple con ES Modules</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
-    }
-    .event {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 10px auto;
-      width: 80%;
     }
     button {
       padding: 10px 20px;
@@ -22,83 +15,45 @@
       margin: 10px;
       cursor: pointer;
     }
+    #output {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Visualizador de Quema de Tokens</h1>
-  <p>Conecta tu wallet para ver eventos de quema.</p>
+  <h1>DApp Simple con ES Modules</h1>
   <button id="connectButton">Conectar Wallet</button>
-  <div id="totalBurned">Total Quemado: 0 tokens</div>
-  <div id="events"></div>
-  
-  <!-- Cargar ethers.js desde jsDelivr (versión UMD de ethers v5) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
-  
-  <!-- Definir la ABI mínima (solo el evento Transfer) -->
-  <script>
-    const tokenABI = [
-      {
-        "anonymous": false,
-        "inputs": [
-          { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
-          { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
-          { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
-        ],
-        "name": "Transfer",
-        "type": "event"
-      }
-    ];
-  </script>
-  
-  <!-- Código para conectar MetaMask, instanciar el contrato y escuchar eventos -->
-  <script>
-    const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    let provider;
-    let contract;
-    let totalBurned = 0;
+  <div id="output"></div>
 
-    // Función para actualizar el total quemado en la interfaz
-    function updateTotalBurned() {
-      document.getElementById("totalBurned").innerText = "Total Quemado: " + totalBurned + " tokens";
+  <!-- Usaremos un script de módulo para importar ethers -->
+  <script type="module">
+    // Importar ethers desde jsDelivr (versión ES Module de ethers v5)
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+
+    const output = document.getElementById("output");
+
+    // Verificar si MetaMask está instalado
+    if (!window.ethereum) {
+      output.textContent = "MetaMask no está instalado. Por favor, instálalo para usar esta DApp.";
     }
 
-    // Función para agregar un evento a la lista
-    function addEvent(from, value, txHash) {
-      const eventsDiv = document.getElementById("events");
-      const eventDiv = document.createElement("div");
-      eventDiv.className = "event";
-      eventDiv.innerHTML = "<p><strong>Desde:</strong> " + from + "</p>" +
-                           "<p><strong>Cantidad quemada:</strong> " + value + "</p>" +
-                           "<p><strong>Tx:</strong> " + txHash.substring(0,10) + "...</p>";
-      eventsDiv.prepend(eventDiv);
-    }
-
-    // Conectar con MetaMask y configurar el contrato
     document.getElementById("connectButton").addEventListener("click", async () => {
-      if (typeof window.ethereum !== "undefined") {
-        try {
-          // Solicitar conexión a MetaMask
-          await ethereum.request({ method: 'eth_requestAccounts' });
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          contract = new ethers.Contract(contractAddress, tokenABI, provider);
-          
-          // Escuchar el evento Transfer y detectar transferencias a la dirección cero (quema)
-          contract.on("Transfer", (from, to, value, event) => {
-            if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
-              const burnedValue = parseFloat(ethers.utils.formatUnits(value, 18)); // Ajusta según los decimales de tu token
-              totalBurned += burnedValue;
-              updateTotalBurned();
-              addEvent(from, burnedValue, event.transactionHash);
-            }
-          });
-          
-          alert("Wallet conectada y contrato configurado.");
-        } catch (error) {
-          console.error("Error al conectar:", error);
-          alert("Error al conectar con MetaMask. Revisa la consola para más detalles.");
-        }
-      } else {
-        alert("MetaMask no está instalado. Por favor, instálalo para usar la DApp.");
+      try {
+        // Solicitar conexión a MetaMask
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        output.textContent = "Wallet conectada. Provider configurado.";
+        
+        // Aquí podrías continuar para instanciar tu contrato y suscribirte a eventos
+        // Por ejemplo, para instanciar el contrato:
+        // const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+        // const tokenABI = [ ...tu ABI aquí... ];
+        // const contract = new ethers.Contract(contractAddress, tokenABI, provider);
+        // contract.on("Transfer", (from, to, value, event) => { ... });
+
+      } catch (error) {
+        output.textContent = "Error al conectar: " + error;
+        console.error("Error al conectar:", error);
       }
     });
   </script>
