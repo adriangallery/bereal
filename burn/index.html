@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DApp Tokens Quemados</title>
+  <title>DApp Burned Tokens</title>
   <style>
-    /* Estilos generales */
+    /* Global styles */
     body {
       margin: 0;
       padding: 0;
@@ -19,11 +19,20 @@
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-    /* Menú superior */
+    /* Fun pulse animation */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .pulse {
+      animation: pulse 0.5s ease-in-out;
+    }
+    /* Menu styles */
     #menu-placeholder {
       margin-bottom: 20px;
     }
-    /* Contenedor principal */
+    /* Main container */
     .container {
       max-width: 800px;
       margin: auto;
@@ -71,33 +80,33 @@
   </style>
 </head>
 <body>
-  <!-- Menú (Header) -->
+  <!-- Header Menu -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargar el menú desde components/menu.html
+    // Load the menu from components/menu.html
     fetch('components/menu.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
       .catch(error => {
-        console.error('Error al cargar el menú:', error);
+        console.error('Error loading menu:', error);
       });
   </script>
 
   <div class="container">
-    <h1>DApp Tokens Quemados</h1>
-    <div id="totalBurned">Total Quemado: 0 tokens</div>
+    <h1>DApp Burned Tokens</h1>
+    <div id="totalBurned">Total Burned: 0 tokens</div>
     <div id="chartContainer">
       <canvas id="burnChart"></canvas>
     </div>
     <div id="events"></div>
   </div>
   
-  <!-- Importar Chart.js para el gráfico -->
+  <!-- Import Chart.js for the chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
-  <!-- Usamos ES Modules para importar ethers -->
+  <!-- Use ES Modules to import ethers -->
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     
@@ -109,15 +118,15 @@
     let contract;
     let burnChart;
     
-    // Suministro inicial en tokens legibles (333 millones)
+    // Initial supply (in human-readable tokens) set to 333 million
     const initialSupply = 333000000;
-    // Asegúrate de que este valor coincida con los decimales de tu token (se asume 18)
+    // Ensure this value matches your token's decimals (assumed to be 18)
     const decimals = 18;
     
-    // Crear un proveedor público (por ejemplo, para Mainnet)
+    // Create a public provider (Mainnet)
     provider = ethers.getDefaultProvider("homestead");
     
-    // Definir una ABI mínima que incluya totalSupply y el evento Transfer
+    // Define a minimal ABI with totalSupply and the Transfer event
     const tokenABI = [
       {
         "inputs": [],
@@ -143,15 +152,18 @@
     const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     contract = new ethers.Contract(contractAddress, tokenABI, provider);
     
-    // Función para refrescar el total quemado consultando el totalSupply actual
+    // Function to refresh burned tokens info by querying the current totalSupply
     async function refreshBurnedTokens() {
       try {
         const currentSupplyBN = await contract.totalSupply();
         const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
         const burnedTokens = initialSupply - currentSupply;
-        totalBurnedDiv.textContent = `Total Quemado: ${burnedTokens.toFixed(2)} tokens`;
+        totalBurnedDiv.textContent = `Total Burned: ${burnedTokens.toFixed(2)} tokens`;
+        // Add a pulse animation for a fun effect
+        totalBurnedDiv.classList.add("pulse");
+        setTimeout(() => totalBurnedDiv.classList.remove("pulse"), 500);
         
-        // Actualiza o crea el gráfico
+        // Update or create the chart with the current data
         if (burnChart) {
           burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
           burnChart.update();
@@ -159,7 +171,7 @@
           burnChart = new Chart(ctx, {
             type: 'pie',
             data: {
-              labels: ['Quemados', 'En Circulación'],
+              labels: ['Burned', 'In Circulation'],
               datasets: [{
                 data: [burnedTokens, currentSupply],
                 backgroundColor: ['#FF6384', '#36A2EB']
@@ -171,35 +183,35 @@
               plugins: {
                 title: {
                   display: true,
-                  text: 'Distribución de Tokens'
+                  text: 'Token Distribution'
                 }
               }
             }
           });
         }
       } catch (error) {
-        console.error("Error al refrescar el total quemado:", error);
+        console.error("Error refreshing burned tokens:", error);
       }
     }
     
-    // Función para agregar un evento de quema a la interfaz
+    // Function to add a burn event to the UI
     function addEvent(from, value, txHash) {
       const eventCard = document.createElement("div");
       eventCard.className = "eventCard";
       eventCard.innerHTML = `
-        <p><strong>Desde:</strong> ${from}</p>
-        <p><strong>Cantidad Quemada:</strong> ${value.toFixed(2)} tokens</p>
+        <p><strong>From:</strong> ${from}</p>
+        <p><strong>Burned Amount:</strong> ${value.toFixed(2)} tokens</p>
         <p><strong>Tx:</strong> ${txHash.substring(0,10)}...</p>
       `;
       eventsDiv.prepend(eventCard);
       setTimeout(() => eventCard.classList.add("show"), 100);
     }
     
-    // Actualizar la información de forma periódica (por ejemplo, cada 15 segundos)
+    // Refresh the information periodically (every 15 seconds)
     refreshBurnedTokens();
     setInterval(refreshBurnedTokens, 15000);
     
-    // Intentar suscribirse al evento Transfer para detectar nuevas quema en tiempo real
+    // Attempt to subscribe to the Transfer event to detect new burns in real time
     try {
       contract.on("Transfer", async (from, to, value, event) => {
         if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
@@ -209,7 +221,7 @@
         }
       });
     } catch (error) {
-      console.warn("La suscripción a eventos no está disponible en este proveedor. Se usará polling.", error);
+      console.warn("Event subscription not available on this provider. Using polling instead.", error);
     }
   </script>
 </body>
