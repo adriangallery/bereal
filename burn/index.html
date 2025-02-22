@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DApp Burned Tokens</title>
   <style>
     /* Global Styles */
@@ -27,10 +28,6 @@
     }
     .pulse {
       animation: pulse 0.5s ease-in-out;
-    }
-    /* Menu Styles */
-    #menu-placeholder {
-      margin-bottom: 20px;
     }
     /* Main Container */
     .container {
@@ -94,23 +91,32 @@
     .eventCard p {
       margin: 5px 0;
     }
+    /* Responsive Styles for Mobile Devices */
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+      #totalBurned {
+        font-size: 1.3rem;
+        padding: 10px;
+      }
+      #chartContainer {
+        height: 200px;
+      }
+      #walletStatus {
+        font-size: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- Header Menu -->
-  <div id="menu-placeholder"></div>
-  <script>
-    // Load the menu from components/menu.html
-    fetch('components/menu.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading menu:', error);
-      });
-  </script>
-
   <div class="container">
     <h1>DApp Burned Tokens</h1>
     <button id="connectButton">Connect Wallet</button>
@@ -125,7 +131,7 @@
   <!-- Import Chart.js for the chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
-  <!-- Import ethers via ES Modules -->
+  <!-- Use ES Modules to import ethers -->
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     
@@ -240,7 +246,7 @@
         // Initialize the display by querying the current totalSupply
         refreshBurnedTokens();
         
-        // Listen for the Transfer event (assumed burn when sent to the zero address)
+        // Listen for the Transfer event: assume burn occurs when sent to the zero address
         contract.on("Transfer", async (from, to, value, event) => {
           if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
             const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
