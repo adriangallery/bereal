@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>DApp Tokens Quemados</title>
   <style>
-    /* Fondo animado y estilos base */
+    /* Estilos generales */
     body {
       margin: 0;
       padding: 0;
@@ -19,6 +19,11 @@
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
+    /* Menú superior */
+    #menu-placeholder {
+      margin-bottom: 20px;
+    }
+    /* Contenedor principal */
     .container {
       max-width: 800px;
       margin: auto;
@@ -28,23 +33,6 @@
     h1 {
       font-size: 2.5rem;
       margin-bottom: 10px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 5px;
-      background: #ff9800;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #e68900;
-    }
-    #walletStatus {
-      margin-top: 20px;
-      font-size: 1.2rem;
     }
     #totalBurned {
       margin-top: 30px;
@@ -83,10 +71,22 @@
   </style>
 </head>
 <body>
+  <!-- Menú (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Cargar el menú desde components/menu.html
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error al cargar el menú:', error);
+      });
+  </script>
+
   <div class="container">
     <h1>DApp Tokens Quemados</h1>
-    <button id="connectButton">Conectar Wallet</button>
-    <div id="walletStatus"></div>
     <div id="totalBurned">Total Quemado: 0 tokens</div>
     <div id="chartContainer">
       <canvas id="burnChart"></canvas>
@@ -101,8 +101,6 @@
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     
-    const connectButton = document.getElementById("connectButton");
-    const walletStatus = document.getElementById("walletStatus");
     const totalBurnedDiv = document.getElementById("totalBurned");
     const eventsDiv = document.getElementById("events");
     const ctx = document.getElementById("burnChart").getContext("2d");
@@ -111,10 +109,39 @@
     let contract;
     let burnChart;
     
-    // Suministro inicial definido en tokens legibles (333 millones)
+    // Suministro inicial en tokens legibles (333 millones)
     const initialSupply = 333000000;
-    // Asegúrate de que este valor coincida con los decimales de tu token (usamos 18)
+    // Asegúrate de que este valor coincida con los decimales de tu token (se asume 18)
     const decimals = 18;
+    
+    // Crear un proveedor público (por ejemplo, para Mainnet)
+    provider = ethers.getDefaultProvider("homestead");
+    
+    // Definir una ABI mínima que incluya totalSupply y el evento Transfer
+    const tokenABI = [
+      {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
+          { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
+          { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
+        ],
+        "name": "Transfer",
+        "type": "event"
+      }
+    ];
+    
+    const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    contract = new ethers.Contract(contractAddress, tokenABI, provider);
     
     // Función para refrescar el total quemado consultando el totalSupply actual
     async function refreshBurnedTokens() {
@@ -124,7 +151,7 @@
         const burnedTokens = initialSupply - currentSupply;
         totalBurnedDiv.textContent = `Total Quemado: ${burnedTokens.toFixed(2)} tokens`;
         
-        // Actualiza o crea el gráfico con los datos actuales
+        // Actualiza o crea el gráfico
         if (burnChart) {
           burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
           burnChart.update();
@@ -168,61 +195,22 @@
       setTimeout(() => eventCard.classList.add("show"), 100);
     }
     
-    connectButton.addEventListener("click", async () => {
-      if (!window.ethereum) {
-        walletStatus.textContent = "MetaMask no está instalado.";
-        return;
-      }
-      try {
-        // Solicitar conexión a MetaMask
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        walletStatus.textContent = "Wallet conectada. Provider configurado.";
-        
-        // Definir una ABI mínima que incluya totalSupply y el evento Transfer
-        const tokenABI = [
-          {
-            "inputs": [],
-            "name": "totalSupply",
-            "outputs": [
-              { "internalType": "uint256", "name": "", "type": "uint256" }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "anonymous": false,
-            "inputs": [
-              { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
-              { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
-              { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
-            ],
-            "name": "Transfer",
-            "type": "event"
-          }
-        ];
-        
-        const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-        contract = new ethers.Contract(contractAddress, tokenABI, provider);
-        
-        // Inicializar la visualización consultando el totalSupply actual
-        refreshBurnedTokens();
-        
-        // Escuchar el evento Transfer: se asume que la quema ocurre cuando se transfiere a la dirección cero
-        contract.on("Transfer", async (from, to, value, event) => {
-          if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
-            const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
-            addEvent(from, burnedValue, event.transactionHash);
-            // Actualiza la visualización general de tokens quemados
-            refreshBurnedTokens();
-          }
-        });
-        
-      } catch (error) {
-        walletStatus.textContent = "Error al conectar: " + error.message;
-        console.error("Error al conectar:", error);
-      }
-    });
+    // Actualizar la información de forma periódica (por ejemplo, cada 15 segundos)
+    refreshBurnedTokens();
+    setInterval(refreshBurnedTokens, 15000);
+    
+    // Intentar suscribirse al evento Transfer para detectar nuevas quema en tiempo real
+    try {
+      contract.on("Transfer", async (from, to, value, event) => {
+        if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
+          const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
+          addEvent(from, burnedValue, event.transactionHash);
+          refreshBurnedTokens();
+        }
+      });
+    } catch (error) {
+      console.warn("La suscripción a eventos no está disponible en este proveedor. Se usará polling.", error);
+    }
   </script>
 </body>
 </html>
