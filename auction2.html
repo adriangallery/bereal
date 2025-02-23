@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
+  <!-- Asegúrate de incluir una CSP con nonce en el head de tus páginas -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-abc123';">
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <title>$ADRIAN Auction</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (versión 5.3.0) -->
+  <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <div class="text-center mt-4">
       <p>
         🏆 Top bidder wins #0003 – The True Ascendant (1/1) + a piece of #0004 – ASCENSION (10/10)
         🏅 Next 9 get a piece of #0004 – ASCENSION (10/10)
       </p>
-    </div>
+  </div>
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- Auction-specific Styles -->
@@ -54,7 +56,7 @@
 <body>
   <!-- Menú (componente común) -->
   <div id="menu-placeholder"></div>
-  <script>
+  <script nonce="abc123">
     fetch('components/menu.html')
       .then(response => response.text())
       .then(html => {
@@ -73,7 +75,7 @@
     </header>
 
     <div class="text-center mb-4">
-      <!-- Nota: Si ya se conectó desde el menú, aquí se mostrará la dirección -->
+      <!-- Si ya se conectó desde el menú, aquí se mostrará la dirección -->
       <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
       <p id="accountDisplay" class="mt-2"></p>
     </div>
@@ -145,7 +147,7 @@
 
   <!-- Footer (componente común) -->
   <div id="footer-placeholder"></div>
-  <script>
+  <script nonce="abc123">
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -156,8 +158,8 @@
       });
   </script>
 
-  <!-- Auction JavaScript -->
-  <script>
+  <!-- Auction JavaScript con nonce -->
+  <script nonce="abc123">
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
@@ -179,8 +181,8 @@
       "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
     ];
 
-    // ERC20 token ABI
-    const tokenABI = [
+    // ERC20 token ABI (renombrado para evitar conflictos)
+    const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function balanceOf(address account) view returns (uint256)"
@@ -197,7 +199,7 @@
           document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
           // Instanciar contratos
           auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
-          tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
           // Llamar a las funciones para actualizar datos
           updateHighestBid();
           updateTimeRemaining();
@@ -213,7 +215,7 @@
       }
     }
 
-    // Función de conexión que se llama si el usuario hace clic en el botón (por si no se ha guardado la conexión)
+    // Función de conexión manual, en caso de que el usuario haga clic en el botón
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -226,7 +228,7 @@
           document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
           
           auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
-          tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
           
           updateHighestBid();
           updateTimeRemaining();
@@ -247,7 +249,6 @@
 
     // Al cargar la página, se intenta inicializar la conexión
     document.addEventListener("DOMContentLoaded", initConnection);
-
     // Si el usuario hace clic en el botón, se invoca la conexión manual
     document.getElementById("connectButton").addEventListener("click", connectWallet);
 
