@@ -5,41 +5,31 @@ title: "$ADRIAN Mint Open Edition"
 
 <!-- Estilos específicos para la página (puedes moverlos a un CSS externo si lo prefieres) -->
 <style>
-  /* Asegúrate de que el body no tenga márgenes globales */
+  /* Se elimina cualquier margen global en el body */
   body { 
     font-family: 'Raleway', sans-serif;
-    margin: 0; /* elimina margen global */
-    padding: 0;
   }
-  /* Si quieres margen solo en el contenido, puedes usar padding interno
-     o utilizar la clase de Bootstrap que prefieras (p-3, p-4, etc.) */
-  
-  /* Elimina la regla que forzaba 20px de margen a main.container */
-  /* main.container {
-    margin: 20px;
-  } */
-
+  /* No se aplican márgenes forzados al contenedor principal */
   input, button { padding: 10px; margin: 5px; }
   #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
   img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
   .eventDetails { margin-top: 10px; text-align: left; }
 </style>
 
-<!-- Main Container -->
-<!-- Quita my-4 si no quieres margen vertical adicional -->
+<!-- Main Container sin margen adicional -->
 <main class="container">
-  <h1 class="text-center mt-4 mb-4">Open Edition Mint</h1>
+  <h1 class="text-center">Open Edition Mint</h1>
   
   <!-- Connect Wallet Button -->
-  <div class="text-center mb-3">
+  <div class="text-center">
     <button id="connectButton" class="btn btn-primary">Connect Wallet</button>
-    <div id="walletAddress" class="mt-2"></div>
+    <div id="walletAddress"></div>
   </div>
   
   <hr>
   
   <!-- Mint Event Details Section -->
-  <section class="mb-4">
+  <section>
     <h2>NFT Details</h2>
     <div id="eventInfo" class="text-center">
       <!-- Fixed NFT Preview Image -->
@@ -52,10 +42,12 @@ title: "$ADRIAN Mint Open Edition"
   <hr>
   
   <!-- Mint NFT Section -->
-  <section class="mb-4">
+  <section>
     <h2>Mint NFT</h2>
-    <p>Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
-       Each NFT costs 100,000 ADRIAN tokens.</p>
+    <p>
+      Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
+      Each NFT costs 100,000 ADRIAN tokens.
+    </p>
     <div class="text-center">
       <input id="mintQuantity" type="number" min="1" value="1" placeholder="Mint quantity">
     </div>
@@ -89,7 +81,7 @@ title: "$ADRIAN Mint Open Edition"
   let walletConnected = false;
   let currentPrice = ethers.BigNumber.from("0");
   
-  // Active mint event: now set to eventId = 6
+  // Active mint event: ahora eventId = 6
   const activeEventId = 6;
   
   // DOM Elements
@@ -105,7 +97,7 @@ title: "$ADRIAN Mint Open Edition"
     logDiv.textContent += message + "\n";
   }
   
-  // Connect wallet and load mint event details
+  // Conectar wallet y cargar detalles del evento de mint
   connectButton.addEventListener("click", async () => {
     if (window.ethereum) {
       try {
@@ -128,11 +120,10 @@ title: "$ADRIAN Mint Open Edition"
     }
   });
   
-  // Load mint event details and override price for open edition
+  // Cargar detalles del evento de mint y forzar precio de 100,000 ADRIAN tokens
   async function loadMintEventDetails() {
     try {
       const eventData = await galleryContract.mintEvents(activeEventId);
-      // Override the price to 100,000 ADRIAN tokens with 18 decimals:
       currentPrice = ethers.utils.parseUnits("100000", 18);
       const minted = eventData.minted;
       mintDetailsDiv.innerHTML = `
@@ -140,7 +131,6 @@ title: "$ADRIAN Mint Open Edition"
         <p><strong>Max Supply:</strong> Open Edition</p>
         <p><strong>Minted:</strong> ${minted}</p>
       `;
-      // Force preview image to remain constant
       nftImage.src = desiredPreview;
     } catch (error) {
       console.error("Error loading mint event details:", error);
@@ -148,7 +138,7 @@ title: "$ADRIAN Mint Open Edition"
     }
   }
   
-  // Approve tokens and mint NFT
+  // Aprobar tokens y mint NFT
   approveAndMintButton.addEventListener("click", async () => {
     if (!walletConnected) {
       log("Please connect your wallet first.");
@@ -179,7 +169,7 @@ title: "$ADRIAN Mint Open Edition"
       log("Mint tx sent: " + mintTx.hash);
       await mintTx.wait();
       log("NFT minted successfully.");
-      loadMintEventDetails(); // Update mint event details after minting
+      loadMintEventDetails();
     } catch (error) {
       console.error("Error during minting:", error);
       log("Error during minting: " + error.message);
