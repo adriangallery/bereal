@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>Complete DApp: Token Burn Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Global Styles for Token Burn Tracker App -->
+  <style>
+    /* Global Styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #fff;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    /* Pulse Animation */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .pulse {
+      animation: pulse 0.5s ease-in-out;
+    }
+    /* Main Container */
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background: #ff9800;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin: 5px;
+    }
+    button:hover {
+      background: #e68900;
+    }
+    #walletStatus {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+    #tokenInfo {
+      margin-top: 30px;
+      font-size: 1.3rem;
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: left;
+    }
+    #chartContainer {
+      margin-top: 30px;
+      width: 100%;
+      height: 300px;
+    }
+    #events {
+      margin-top: 20px;
+      text-align: left;
+    }
+    .eventCard {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px 0;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    .eventCard.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .eventCard p {
+      margin: 5px 0;
+    }
+    /* Responsive Styles */
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+      #tokenInfo {
+        font-size: 1rem;
+        padding: 10px;
+      }
+      #chartContainer {
+        height: 200px;
+      }
+      #walletStatus {
+        font-size: 1rem;
+      }
+    }
+  </style>
+  <!-- Ethers.js (Module version) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js"></script>
+</head>
+<body>
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Load menu from components/menu.html
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading menu:', error);
+      });
+  </script>
+
+  <!-- Hero Section (Optional) -->
+  <header class="text-center">
+    <img src="https://adriangallery.com/images/adrian.GIF?w=1000" 
+         class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+  </header>
+
+  <!-- Main Container: Token Burn Tracker App -->
+  <div class="container">
+    <h1>Complete DApp: Token Burn Tracker</h1>
+    <button id="connectButton">Connect Wallet</button>
+    <button id="refreshButton">Refresh Data</button>
+    <div id="walletStatus">Wallet not connected.</div>
+    <div id="tokenInfo">
+      <p><strong>Initial Supply:</strong> 333,000,000 tokens</p>
+      <p id="currentSupply"><strong>Current Supply:</strong> -</p>
+      <p id="totalBurned"><strong>Total Burned:</strong> - tokens</p>
+    </div>
+    <div id="chartContainer">
+      <canvas id="burnChart"></canvas>
+    </div>
+    <h2>Recent Burn Events</h2>
+    <div id="events"></div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    // Load footer from components/footer.html
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading footer:', error);
+      });
+  </script>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Token Burn Tracker App Script -->
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+    
+    const connectButton = document.getElementById("connectButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const walletStatus = document.getElementById("walletStatus");
+    const currentSupplyEl = document.getElementById("currentSupply");
+    const totalBurnedEl = document.getElementById("totalBurned");
+    const eventsDiv = document.getElementById("events");
+    const ctx = document.getElementById("burnChart").getContext("2d");
+    
+    let provider;
+    let contract;
+    let burnChart;
+    let walletAddress = "";
+    
+    // Set initial supply and decimals (adjust if necessary)
+    const initialSupply = 333000000;
+    const decimals = 18;
+    
+    // Minimal ABI: totalSupply and Transfer event
+    const tokenABI = [
+      {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          { "indexed": true, "internalType": "address", "name": "from", "type": "address" },
+          { "indexed": true, "internalType": "address", "name": "to", "type": "address" },
+          { "indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" }
+        ],
+        "name": "Transfer",
+        "type": "event"
+      }
+    ];
+    
+    // Replace with your contract address
+    const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    
+    async function connectWallet() {
+      if (!window.ethereum) {
+        walletStatus.textContent = "MetaMask is not installed.";
+        return;
+      }
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        walletAddress = await signer.getAddress();
+        walletStatus.textContent = "Wallet connected: " + walletAddress;
+        // Initialize contract instance
+        contract = new ethers.Contract(contractAddress, tokenABI, provider);
+        // Refresh token data
+        refreshTokenData();
+        // Subscribe to burn events
+        contract.on("Transfer", async (from, to, value, event) => {
+          if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
+            const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
+            // Fetch block timestamp
+            const block = await provider.getBlock(event.blockNumber);
+            const timestamp = new Date(block.timestamp * 1000).toLocaleString();
+            addEvent(from, burnedValue, event.transactionHash, timestamp);
+            refreshTokenData();
+          }
+        });
+      } catch (error) {
+        walletStatus.textContent = "Error connecting: " + error.message;
+        console.error("Error connecting:", error);
+      }
+    }
+    
+    async function refreshTokenData() {
+      try {
+        const currentSupplyBN = await contract.totalSupply();
+        const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
+        const burnedTokens = initialSupply - currentSupply;
+        // Display supply values as integers
+        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply)} tokens`;
+        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens)} tokens`;
+        // Add a fun pulse animation
+        totalBurnedEl.classList.add("pulse");
+        setTimeout(() => totalBurnedEl.classList.remove("pulse"), 500);
+        
+        // Update or create the pie chart
+        if (burnChart) {
+          burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
+          burnChart.update();
+        } else {
+          burnChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Burned', 'In Circulation'],
+              datasets: [{
+                data: [burnedTokens, currentSupply],
+                backgroundColor: ['#FF6384', '#36A2EB']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                title: {
+                  display: true,
+                  text: 'Token Distribution'
+                }
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error refreshing token data:", error);
+      }
+    }
+    
+    function addEvent(from, value, txHash, timestamp) {
+      const eventCard = document.createElement("div");
+      eventCard.className = "eventCard";
+      eventCard.innerHTML = `
+        <p><strong>From:</strong> ${from}</p>
+        <p><strong>Burned Amount:</strong> ${value} tokens</p>
+        <p><strong>Tx:</strong> ${txHash.substring(0,10)}...</p>
+        <p><strong>Time:</strong> ${timestamp}</p>
+      `;
+      eventsDiv.prepend(eventCard);
+      setTimeout(() => eventCard.classList.add("show"), 100);
+    }
+    
+    connectButton.addEventListener("click", connectWallet);
+    refreshButton.addEventListener("click", refreshTokenData);
+    
+    // Optionally refresh data every 30 seconds
+    setInterval(() => {
+      if (contract) refreshTokenData();
+    }, 30000);
+    
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
