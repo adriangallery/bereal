@@ -73,7 +73,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="metadataModalLabel">NFT Metadata</h5>
+          <h5 class="modal-title" id="metadataModalLabel"></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
@@ -244,13 +244,13 @@
           });
           html += `</ul>`;
         }
-        // Agregamos información de cantidad si se desea (podrías añadir más datos del contrato si estuvieran disponibles)
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
         
         document.getElementById("metadataContent").innerHTML = html;
-        document.getElementById("metadataModalLabel").innerText = `Metadata for Token #${tokenId}`;
+        // Set the modal title using the NFT title (in bold), for example "#0004 ASCENSION"
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
         
-        // Mostrar el modal
+        // Show the modal using Bootstrap
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
       } catch (error) {
