@@ -5,14 +5,20 @@ title: "$ADRIAN Mint Open Edition"
 
 <!-- Estilos específicos para la página (puedes moverlos a un CSS externo si lo prefieres) -->
 <style>
-  /* Eliminar el margen global en el body para que el menú quede pegado a la parte superior */
+  /* Asegúrate de que el body no tenga márgenes globales */
   body { 
-    font-family: 'Raleway', sans-serif; 
+    font-family: 'Raleway', sans-serif;
+    margin: 0; /* elimina margen global */
+    padding: 0;
   }
-  /* Si necesitas un margen interno para el contenido, aplícalo al contenedor principal */
-  main.container { 
-    margin: 20px; 
-  }
+  /* Si quieres margen solo en el contenido, puedes usar padding interno
+     o utilizar la clase de Bootstrap que prefieras (p-3, p-4, etc.) */
+  
+  /* Elimina la regla que forzaba 20px de margen a main.container */
+  /* main.container {
+    margin: 20px;
+  } */
+
   input, button { padding: 10px; margin: 5px; }
   #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
   img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
@@ -20,8 +26,9 @@ title: "$ADRIAN Mint Open Edition"
 </style>
 
 <!-- Main Container -->
-<main class="container my-4">
-  <h1 class="text-center mb-4">Open Edition Mint</h1>
+<!-- Quita my-4 si no quieres margen vertical adicional -->
+<main class="container">
+  <h1 class="text-center mt-4 mb-4">Open Edition Mint</h1>
   
   <!-- Connect Wallet Button -->
   <div class="text-center mb-3">
