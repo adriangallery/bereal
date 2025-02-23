@@ -3,211 +3,119 @@
 <head>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN Auction</title>
+  <title>$ADRIAN your HOLDINGS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (versión 5.3.0) -->
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <div class="text-center mt-4">
-    <p>
-      🏆 Top bidder wins #0003 – The True Ascendant (1/1) + a piece of #0004 – ASCENSION (10/10)
-      🏅 Next 9 get a piece of #0004 – ASCENSION (10/10)
-    </p>
-  </div>
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Auction-specific Styles -->
   <style>
     body {
       background-color: #f8f9fa;
     }
-    .navbar-brand {
-      font-weight: bold;
-      font-size: 1.5rem;
-    }
-    header img {
-      max-width: 100%;
-      cursor: pointer;
-    }
-    h1 {
-      text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #0000ff;
-      margin-top: 1rem;
+    header {
+      margin-top: 2rem;
       margin-bottom: 2rem;
+    }
+    .display-4 {
+      font-weight: bold;
     }
     .card {
       margin-bottom: 1.5rem;
-    }
-    footer {
-      margin-top: 2rem;
-      padding: 1rem 0;
-      border-top: 1px solid #ccc;
-    }
-    .btn-anaglyph-blue {
-      background-color: #007bff;
-      border-color: #007bff;
-      color: #fff;
-    }
-    .btn-anaglyph-blue:hover {
-      background-color: #0069d9;
-      border-color: #0062cc;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <!-- Menú (componente común) -->
+  <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
+    // Load menu from components/menu.html
     fetch('components/menu.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
       .catch(error => {
-        console.error('Error al cargar el menú:', error);
+        console.error('Error loading menu:', error);
       });
   </script>
 
-  <div class="container mt-4">
-    <header class="text-center">
-      <!-- Grid responsivo para dos imágenes en la misma fila con acción onClick -->
-      <div class="row">
-        <div class="col-6">
-          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/0eb7aed1ebe0b64ad7ad4d38332ebc/9e0eb7aed1ebe0b64ad7ad4d38332ebc.png?w=1000" 
-               class="img-fluid rounded" alt="Token ID 3" onclick="showMetadata(3)">
-        </div>
-        <div class="col-6">
-          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/49c8084415fd8966ffc27acb14021b/7f49c8084415fd8966ffc27acb14021b.png?w=1000" 
-               class="img-fluid rounded" alt="Token ID 4" onclick="showMetadata(4)">
-        </div>
-      </div>
-      <h1 class="mt-3">$ADRIAN Auction</h1>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container text-center">
+      <h1 class="mt-3">BE REAL | BE ADRIAN</h1>
+    </div>
+  </section>
+
+  <!-- NFT Gallery Section -->
+  <div class="container my-5">
+    <!-- Header with token balance and wallet connection -->
+    <header class="text-center mb-4">
+      <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
+      <button id="connectButton" class="btn btn-primary mt-3">Connect Wallet</button>
+      <p id="accountDisplay" class="mt-2"></p>
     </header>
 
-    <div class="text-center mb-4">
-      <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
-      <p id="accountDisplay" class="mt-2"></p>
-    </div>
-
-    <!-- Contenido de la Subasta -->
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Time Remaining</div>
-          <div class="card-body">
-            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
-          </div>
-        </div>
+    <!-- NFTs Grid -->
+    <section>
+      <h3 class="mb-4 text-center">My NFTs from the Collection</h3>
+      <div id="nftGallery" class="row">
+        <!-- NFT cards will be loaded here -->
       </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Current Highest Bid</div>
-          <div class="card-body">
-            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">Auction Stats</div>
-      <div class="card-body">
-        <div id="auctionStatsDisplay">Loading auction stats...</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">Top 10 Bidders</div>
-      <div class="card-body">
-        <div id="top10Display">Loading top 10...</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        My Position
-        <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
-      </div>
-      <div class="card-body">
-        <div id="myPositionDisplay">Not checked</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">Place a Bid</div>
-      <div class="card-body">
-        <div class="input-group">
-          <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Información adicional de la subasta (contrato) -->
-    <div class="text-center mt-4">
-      <p>
-        Contract Address: 
-        <a href="https://base.blockscout.com/address/0x403e6613fd361956AF129fCf0FBbC35C07312061" target="_blank">
-          0x403e6613fd361956AF129fCf0FBbC35C07312061
-        </a>
-      </p>
-    </div>
+    </section>
   </div>
 
-  <!-- Modal para mostrar la metadata -->
+  <!-- Modal para mostrar metadata -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="metadataModalLabel">Metadata</h5>
+          <h5 class="modal-title" id="metadataModalLabel"></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- Se inyectará la metadata -->
+          <!-- Se inyecta la metadata -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Footer (componente común) -->
+  <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
+    // Load footer from components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('footer-placeholder').innerHTML = html;
       })
       .catch(error => {
-        console.error('Error al cargar el footer:', error);
+        console.error('Error loading footer:', error);
       });
   </script>
 
-  <!-- Auction JavaScript -->
   <script>
-    let provider, signer, auctionContract, tokenContract;
-    let userAccount = "";
-    
-    // Dirección del contrato de subasta y del token (contrato de la colección)
-    const auctionAddress = "0x403e6613fd361956AF129fCf0FBbC35C07312061";
-    const tokenAddress = "0xa92a8f5a47efc77da796dfd0827d07872e7d0429";
+    let provider, signer, userAccount;
+    // ADRIAN token address and NFT collection contract (ERC1155)
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
 
-    // ABI del contrato de subasta (sin cambios)
-    const auctionABI = [
-      "function depositTokens(uint256 amount) external",
-      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
-      "function auctionEndTime() view returns (uint256)",
-      "function highestBid() view returns (uint256)",
-      "function highestBidder() view returns (address)",
-      "function token() view returns (address)",
-      "function getTimeRemaining() view returns (uint256)",
-      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
-      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
-      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
-    ];
-
-    // ABI del token adaptado a ERC1155: se usa la función uri(tokenId) y se consulta mintEvents(tokenId)
+    // ABI for ERC20
     const tokenABI = [
-      "function uri(uint256 tokenId) view returns (string)",
-      "function mintEvents(uint256 tokenId) view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string metadataURI, address paymentReceiver, bool burnADRIAN)"
+      "function balanceOf(address account) view returns (uint256)"
     ];
+
+    // ABI for ERC1155 (balanceOf, uri, and nextEventId)
+    const nftABI = [
+      "function balanceOf(address account, uint256 id) view returns (uint256)",
+      "function uri(uint256 id) view returns (string)",
+      "function nextEventId() view returns (uint256)"
+    ];
+
+    let tokenContract, nftContract;
 
     async function connectWallet() {
       if (window.ethereum) {
@@ -216,162 +124,119 @@
           await provider.send("eth_requestAccounts", []);
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
-          document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
+          document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
           
-          auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
+          // Instantiate contracts
           tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-          
-          updateHighestBid();
-          updateTimeRemaining();
-          updateAuctionStats();
-          updateTop10();
-          
-          setInterval(updateTimeRemaining, 5000);
-          setInterval(updateTop10, 10000);
-          setInterval(updateAuctionStats, 15000);
+          nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
+
+          // Update token balance and load NFTs
+          updateTokenBalance();
+          loadNFTs();
         } catch (error) {
-          console.error("Error connecting to MetaMask:", error);
-          alert("Error connecting to MetaMask. See console for details.");
+          console.error("Error connecting wallet:", error);
+          alert("Error connecting wallet. Check the console for details.");
         }
       } else {
         alert("MetaMask is not installed");
       }
     }
 
-    document.getElementById("connectButton").addEventListener("click", connectWallet);
-
-    async function updateHighestBid() {
+    async function updateTokenBalance() {
       try {
-        const highestBidRaw = await auctionContract.highestBid();
-        document.getElementById("highestBidDisplay").innerText = ethers.utils.formatUnits(highestBidRaw, 18);
+        const balanceRaw = await tokenContract.balanceOf(userAccount);
+        // Remove decimals by dividing by 10^18 (integer division)
+        const balanceInt = balanceRaw.div(ethers.constants.WeiPerEther).toString();
+        document.getElementById("tokenBalance").innerText = `Balance: ${balanceInt} ADRIAN`;
       } catch (error) {
-        console.error("Error fetching highest bid:", error);
+        console.error("Error fetching token balance:", error);
+        document.getElementById("tokenBalance").innerText = "Balance: Error";
       }
     }
 
-    async function updateTimeRemaining() {
+    async function loadNFTs() {
       try {
-        const secondsRemaining = await auctionContract.getTimeRemaining();
-        let secs = secondsRemaining.toNumber();
-        const days = Math.floor(secs / 86400);
-        secs %= 86400;
-        const hours = Math.floor(secs / 3600);
-        secs %= 3600;
-        const minutes = Math.floor(secs / 60);
-        const seconds = secs % 60;
+        const galleryDiv = document.getElementById("nftGallery");
+        galleryDiv.innerHTML = ""; // Clear previous content
+
+        // Get total mint events created
+        const nextEventId = await nftContract.nextEventId();
+        const totalEvents = nextEventId.toNumber();
+
+        let hasNFT = false;
+        // Iterate through each token ID
+        for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
+          const balance = await nftContract.balanceOf(userAccount, tokenId);
+          if (balance.toNumber() > 0) {
+            hasNFT = true;
+            // Get token URI
+            let tokenURI = await nftContract.uri(tokenId);
+            if (tokenURI.startsWith("ipfs://")) {
+              tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+            }
+            
+            // Fetch metadata
+            let metadata = {};
+            try {
+              const response = await fetch(tokenURI);
+              metadata = await response.json();
+            } catch (metaError) {
+              console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
+            }
+            
+            let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+            if (imageUrl.startsWith("ipfs://")) {
+              imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+            }
+            
+            // Use the token name from metadata or fallback to "Token {tokenId}"
+            let tokenName = metadata.name || `Token ${tokenId}`;
+            
+            // Create a card for the NFT in a responsive grid:
+            // 2 columns on mobile (col-6), 4 columns on medium screens (col-md-3)
+            const colDiv = document.createElement("div");
+            colDiv.className = "col-6 col-md-3 mb-4";
+            // The card gets an onclick event to show metadata (passing tokenId)
+            colDiv.innerHTML = `
+              <div class="card h-100" onclick="showMetadata(${tokenId})">
+                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${tokenName}</h5>
+                  <p class="card-text">Quantity: ${balance.toString()}</p>
+                </div>
+              </div>
+            `;
+            galleryDiv.appendChild(colDiv);
+          }
+        }
         
-        let timeDisplay = "";
-        if (days > 0) {
-          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        } else {
-          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
+        if (!hasNFT) {
+          galleryDiv.innerHTML = "<p>You don't own any NFTs from this collection.</p>";
         }
-        document.getElementById("timeRemainingDisplay").innerText = timeDisplay;
       } catch (error) {
-        console.error("Error updating time remaining:", error);
-        document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
+        console.error("Error loading NFTs:", error);
+        document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
       }
     }
 
-    async function updateAuctionStats() {
-      try {
-        const [highestBid, highestBidder, totalTokens, bidderCount, auctionEnd] = await auctionContract.getAuctionStats();
-        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
-        statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Number of Bidders: ${bidderCount.toString()}</p>`;
-        const endDate = new Date(auctionEnd.toNumber() * 1000);
-        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
-        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
-      } catch (error) {
-        console.error("Error fetching auction stats:", error);
-        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
-      }
-    }
-
-    async function updateTop10() {
-      try {
-        const [topBidders, topBids] = await auctionContract.getTop10Bidders();
-        let html = "";
-        for (let i = 0; i < topBidders.length; i++) {
-          const truncated = topBidders[i].slice(-4);
-          const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
-          html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
-        }
-        document.getElementById("top10Display").innerHTML = html;
-      } catch (error) {
-        console.error("Error updating top 10:", error);
-        document.getElementById("top10Display").innerText = "Error loading top 10.";
-      }
-    }
-
-    async function updateMyPosition() {
-      if (!userAccount) {
-        document.getElementById("myPositionDisplay").innerText = "Not connected";
-        return;
-      }
-      try {
-        const [position, bidAmount] = await auctionContract.getBidderPosition(userAccount);
-        document.getElementById("myPositionDisplay").innerText =
-          `Your Position: ${position} - Your Bid: ${ethers.utils.formatUnits(bidAmount, 18)} ADRIAN`;
-      } catch (error) {
-        console.error("Error fetching your position:", error);
-        document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
-      }
-    }
-
-    document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
-
-    async function approveAndDeposit() {
-      const amountInput = document.getElementById("amountInput").value;
-      if (!amountInput || amountInput <= 0) {
-        alert("Please enter a valid amount");
-        return;
-      }
-      const amount = ethers.utils.parseUnits(amountInput, 18);
-      try {
-        const txApprove = await tokenContract.approve(auctionAddress, amount);
-        alert("Approval transaction sent. Please wait for confirmation.");
-        await txApprove.wait();
-        alert("Approval confirmed. Proceeding to deposit.");
-
-        const txDeposit = await auctionContract.depositTokens(amount);
-        alert("Deposit transaction sent. Please wait for confirmation.");
-        await txDeposit.wait();
-        alert("Deposit confirmed.");
-
-        updateHighestBid();
-        updateTop10();
-        updateAuctionStats();
-      } catch (error) {
-        console.error("Error during approve & deposit:", error);
-        alert("Error during approve & deposit. Check console for details.");
-      }
-    }
-
-    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
-
-    // Función para mostrar la metadata al pulsar sobre una imagen
+    // Function to display NFT metadata in a modal when a card is clicked
     async function showMetadata(tokenId) {
       try {
-        // Obtiene la URI de la metadata usando la función uri(tokenId)
-        let tokenURI = await tokenContract.uri(tokenId);
-        let metadataUrl = tokenURI;
-        if(tokenURI.startsWith("ipfs://")) {
-          metadataUrl = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        // Get the token URI
+        let tokenURI = await nftContract.uri(tokenId);
+        if (tokenURI.startsWith("ipfs://")) {
+          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         }
-        const response = await fetch(metadataUrl);
+        const response = await fetch(tokenURI);
         const metadata = await response.json();
         
-        // Consulta el mint event para obtener datos adicionales (precio, maxSupply, minted, etc.)
-        const mintEvent = await tokenContract.mintEvents(tokenId);
-        const price = mintEvent[1];
-        const maxSupply = mintEvent[2];
-        const minted = mintEvent[3];
-        const mintType = mintEvent[0]; // numérico; puedes mapearlo a un string si lo deseas
-
-        // Construye el contenido HTML para el modal
-        let html = `<p><strong>Description:</strong> ${metadata.description || "No description"}</p>`;
+        // Build HTML for the modal with metadata details
+        let html = `<div class="text-center mb-3">
+                      <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
+                           class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
+                    </div>`;
+        html += `<p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>`;
+        html += `<p><strong>Description:</strong> ${metadata.description || 'No description'}</p>`;
         if(metadata.attributes) {
           html += `<p><strong>Attributes:</strong></p><ul>`;
           metadata.attributes.forEach(attr => {
@@ -379,21 +244,24 @@
           });
           html += `</ul>`;
         }
-        html += `<hr>`;
-        html += `<p><strong>Price:</strong> ${ethers.utils.formatUnits(price, 18)} ADRIAN</p>`;
-        html += `<p><strong>Minted:</strong> ${minted} / ${maxSupply}</p>`;
-        // Si quisieras agregar más datos del mint event (por ejemplo, startTime o endTime), puedes hacerlo aquí
+        html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
         
         document.getElementById("metadataContent").innerHTML = html;
-        document.getElementById("metadataModalLabel").innerText = `Metadata for Token #${tokenId}`;
-        // Muestra el modal usando Bootstrap
+        // Set the modal title using the NFT title (in bold), for example "#0004 ASCENSION"
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
+        
+        // Show the modal using Bootstrap
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
-      } catch (e) {
-        console.error("Error fetching metadata", e);
+      } catch (error) {
+        console.error("Error fetching metadata for token", tokenId, error);
         alert("Error fetching metadata");
       }
     }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("connectButton").addEventListener("click", connectWallet);
+    });
   </script>
 
   <!-- Bootstrap JS Bundle -->
