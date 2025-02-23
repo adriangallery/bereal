@@ -11,13 +11,47 @@
         <li class="nav-item"><a class="nav-link" href="auction.html">Adrian Auction</a></li>
         <li class="nav-item"><a class="nav-link" href="pumpit.html">Pump your ADRIANS</a></li>
         <li class="nav-item"><a class="nav-link" href="filthyrich.html">Filthy Rich</a></li>
-        <li class="nav-item"><a class="nav-link" href="holdings.html">Your holdings</a></li>
+        <li class="nav-item"><a class="nav-link" href="holdings.html">Your Holdings</a></li>
         <li class="nav-item"><a class="nav-link" href="burnstats.html">Burn Stats</a></li>
         <li class="nav-item"><a class="nav-link" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
         <li class="nav-item"><a class="nav-link" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
         <li class="nav-item"><a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
         <li class="nav-item"><a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a></li>
       </ul>
+      <!-- Botón de conexión en el menú -->
+      <div class="d-flex ms-3">
+        <button id="menuConnectButton" class="btn btn-primary">Connect Wallet</button>
+        <span id="menuWalletDisplay" class="ms-2 text-white"></span>
+      </div>
     </div>
   </div>
 </nav>
+
+<script>
+  async function connectWalletFromMenu() {
+    if (window.ethereum) {
+      try {
+        // Verificar si ya existe una conexión guardada
+        let connectedAddress = localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress;
+        if (!connectedAddress) {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          connectedAddress = window.ethereum.selectedAddress;
+          localStorage.setItem("connectedAddress", connectedAddress);
+        }
+        document.getElementById("menuWalletDisplay").textContent = "Connected: " + connectedAddress;
+      } catch (error) {
+        console.error("Error connecting from menu:", error);
+      }
+    } else {
+      console.error("MetaMask is not installed.");
+    }
+  }
+
+  // Asignar el evento al botón del menú
+  document.getElementById("menuConnectButton").addEventListener("click", connectWalletFromMenu);
+
+  // Si ya hay conexión, mostrarla automáticamente
+  if (window.ethereum && (localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress)) {
+    connectWalletFromMenu();
+  }
+</script>
