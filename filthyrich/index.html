@@ -5,7 +5,14 @@ title: "$ADRIAN Mint Open Edition"
 
 <!-- Estilos específicos para la página (puedes moverlos a un CSS externo si lo prefieres) -->
 <style>
-  body { font-family: 'Raleway', sans-serif; margin: 20px; }
+  /* Eliminar el margen global en el body para que el menú quede pegado a la parte superior */
+  body { 
+    font-family: 'Raleway', sans-serif; 
+  }
+  /* Si necesitas un margen interno para el contenido, aplícalo al contenedor principal */
+  main.container { 
+    margin: 20px; 
+  }
   input, button { padding: 10px; margin: 5px; }
   #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
   img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
