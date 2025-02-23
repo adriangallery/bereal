@@ -1,218 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
-  <meta charset="UTF-8">
-  <title>$ADRIAN Mint Open Edition</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (v5.3.0) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Custom Styles -->
-  <link href="css/styles.css" rel="stylesheet">
-  <style>
-    body { font-family: 'Raleway', sans-serif; margin: 20px; }
-    input, button { padding: 10px; margin: 5px; }
-    #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
-    img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
-    .eventDetails { margin-top: 10px; text-align: left; }
-  </style>
-</head>
-<body>
-  <!-- Menu (loaded full-width outside the main container) -->
-  <div id="menu-placeholder" style="width:100%;"></div>
-  <script>
-    fetch('components/menu.html')
-      .then(response => response.text())
-      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
-      .catch(error => { console.error('Error loading menu:', error); });
-  </script>
+---
+layout: default
+title: "$ADRIAN Mint Open Edition"
+---
+
+<!-- Estilos específicos para la página (puedes moverlos a un CSS externo si lo prefieres) -->
+<style>
+  body { font-family: 'Raleway', sans-serif; margin: 20px; }
+  input, button { padding: 10px; margin: 5px; }
+  #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+  img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
+  .eventDetails { margin-top: 10px; text-align: left; }
+</style>
+
+<!-- Main Container -->
+<main class="container my-4">
+  <h1 class="text-center mb-4">Open Edition Mint</h1>
   
-  <!-- Main Container -->
-  <main class="container my-4">
-    <h1 class="text-center mb-4">Open Edition Mint</h1>
-    
-    <!-- Connect Wallet Button -->
-    <div class="text-center mb-3">
-      <button id="connectButton" class="btn btn-primary">Connect Wallet</button>
-      <div id="walletAddress" class="mt-2"></div>
+  <!-- Connect Wallet Button -->
+  <div class="text-center mb-3">
+    <button id="connectButton" class="btn btn-primary">Connect Wallet</button>
+    <div id="walletAddress" class="mt-2"></div>
+  </div>
+  
+  <hr>
+  
+  <!-- Mint Event Details Section -->
+  <section class="mb-4">
+    <h2>NFT Details</h2>
+    <div id="eventInfo" class="text-center">
+      <!-- Fixed NFT Preview Image -->
+      <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4" alt="NFT Preview">
+      <!-- Mint Event Details -->
+      <div class="eventDetails" id="mintDetails"></div>
     </div>
-    
-    <hr>
-    
-    <!-- Mint Event Details Section -->
-    <section class="mb-4">
-      <h2>NFT Details</h2>
-      <div id="eventInfo" class="text-center">
-        <!-- Fixed NFT Preview Image -->
-        <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4" alt="NFT Preview">
-        <!-- Mint Event Details -->
-        <div class="eventDetails" id="mintDetails"></div>
-      </div>
-    </section>
-    
-    <hr>
-    
-    <!-- Mint NFT Section -->
-    <section class="mb-4">
-      <h2>Mint NFT</h2>
-      <p>Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
-         Each NFT costs 100,000 ADRIAN tokens.</p>
-      <div class="text-center">
-        <input id="mintQuantity" type="number" min="1" value="1" placeholder="Mint quantity">
-      </div>
-      <div class="text-center">
-        <button id="approveAndMintButton" class="btn btn-success">Approve & Mint NFT</button>
-      </div>
-    </section>
-    
-    <!-- Log Messages -->
-    <div id="log"></div>
-  </main>
+  </section>
   
-  <!-- Footer -->
-  <div id="footer-placeholder"></div>
-  <script>
-    fetch('components/footer.html')
-      .then(response => response.text())
-      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
-      .catch(error => { console.error('Error loading footer:', error); });
-  </script>
+  <hr>
   
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Mint NFT Section -->
+  <section class="mb-4">
+    <h2>Mint NFT</h2>
+    <p>Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
+       Each NFT costs 100,000 ADRIAN tokens.</p>
+    <div class="text-center">
+      <input id="mintQuantity" type="number" min="1" value="1" placeholder="Mint quantity">
+    </div>
+    <div class="text-center">
+      <button id="approveAndMintButton" class="btn btn-success">Approve & Mint NFT</button>
+    </div>
+  </section>
   
-  <!-- Page Scripts -->
-  <script>
-    // Fixed preview image URL (the image remains constant)
-    const desiredPreview = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4";
+  <!-- Log Messages -->
+  <div id="log"></div>
+</main>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script>
+  // Fixed preview image URL
+  const desiredPreview = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4";
+  
+  // Contract settings
+  const galleryContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
+  const galleryABI = [
+    "function mint(uint256 eventId, uint256 quantity) external",
+    "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
+  ];
+  const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+  const erc20ABI = [
+    "function approve(address spender, uint256 amount) external returns (bool)"
+  ];
+  
+  let provider, signer, galleryContract, tokenContract;
+  let walletConnected = false;
+  let currentPrice = ethers.BigNumber.from("0");
+  
+  // Active mint event: now set to eventId = 6
+  const activeEventId = 6;
+  
+  // DOM Elements
+  const connectButton = document.getElementById("connectButton");
+  const walletAddressDiv = document.getElementById("walletAddress");
+  const logDiv = document.getElementById("log");
+  const nftImage = document.getElementById("nftImage");
+  const mintDetailsDiv = document.getElementById("mintDetails");
+  const approveAndMintButton = document.getElementById("approveAndMintButton");
+  const mintQuantityInput = document.getElementById("mintQuantity");
+  
+  function log(message) {
+    logDiv.textContent += message + "\n";
+  }
+  
+  // Connect wallet and load mint event details
+  connectButton.addEventListener("click", async () => {
+    if (window.ethereum) {
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        const address = await signer.getAddress();
+        walletAddressDiv.textContent = "Connected: " + address;
+        galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
+        tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+        walletConnected = true;
+        log("Wallet connected.");
+        loadMintEventDetails();
+      } catch (error) {
+        console.error(error);
+        log("Error connecting wallet: " + error.message);
+      }
+    } else {
+      log("No Ethereum provider found. Please install MetaMask.");
+    }
+  });
+  
+  // Load mint event details and override price for open edition
+  async function loadMintEventDetails() {
+    try {
+      const eventData = await galleryContract.mintEvents(activeEventId);
+      // Override the price to 100,000 ADRIAN tokens with 18 decimals:
+      currentPrice = ethers.utils.parseUnits("100000", 18);
+      const minted = eventData.minted;
+      mintDetailsDiv.innerHTML = `
+        <p><strong>Price:</strong> ${Number(ethers.utils.formatUnits(currentPrice, 18)).toLocaleString()} ADRIAN tokens</p>
+        <p><strong>Max Supply:</strong> Open Edition</p>
+        <p><strong>Minted:</strong> ${minted}</p>
+      `;
+      // Force preview image to remain constant
+      nftImage.src = desiredPreview;
+    } catch (error) {
+      console.error("Error loading mint event details:", error);
+      log("Error loading mint event details: " + error.message);
+    }
+  }
+  
+  // Approve tokens and mint NFT
+  approveAndMintButton.addEventListener("click", async () => {
+    if (!walletConnected) {
+      log("Please connect your wallet first.");
+      return;
+    }
+    const mintQuantity = parseInt(mintQuantityInput.value);
+    if (isNaN(mintQuantity) || mintQuantity < 1) {
+      log("Please enter a valid mint quantity (>=1).");
+      return;
+    }
+    const totalApprovalAmount = currentPrice.mul(mintQuantity);
     
-    // Contract settings
-    const galleryContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
-    const galleryABI = [
-      "function mint(uint256 eventId, uint256 quantity) external",
-      "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
-    ];
-    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    const erc20ABI = [
-      "function approve(address spender, uint256 amount) external returns (bool)"
-    ];
-    
-    let provider, signer, galleryContract, tokenContract;
-    let walletConnected = false;
-    let currentPrice = ethers.BigNumber.from("0");
-    
-    // Active mint event: assume open edition is eventId = 5 (adjust as needed)
-    const activeEventId = 5;
-    
-    // DOM Elements
-    const connectButton = document.getElementById("connectButton");
-    const walletAddressDiv = document.getElementById("walletAddress");
-    const logDiv = document.getElementById("log");
-    const nftImage = document.getElementById("nftImage");
-    const mintDetailsDiv = document.getElementById("mintDetails");
-    const approveAndMintButton = document.getElementById("approveAndMintButton");
-    const mintQuantityInput = document.getElementById("mintQuantity");
-    
-    function log(message) {
-      logDiv.textContent += message + "\n";
+    try {
+      log("Sending approval transaction...");
+      const approveTx = await tokenContract.approve(galleryContractAddress, totalApprovalAmount);
+      log("Approval tx sent: " + approveTx.hash);
+      await approveTx.wait();
+      log("Tokens approved successfully.");
+    } catch (error) {
+      console.error("Error during approval:", error);
+      log("Error during approval: " + error.message);
+      return;
     }
     
-    // Connect wallet and load mint event details
-    connectButton.addEventListener("click", async () => {
-      if (window.ethereum) {
-        try {
-          await window.ethereum.request({ method: 'eth_requestAccounts' });
-          provider = new ethers.providers.Web3Provider(window.ethereum);
-          signer = provider.getSigner();
-          const address = await signer.getAddress();
-          walletAddressDiv.textContent = "Connected: " + address;
-          galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
-          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-          walletConnected = true;
-          log("Wallet connected.");
-          loadMintEventDetails();
-        } catch (error) {
-          console.error(error);
-          log("Error connecting wallet: " + error.message);
-        }
-      } else {
-        log("No Ethereum provider found. Please install MetaMask.");
-      }
-    });
-    
-    // Load mint event details
-    async function loadMintEventDetails() {
-      try {
-        const eventData = await galleryContract.mintEvents(activeEventId);
-        currentPrice = eventData.price;
-        const maxSupply = eventData.maxSupply;
-        const minted = eventData.minted;
-        const remaining = maxSupply - minted;
-        let metadataURI = eventData.metadataURI;
-        
-        // Clean metadata URI from extra quotes if any
-        metadataURI = metadataURI.replace(/^"+|"+$/g, "");
-        
-        if (maxSupply == 0) {
-          mintDetailsDiv.innerHTML = `<p style="color:red;">Mint event not configured. Please contact the owner.</p>`;
-          log("Mint event not available.");
-          return;
-        }
-        
-        mintDetailsDiv.innerHTML = `
-          <p><strong>Price:</strong> ${ethers.utils.formatUnits(currentPrice, 18)} ADRIAN tokens</p>
-          <p><strong>Max Supply:</strong> ${maxSupply}</p>
-          <p><strong>Minted:</strong> ${minted}</p>
-          <p><strong>Remaining:</strong> ${remaining}</p>
-        `;
-        
-        // Force preview image to be constant
-        nftImage.src = desiredPreview;
-      } catch (error) {
-        console.error("Error loading mint event details:", error);
-        log("Error loading mint event details: " + error.message);
-      }
+    try {
+      log("Minting NFT...");
+      const mintTx = await galleryContract.mint(activeEventId, mintQuantity);
+      log("Mint tx sent: " + mintTx.hash);
+      await mintTx.wait();
+      log("NFT minted successfully.");
+      loadMintEventDetails(); // Update mint event details after minting
+    } catch (error) {
+      console.error("Error during minting:", error);
+      log("Error during minting: " + error.message);
     }
-    
-    // Approve tokens and mint NFT
-    approveAndMintButton.addEventListener("click", async () => {
-      if (!walletConnected) {
-        log("Please connect your wallet first.");
-        return;
-      }
-      const mintQuantity = parseInt(mintQuantityInput.value);
-      if (isNaN(mintQuantity) || mintQuantity < 1) {
-        log("Please enter a valid mint quantity (>=1).");
-        return;
-      }
-      const totalApprovalAmount = currentPrice.mul(mintQuantity);
-      
-      try {
-        log("Sending approval transaction...");
-        const approveTx = await tokenContract.approve(galleryContractAddress, totalApprovalAmount);
-        log("Approval tx sent: " + approveTx.hash);
-        await approveTx.wait();
-        log("Tokens approved successfully.");
-      } catch (error) {
-        console.error("Error during approval:", error);
-        log("Error during approval: " + error.message);
-        return;
-      }
-      
-      try {
-        log("Minting NFT...");
-        const mintTx = await galleryContract.mint(activeEventId, mintQuantity);
-        log("Mint tx sent: " + mintTx.hash);
-        await mintTx.wait();
-        log("NFT minted successfully.");
-        loadMintEventDetails(); // Update mint event details after minting
-      } catch (error) {
-        console.error("Error during minting:", error);
-        log("Error during minting: " + error.message);
-      }
-    });
-  </script>
-</body>
-</html>
+  });
+</script>
