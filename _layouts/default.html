@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ page.title }}</title>
+  <link rel="stylesheet" href="{{ site.baseurl }}/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ site.baseurl }}/css/style.css">
+</head>
+<body>
+  {% include menu.html %}
+  <div class="container mt-3">
+    {{ content }}
+  </div>
+  <script src="{{ site.baseurl }}/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
