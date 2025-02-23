@@ -1,119 +1,402 @@
-<script>
-  let provider, signer, userAccount;
-  // Dirección del token ADRIAN y del contrato NFT (ERC1155)
-  const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-  const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
-
-  // ABI para ERC20
-  const tokenABI = [
-    "function balanceOf(address account) view returns (uint256)"
-  ];
-
-  // ABI para ERC1155 básico (balanceOf y uri)
-  const nftABI = [
-    "function balanceOf(address account, uint256 id) view returns (uint256)",
-    "function uri(uint256 id) view returns (string)",
-    "function nextEventId() view returns (uint256)"
-  ];
-
-  let tokenContract, nftContract;
-
-  async function connectWallet() {
-    if (window.ethereum) {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      try {
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        userAccount = await signer.getAddress();
-        document.getElementById("accountDisplay").innerText = "Cuenta conectada: " + userAccount;
-        
-        // Instanciar contratos
-        tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-        nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
-
-        // Actualizar balance de tokens y cargar NFTs
-        updateTokenBalance();
-        loadNFTs();
-      } catch (error) {
-        console.error("Error conectando la wallet:", error);
-        alert("Error al conectar la wallet. Revisa la consola para más detalles.");
-      }
-    } else {
-      alert("MetaMask no está instalado");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>$ADRIAN Auction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS (versión 5.3.0) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <div class="text-center mt-4">
+    <p>
+      🏆 Top bidder wins #0003 – The True Ascendant (1/1) + a piece of #0004 – ASCENSION (10/10)
+      🏅 Next 9 get a piece of #0004 – ASCENSION (10/10)
+    </p>
+  </div>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Auction-specific Styles -->
+  <style>
+    body {
+      background-color: #f8f9fa;
     }
-  }
-
-  async function updateTokenBalance() {
-    try {
-      const balanceRaw = await tokenContract.balanceOf(userAccount);
-      const balance = ethers.utils.formatUnits(balanceRaw, 18);
-      document.getElementById("tokenBalance").innerText = `Balance: ${balance} ADRIAN`;
-    } catch (error) {
-      console.error("Error obteniendo balance de tokens:", error);
-      document.getElementById("tokenBalance").innerText = "Balance: Error";
+    .navbar-brand {
+      font-weight: bold;
+      font-size: 1.5rem;
     }
-  }
+    header img {
+      max-width: 100%;
+      cursor: pointer;
+    }
+    h1 {
+      text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #0000ff;
+      margin-top: 1rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      margin-bottom: 1.5rem;
+    }
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 0;
+      border-top: 1px solid #ccc;
+    }
+    .btn-anaglyph-blue {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: #fff;
+    }
+    .btn-anaglyph-blue:hover {
+      background-color: #0069d9;
+      border-color: #0062cc;
+    }
+  </style>
+</head>
+<body>
+  <!-- Menú (componente común) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error al cargar el menú:', error);
+      });
+  </script>
 
-  async function loadNFTs() {
-    try {
-      const galleryDiv = document.getElementById("nftGallery");
-      galleryDiv.innerHTML = ""; // Limpiar contenido previo
+  <div class="container mt-4">
+    <header class="text-center">
+      <!-- Grid responsivo para dos imágenes en la misma fila con acción onClick -->
+      <div class="row">
+        <div class="col-6">
+          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/0eb7aed1ebe0b64ad7ad4d38332ebc/9e0eb7aed1ebe0b64ad7ad4d38332ebc.png?w=1000" 
+               class="img-fluid rounded" alt="Token ID 3" onclick="showMetadata(3)">
+        </div>
+        <div class="col-6">
+          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/49c8084415fd8966ffc27acb14021b/7f49c8084415fd8966ffc27acb14021b.png?w=1000" 
+               class="img-fluid rounded" alt="Token ID 4" onclick="showMetadata(4)">
+        </div>
+      </div>
+      <h1 class="mt-3">$ADRIAN Auction</h1>
+    </header>
 
-      // Obtener el total de mint events creados
-      const nextEventId = await nftContract.nextEventId();
-      const totalEvents = nextEventId.toNumber();
+    <div class="text-center mb-4">
+      <button id="connectButton" class="btn btn-anaglyph-blue">Connect MetaMask</button>
+      <p id="accountDisplay" class="mt-2"></p>
+    </div>
 
-      let hasNFT = false;
-      // Iterar por cada token ID
-      for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-        const balance = await nftContract.balanceOf(userAccount, tokenId);
-        // Si el usuario posee al menos 1 copia del token...
-        if (balance.toNumber() > 0) {
-          hasNFT = true;
-          // Obtener la URI del token
-          let tokenURI = await nftContract.uri(tokenId);
-          if (tokenURI.startsWith("ipfs://")) {
-            tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
+    <!-- Contenido de la Subasta -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Time Remaining</div>
+          <div class="card-body">
+            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Current Highest Bid</div>
+          <div class="card-body">
+            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Auction Stats</div>
+      <div class="card-body">
+        <div id="auctionStatsDisplay">Loading auction stats...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Top 10 Bidders</div>
+      <div class="card-body">
+        <div id="top10Display">Loading top 10...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        My Position
+        <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
+      </div>
+      <div class="card-body">
+        <div id="myPositionDisplay">Not checked</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Place a Bid</div>
+      <div class="card-body">
+        <div class="input-group">
+          <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
+          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Información adicional de la subasta (contrato) -->
+    <div class="text-center mt-4">
+      <p>
+        Contract Address: 
+        <a href="https://base.blockscout.com/address/0x403e6613fd361956AF129fCf0FBbC35C07312061" target="_blank">
+          0x403e6613fd361956AF129fCf0FBbC35C07312061
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Modal para mostrar la metadata -->
+  <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="metadataModalLabel">Metadata</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="metadataContent">
+          <!-- Se inyectará la metadata -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer (componente común) -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error al cargar el footer:', error);
+      });
+  </script>
+
+  <!-- Auction JavaScript -->
+  <script>
+    let provider, signer, auctionContract, tokenContract;
+    let userAccount = "";
+    
+    // Dirección del contrato de subasta y del token (contrato de la colección)
+    const auctionAddress = "0x403e6613fd361956AF129fCf0FBbC35C07312061";
+    const tokenAddress = "0xa92a8f5a47efc77da796dfd0827d07872e7d0429";
+
+    // ABI del contrato de subasta (sin cambios)
+    const auctionABI = [
+      "function depositTokens(uint256 amount) external",
+      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function auctionEndTime() view returns (uint256)",
+      "function highestBid() view returns (uint256)",
+      "function highestBidder() view returns (address)",
+      "function token() view returns (address)",
+      "function getTimeRemaining() view returns (uint256)",
+      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
+      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
+      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
+    ];
+
+    // ABI del token adaptado a ERC1155: se usa la función uri(tokenId) y se consulta mintEvents(tokenId)
+    const tokenABI = [
+      "function uri(uint256 tokenId) view returns (string)",
+      "function mintEvents(uint256 tokenId) view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string metadataURI, address paymentReceiver, bool burnADRIAN)"
+    ];
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        try {
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
           
-          // Obtener metadata
-          let metadata = {};
-          try {
-            const response = await fetch(tokenURI);
-            metadata = await response.json();
-          } catch (metaError) {
-            console.error(`Error obteniendo metadata del token ${tokenId}:`, metaError);
-          }
+          auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
           
-          let imageUrl = metadata.image || "https://via.placeholder.com/300?text=Sin+Imagen";
-          if (imageUrl.startsWith("ipfs://")) {
-            imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
+          updateHighestBid();
+          updateTimeRemaining();
+          updateAuctionStats();
+          updateTop10();
           
-          // Crear card para el NFT
-          const colDiv = document.createElement("div");
-          colDiv.className = "col-md-4 mb-4";
-          colDiv.innerHTML = `
-            <div class="card">
-              <img src="${imageUrl}" class="card-img-top" alt="NFT ${tokenId}">
-              <div class="card-body">
-                <h5 class="card-title">Token ${tokenId}</h5>
-                <p class="card-text">Cantidad: ${balance.toString()}</p>
-              </div>
-            </div>
-          `;
-          galleryDiv.appendChild(colDiv);
+          setInterval(updateTimeRemaining, 5000);
+          setInterval(updateTop10, 10000);
+          setInterval(updateAuctionStats, 15000);
+        } catch (error) {
+          console.error("Error connecting to MetaMask:", error);
+          alert("Error connecting to MetaMask. See console for details.");
         }
+      } else {
+        alert("MetaMask is not installed");
       }
-      
-      if (!hasNFT) {
-        galleryDiv.innerHTML = "<p>No posees NFTs de esta colección.</p>";
-      }
-    } catch (error) {
-      console.error("Error cargando NFTs:", error);
-      document.getElementById("nftGallery").innerHTML = "<p>Error al cargar tus NFTs.</p>";
     }
-  }
 
-  document.getElementById("connectButton").addEventListener("click", connectWallet);
-</script>
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+
+    async function updateHighestBid() {
+      try {
+        const highestBidRaw = await auctionContract.highestBid();
+        document.getElementById("highestBidDisplay").innerText = ethers.utils.formatUnits(highestBidRaw, 18);
+      } catch (error) {
+        console.error("Error fetching highest bid:", error);
+      }
+    }
+
+    async function updateTimeRemaining() {
+      try {
+        const secondsRemaining = await auctionContract.getTimeRemaining();
+        let secs = secondsRemaining.toNumber();
+        const days = Math.floor(secs / 86400);
+        secs %= 86400;
+        const hours = Math.floor(secs / 3600);
+        secs %= 3600;
+        const minutes = Math.floor(secs / 60);
+        const seconds = secs % 60;
+        
+        let timeDisplay = "";
+        if (days > 0) {
+          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
+        }
+        document.getElementById("timeRemainingDisplay").innerText = timeDisplay;
+      } catch (error) {
+        console.error("Error updating time remaining:", error);
+        document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
+      }
+    }
+
+    async function updateAuctionStats() {
+      try {
+        const [highestBid, highestBidder, totalTokens, bidderCount, auctionEnd] = await auctionContract.getAuctionStats();
+        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
+        statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Number of Bidders: ${bidderCount.toString()}</p>`;
+        const endDate = new Date(auctionEnd.toNumber() * 1000);
+        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
+        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
+      } catch (error) {
+        console.error("Error fetching auction stats:", error);
+        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
+      }
+    }
+
+    async function updateTop10() {
+      try {
+        const [topBidders, topBids] = await auctionContract.getTop10Bidders();
+        let html = "";
+        for (let i = 0; i < topBidders.length; i++) {
+          const truncated = topBidders[i].slice(-4);
+          const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
+          html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
+        }
+        document.getElementById("top10Display").innerHTML = html;
+      } catch (error) {
+        console.error("Error updating top 10:", error);
+        document.getElementById("top10Display").innerText = "Error loading top 10.";
+      }
+    }
+
+    async function updateMyPosition() {
+      if (!userAccount) {
+        document.getElementById("myPositionDisplay").innerText = "Not connected";
+        return;
+      }
+      try {
+        const [position, bidAmount] = await auctionContract.getBidderPosition(userAccount);
+        document.getElementById("myPositionDisplay").innerText =
+          `Your Position: ${position} - Your Bid: ${ethers.utils.formatUnits(bidAmount, 18)} ADRIAN`;
+      } catch (error) {
+        console.error("Error fetching your position:", error);
+        document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
+      }
+    }
+
+    document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
+
+    async function approveAndDeposit() {
+      const amountInput = document.getElementById("amountInput").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      try {
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
+        alert("Approval transaction sent. Please wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
+
+        const txDeposit = await auctionContract.depositTokens(amount);
+        alert("Deposit transaction sent. Please wait for confirmation.");
+        await txDeposit.wait();
+        alert("Deposit confirmed.");
+
+        updateHighestBid();
+        updateTop10();
+        updateAuctionStats();
+      } catch (error) {
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit. Check console for details.");
+      }
+    }
+
+    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
+
+    // Función para mostrar la metadata al pulsar sobre una imagen
+    async function showMetadata(tokenId) {
+      try {
+        // Obtiene la URI de la metadata usando la función uri(tokenId)
+        let tokenURI = await tokenContract.uri(tokenId);
+        let metadataUrl = tokenURI;
+        if(tokenURI.startsWith("ipfs://")) {
+          metadataUrl = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        }
+        const response = await fetch(metadataUrl);
+        const metadata = await response.json();
+        
+        // Consulta el mint event para obtener datos adicionales (precio, maxSupply, minted, etc.)
+        const mintEvent = await tokenContract.mintEvents(tokenId);
+        const price = mintEvent[1];
+        const maxSupply = mintEvent[2];
+        const minted = mintEvent[3];
+        const mintType = mintEvent[0]; // numérico; puedes mapearlo a un string si lo deseas
+
+        // Construye el contenido HTML para el modal
+        let html = `<p><strong>Description:</strong> ${metadata.description || "No description"}</p>`;
+        if(metadata.attributes) {
+          html += `<p><strong>Attributes:</strong></p><ul>`;
+          metadata.attributes.forEach(attr => {
+            html += `<li>${attr.trait_type}: ${attr.value}</li>`;
+          });
+          html += `</ul>`;
+        }
+        html += `<hr>`;
+        html += `<p><strong>Price:</strong> ${ethers.utils.formatUnits(price, 18)} ADRIAN</p>`;
+        html += `<p><strong>Minted:</strong> ${minted} / ${maxSupply}</p>`;
+        // Si quisieras agregar más datos del mint event (por ejemplo, startTime o endTime), puedes hacerlo aquí
+        
+        document.getElementById("metadataContent").innerHTML = html;
+        document.getElementById("metadataModalLabel").innerText = `Metadata for Token #${tokenId}`;
+        // Muestra el modal usando Bootstrap
+        var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
+        myModal.show();
+      } catch (e) {
+        console.error("Error fetching metadata", e);
+        alert("Error fetching metadata");
+      }
+    }
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
