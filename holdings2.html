@@ -117,6 +117,18 @@
 
     let tokenContract, nftContract;
 
+    // Función para formatear números en abreviatura (K, M, etc.)
+    function formatAmount(amount) {
+      const num = parseFloat(amount);
+      if (num >= 1e6) {
+        return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+      }
+      if (num >= 1e3) {
+        return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+      }
+      return num.toString();
+    }
+
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -145,9 +157,9 @@
     async function updateTokenBalance() {
       try {
         const balanceRaw = await tokenContract.balanceOf(userAccount);
-        // Remove decimals by dividing by 10^18 (integer division)
+        // Convertimos el balance a entero dividiendo por 10^18 y luego lo formateamos
         const balanceInt = balanceRaw.div(ethers.constants.WeiPerEther).toString();
-        document.getElementById("tokenBalance").innerText = `Balance: ${balanceInt} ADRIAN`;
+        document.getElementById("tokenBalance").innerText = `Balance: ${formatAmount(balanceInt)} $ADRIAN`;
       } catch (error) {
         console.error("Error fetching token balance:", error);
         document.getElementById("tokenBalance").innerText = "Balance: Error";
