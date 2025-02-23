@@ -27,13 +27,14 @@
   </div>
 </nav>
 
-<script>
-  console.log("Menu script loaded");
+<!-- Script inline con nonce para gestionar la conexión sin eval -->
+<script nonce="abc123">
+  console.log("Menu script loaded with nonce");
 
   async function connectWalletFromMenu() {
     if (window.ethereum) {
       try {
-        // Verificar si ya hay conexión guardada
+        // Comprobar si ya existe conexión guardada
         let connectedAddress = localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress;
         if (!connectedAddress) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -50,15 +51,14 @@
     }
   }
 
-  // Asegurarse de que el DOM del menú esté cargado antes de asignar el listener
   document.addEventListener("DOMContentLoaded", function() {
     const btn = document.getElementById("menuConnectButton");
     if (btn) {
       btn.addEventListener("click", connectWalletFromMenu);
     } else {
-      console.error("Button menuConnectButton not found.");
+      console.error("menuConnectButton not found.");
     }
-    // Si ya hay conexión, mostrarla
+    // Si ya hay conexión, mostrarla automáticamente
     if (window.ethereum && (localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress)) {
       connectWalletFromMenu();
     }
