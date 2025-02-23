@@ -28,10 +28,12 @@
 </nav>
 
 <script>
+  console.log("Menu script loaded");
+
   async function connectWalletFromMenu() {
     if (window.ethereum) {
       try {
-        // Verificar si ya existe una conexión guardada
+        // Verificar si ya hay conexión guardada
         let connectedAddress = localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress;
         if (!connectedAddress) {
           await window.ethereum.request({ method: "eth_requestAccounts" });
@@ -39,6 +41,7 @@
           localStorage.setItem("connectedAddress", connectedAddress);
         }
         document.getElementById("menuWalletDisplay").textContent = "Connected: " + connectedAddress;
+        console.log("Wallet connected: " + connectedAddress);
       } catch (error) {
         console.error("Error connecting from menu:", error);
       }
@@ -47,11 +50,17 @@
     }
   }
 
-  // Asignar el evento al botón del menú
-  document.getElementById("menuConnectButton").addEventListener("click", connectWalletFromMenu);
-
-  // Si ya hay conexión, mostrarla automáticamente
-  if (window.ethereum && (localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress)) {
-    connectWalletFromMenu();
-  }
+  // Asegurarse de que el DOM del menú esté cargado antes de asignar el listener
+  document.addEventListener("DOMContentLoaded", function() {
+    const btn = document.getElementById("menuConnectButton");
+    if (btn) {
+      btn.addEventListener("click", connectWalletFromMenu);
+    } else {
+      console.error("Button menuConnectButton not found.");
+    }
+    // Si ya hay conexión, mostrarla
+    if (window.ethereum && (localStorage.getItem("connectedAddress") || window.ethereum.selectedAddress)) {
+      connectWalletFromMenu();
+    }
+  });
 </script>
