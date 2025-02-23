@@ -1,189 +1,151 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pump Your ADRIANS with Steroids!</title>
-  <!-- Bootstrap 5.3.0 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Custom CSS -->
-  <link href="css/styles.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    /* Mejorar la apariencia del encabezado */
-    .navbar-brand {
-      background-color: rgba(0, 123, 255, 0.1);
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-      font-weight: bold;
-    }
-    /* Asegurar que la wallet address no se desborde */
-    #walletAddress {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    /* Ajustes para el card y sus elementos internos */
-    .card {
-      margin-top: 1rem;
-    }
-    .card .btn {
-      margin-top: 0.5rem;
-    }
-    /* Asegurar márgenes y paddings adecuados en el formulario */
-    .form-section {
-      margin: 1rem 0;
-    }
-  </style>
-</head>
-<body>
-  <!-- Menú (componente común) -->
-  <div id="menu-placeholder"></div>
-  <script>
-    fetch('components/menu.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading menu:', error);
-      });
-  </script>
+---
+layout: default
+title: "Pump Your ADRIANS with Steroids!"
+---
+
+<!-- Estilos específicos para la página (puedes moverlos a un CSS externo si lo prefieres) -->
+<style>
+  body {
+    background-color: #f8f9fa;
+  }
+  /* Mejorar la apariencia del encabezado (esto afectará al menú incluido en el layout) */
+  .navbar-brand {
+    background-color: rgba(0, 123, 255, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
+  }
+  /* Asegurar que la wallet address no se desborde */
+  #walletAddress {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Ajustes para el card y sus elementos internos */
+  .card {
+    margin-top: 1rem;
+  }
+  .card .btn {
+    margin-top: 0.5rem;
+  }
+  /* Márgenes adecuados para el formulario */
+  .form-section {
+    margin: 1rem 0;
+  }
+</style>
+
+<!-- Cabecera con imagen -->
+<header class="text-center">
+  <img src="https://files.catbox.moe/28f4u1.GIF?w=1000" class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+</header>
+
+<!-- Main Content -->
+<main class="container my-4">
+  <div class="text-center">
+    <h1>Pump Your ADRIANS with Steroids!</h1>
+    <p class="lead">Get ready to supercharge your old ADRIANS!</p>
+  </div>
   
-  <!-- Cabecera con imagen (igual que en el segundo código) -->
-  <header class="text-center">
-      <img src="https://files.catbox.moe/28f4u1.GIF?w=1000" 
-           class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
-  </header>
-  
-  <!-- Main Content -->
-  <main class="container my-4">
-    <div class="text-center">
-      <h1>Pump Your ADRIANS with Steroids!</h1>
-      <p class="lead">Get ready to supercharge your old ADRIANS!</p>
-    </div>
-    
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-6">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <!-- Formulario unificado -->
-            <div class="d-grid gap-3">
-              <button id="connectWallet" class="btn btn-primary">Connect your Wallet!</button>
-              <div id="walletAddress" class="text-center border p-2" title="Wallet Address"></div>
-              <div class="form-section">
-                <label for="amount" class="form-label">
-                  How many ADRIANS do you want to pump today?
-                </label>
-                <input type="number" class="form-control" id="amount" placeholder="Enter amount">
-              </div>
-              <button id="actionButton" class="btn btn-primary">Inject Steroids & Pump!</button>
+  <div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <!-- Formulario unificado -->
+          <div class="d-grid gap-3">
+            <button id="connectWallet" class="btn btn-primary">Connect your Wallet!</button>
+            <div id="walletAddress" class="text-center border p-2" title="Wallet Address"></div>
+            <div class="form-section">
+              <label for="amount" class="form-label">
+                How many ADRIANS do you want to pump today?
+              </label>
+              <input type="number" class="form-control" id="amount" placeholder="Enter amount">
             </div>
+            <button id="actionButton" class="btn btn-primary">Inject Steroids & Pump!</button>
           </div>
         </div>
       </div>
     </div>
-  </main>
+  </div>
+</main>
 
-  <!-- Footer (componente común) -->
-  <div id="footer-placeholder"></div>
-  <script>
-    fetch('components/footer.html')
-      .then(response => response.text())
-      .then(html => {
-        document.getElementById('footer-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading footer:', error);
-      });
-  </script>
-
-  <!-- Bootstrap 5.3.0 JS Bundle (incluye Popper) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Custom JavaScript for Pumpit -->
-  <script>
-    // Direcciones para el contrato swap y Token A
-    const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
-    const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
+<!-- Custom JavaScript for Pumpit -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script>
+  // Direcciones para el contrato swap y Token A
+  const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+  const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
+  
+  // ABI mínima para la función swap
+  const swapAbi = [
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "amount", "type": "uint256" }
+      ],
+      "name": "swap",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ];
+  
+  // ABI mínima del ERC20 para la función approve
+  const erc20Abi = [
+    "function approve(address spender, uint256 amount) external returns (bool)"
+  ];
+  
+  let provider;
+  let signer;
+  let swapContract;
+  let tokenAContract;
+  
+  // Conectar MetaMask e instanciar contratos
+  document.getElementById("connectWallet").onclick = async () => {
+    if (window.ethereum) {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      const address = await signer.getAddress();
+      document.getElementById("walletAddress").innerText = address;
+      // Instanciar el contrato swap y el contrato Token A
+      swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
+      tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
+    } else {
+      alert("You need to install MetaMask to pump your ADRIANS!");
+    }
+  };
+  
+  // Botón para aprobar y ejecutar el swap
+  document.getElementById("actionButton").onclick = async () => {
+    if (!swapContract || !tokenAContract) {
+      alert("Please pump up your wallet first!");
+      return;
+    }
     
-    // ABI mínima para la función swap
-    const swapAbi = [
-      {
-        "inputs": [
-          { "internalType": "uint256", "name": "amount", "type": "uint256" }
-        ],
-        "name": "swap",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-      }
-    ];
+    const inputAmount = document.getElementById("amount").value;
+    if (!inputAmount || inputAmount <= 0) {
+      alert("Enter a valid amount of ADRIANS to pump!");
+      return;
+    }
     
-    // ABI mínima del ERC20 para la función approve
-    const erc20Abi = [
-      "function approve(address spender, uint256 amount) external returns (bool)"
-    ];
+    // Convertir a la unidad mínima del token (suponiendo 18 decimales)
+    const amount = ethers.utils.parseUnits(inputAmount, 18);
     
-    let provider;
-    let signer;
-    let swapContract;
-    let tokenAContract;
-    
-    // Conectar MetaMask e instanciar contratos
-    document.getElementById("connectWallet").onclick = async () => {
-      if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = address;
-        // Instanciar el contrato swap y el contrato Token A
-        swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
-        tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
-      } else {
-        alert("You need to install MetaMask to pump your ADRIANS!");
-      }
-    };
-    
-    // Botón único para aprobar y ejecutar el swap
-    document.getElementById("actionButton").onclick = async () => {
-      if (!swapContract || !tokenAContract) {
-        alert("Please pump up your wallet first!");
-        return;
-      }
+    try {
+      // Primero: Aprobar que el contrato swap gaste tu Token A
+      const approveTx = await tokenAContract.approve(swapContractAddress, amount);
+      alert("Steroid injection initiated: " + approveTx.hash);
+      await approveTx.wait();
+      alert("Steroids approved! Now pumping your ADRIANS...");
       
-      const inputAmount = document.getElementById("amount").value;
-      if (!inputAmount || inputAmount <= 0) {
-        alert("Enter a valid amount of ADRIANS to pump!");
-        return;
-      }
-      
-      // Convertir a la unidad mínima del token (asumiendo 18 decimales)
-      const amount = ethers.utils.parseUnits(inputAmount, 18);
-      
-      try {
-        // Primero: Aprobar que el contrato swap gaste tu Token A
-        const approveTx = await tokenAContract.approve(swapContractAddress, amount);
-        alert("Steroid injection initiated: " + approveTx.hash);
-        await approveTx.wait();
-        alert("Steroids approved! Now pumping your ADRIANS...");
-        
-        // Segundo: Ejecutar el swap
-        const swapTx = await swapContract.swap(amount);
-        alert("Pumping in progress: " + swapTx.hash);
-        await swapTx.wait();
-        alert("Your ADRIANS have been pumped with steroids! Enjoy your supercharged tokens!");
-      } catch (error) {
-        console.error(error);
-        alert("Pump failed: " + error.message);
-      }
-    };
-  </script>
-</body>
-</html>
+      // Segundo: Ejecutar el swap
+      const swapTx = await swapContract.swap(amount);
+      alert("Pumping in progress: " + swapTx.hash);
+      await swapTx.wait();
+      alert("Your ADRIANS have been pumped with steroids! Enjoy your supercharged tokens!");
+    } catch (error) {
+      console.error(error);
+      alert("Pump failed: " + error.message);
+    }
+  };
+</script>
