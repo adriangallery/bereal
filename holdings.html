@@ -7,6 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -26,40 +28,79 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Cabecera con balance y botón de conexión -->
-    <header class="text-center">
-      <h1>$ADRIAN NFT Gallery</h1>
-      <h2 id="tokenBalance" class="display-4">Balance: Cargando...</h2>
-      <button id="connectButton" class="btn btn-primary mt-3">Conectar Wallet</button>
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Load menu from components/menu.html
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading menu:', error);
+      });
+  </script>
+  
+  <header class="text-center">
+    <img src="https://adriangallery.com/images/adrian.GIF?w=1000" class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container text-center">
+      <h1 class="mt-3">BE REAL | BE ADRIAN</h1>
+    </div>
+  </section>
+
+  <!-- NFT Gallery Section -->
+  <div class="container my-5">
+    <!-- Header with token balance and wallet connection -->
+    <header class="text-center mb-4">
+      <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
+      <button id="connectButton" class="btn btn-primary mt-3">Connect Wallet</button>
       <p id="accountDisplay" class="mt-2"></p>
     </header>
 
-    <!-- Galería de NFTs -->
+    <!-- NFTs Grid -->
     <section>
-      <h3 class="mb-4">Mis NFTs de la Colección</h3>
+      <h3 class="mb-4 text-center">My NFTs from the Collection</h3>
       <div id="nftGallery" class="row">
-        <!-- Aquí se cargarán las cards de cada NFT -->
+        <!-- NFT cards will be loaded here -->
       </div>
     </section>
   </div>
 
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    // Load footer from components/footer.html
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading footer:', error);
+      });
+  </script>
+
   <script>
     let provider, signer, userAccount;
-    // Dirección del token $ADRIAN y del contrato NFT de la colección
+    // ADRIAN token address and NFT collection contract (ERC1155)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
 
-    // ABI del token $ADRIAN (ERC20 estándar)
+    // ABI for ERC20
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)"
     ];
 
-    // ABI básico para ERC721 con Enumerable
+    // ABI for ERC1155 (balanceOf, uri, and nextEventId)
     const nftABI = [
-      "function balanceOf(address owner) view returns (uint256)",
-      "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-      "function tokenURI(uint256 tokenId) view returns (string)"
+      "function balanceOf(address account, uint256 id) view returns (uint256)",
+      "function uri(uint256 id) view returns (string)",
+      "function nextEventId() view returns (uint256)"
     ];
 
     let tokenContract, nftContract;
@@ -71,21 +112,21 @@
           await provider.send("eth_requestAccounts", []);
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
-          document.getElementById("accountDisplay").innerText = "Cuenta conectada: " + userAccount;
+          document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
           
-          // Instanciar contratos
+          // Instantiate contracts
           tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
           nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
 
-          // Actualizar balance de tokens y cargar NFTs
+          // Update token balance and load NFTs
           updateTokenBalance();
           loadNFTs();
         } catch (error) {
-          console.error("Error conectando la wallet:", error);
-          alert("Error al conectar la wallet. Revisa la consola para más detalles.");
+          console.error("Error connecting wallet:", error);
+          alert("Error connecting wallet. Check the console for details.");
         }
       } else {
-        alert("MetaMask no está instalado");
+        alert("MetaMask is not installed");
       }
     }
 
@@ -95,68 +136,78 @@
         const balance = ethers.utils.formatUnits(balanceRaw, 18);
         document.getElementById("tokenBalance").innerText = `Balance: ${balance} ADRIAN`;
       } catch (error) {
-        console.error("Error obteniendo balance de tokens:", error);
+        console.error("Error fetching token balance:", error);
         document.getElementById("tokenBalance").innerText = "Balance: Error";
       }
     }
 
     async function loadNFTs() {
       try {
-        const balance = await nftContract.balanceOf(userAccount);
         const galleryDiv = document.getElementById("nftGallery");
-        galleryDiv.innerHTML = ""; // Limpiar contenido previo
+        galleryDiv.innerHTML = ""; // Clear previous content
 
-        // Si no tiene NFTs, mostramos un mensaje
-        if(balance.toNumber() === 0) {
-          galleryDiv.innerHTML = "<p>No posees NFTs de esta colección.</p>";
-          return;
-        }
+        // Get total mint events created
+        const nextEventId = await nftContract.nextEventId();
+        const totalEvents = nextEventId.toNumber();
 
-        // Iterar sobre cada token y cargar su metadata
-        for (let i = 0; i < balance; i++) {
-          const tokenId = await nftContract.tokenOfOwnerByIndex(userAccount, i);
-          let tokenURI = await nftContract.tokenURI(tokenId);
-          
-          // Si el tokenURI usa IPFS, podrías necesitar reemplazar "ipfs://" por un gateway HTTP
-          if(tokenURI.startsWith("ipfs://")){
-            tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
-          
-          // Obtener metadata
-          let metadata = {};
-          try {
-            const response = await fetch(tokenURI);
-            metadata = await response.json();
-          } catch (metaError) {
-            console.error(`Error obteniendo metadata del token ${tokenId}:`, metaError);
-          }
-          
-          // Suponiendo que el JSON tenga un campo "image"
-          let imageUrl = metadata.image || "https://via.placeholder.com/300?text=Sin+Imagen";
-          if(imageUrl.startsWith("ipfs://")){
-            imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
-
-          // Crear card para el NFT
-          const colDiv = document.createElement("div");
-          colDiv.className = "col-md-4 mb-4";
-          colDiv.innerHTML = `
-            <div class="card">
-              <img src="${imageUrl}" class="card-img-top" alt="NFT ${tokenId}">
-              <div class="card-body">
-                <h5 class="card-title">Token ${tokenId}</h5>
+        let hasNFT = false;
+        // Iterate through each token ID
+        for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
+          const balance = await nftContract.balanceOf(userAccount, tokenId);
+          if (balance.toNumber() > 0) {
+            hasNFT = true;
+            // Get token URI
+            let tokenURI = await nftContract.uri(tokenId);
+            if (tokenURI.startsWith("ipfs://")) {
+              tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+            }
+            
+            // Fetch metadata
+            let metadata = {};
+            try {
+              const response = await fetch(tokenURI);
+              metadata = await response.json();
+            } catch (metaError) {
+              console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
+            }
+            
+            let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+            if (imageUrl.startsWith("ipfs://")) {
+              imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+            }
+            
+            // Use the token name from metadata or fallback to "Token {tokenId}"
+            let tokenName = metadata.name || `Token ${tokenId}`;
+            
+            // Create a card for the NFT in a responsive grid:
+            // 2 columns on mobile (col-6), 4 columns on medium screens (col-md-3)
+            const colDiv = document.createElement("div");
+            colDiv.className = "col-6 col-md-3 mb-4";
+            colDiv.innerHTML = `
+              <div class="card h-100">
+                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${tokenName}</h5>
+                  <p class="card-text">Quantity: ${balance.toString()}</p>
+                </div>
               </div>
-            </div>
-          `;
-          galleryDiv.appendChild(colDiv);
+            `;
+            galleryDiv.appendChild(colDiv);
+          }
+        }
+        
+        if (!hasNFT) {
+          galleryDiv.innerHTML = "<p>You don't own any NFTs from this collection.</p>";
         }
       } catch (error) {
-        console.error("Error cargando NFTs:", error);
-        document.getElementById("nftGallery").innerHTML = "<p>Error al cargar tus NFTs.</p>";
+        console.error("Error loading NFTs:", error);
+        document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
       }
     }
 
-    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById("connectButton").addEventListener("click", connectWallet);
+    });
   </script>
 
   <!-- Bootstrap JS Bundle -->
