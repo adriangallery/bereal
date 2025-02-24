@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8">
-    <title>Aprobar y Mint - Evento ID 6</title>
+    <title>Aprobar y Mint - Evento ID 6 (CSP Safe)</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -27,29 +27,26 @@
     </style>
   </head>
   <body>
-    <h1>Aprobar y Mint - Evento ID 6</h1>
-    
+    <h1>Aprobar y Mint - Evento ID 6 (CSP Safe)</h1>
     <div id="walletAddress"></div>
-    
     <div style="margin-top:1rem;">
       <label for="quantity">Cantidad:</label>
-      <!-- Se recomienda 1 ya que el evento requiere 1 ADRIAN por mint -->
+      <!-- Se recomienda 1, ya que el evento requiere 1 ADRIAN por mint -->
       <input type="number" id="quantity" min="1" value="1">
     </div>
-    
     <button id="approveMintButton">Aprobar y Mint</button>
-    
     <div id="status"></div>
     
-    <!-- Importar ethers.js -->
-    <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
-    <script>
+    <!-- Usamos un script de tipo module para cargar la versión ESM de ethers.js -->
+    <script type="module">
+      import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+
       // Direcciones de contrato
       const mintContractAddress = "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD";
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
       const mintEventId = 6; // Se usará el evento con ID 6
       
-      // ABI mínimo del contrato de mint (para la función mint)
+      // ABI mínimo del contrato de mint
       const mintAbi = [
         "function mint(uint256 eventId, uint256 quantity) external",
         "function mintEvents(uint256) view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
@@ -63,19 +60,18 @@
       
       let provider, signer, mintContract, tokenContract;
       
-      // Función que gestiona la conexión, aprobación y mint en un solo botón
       async function handleApproveAndMint() {
         const statusDiv = document.getElementById("status");
         statusDiv.innerText = "";
         
-        // Verificar que haya un proveedor Ethereum
+        // Verificar que haya un proveedor Ethereum (MetaMask)
         if (!window.ethereum) {
           statusDiv.innerText = "No se encontró un proveedor Ethereum (instala MetaMask).";
           return;
         }
         
         try {
-          // Si no se ha conectado aún, se solicita la conexión
+          // Solicitar conexión si no se ha realizado aún
           if (!provider) {
             await window.ethereum.request({ method: "eth_requestAccounts" });
             provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -87,7 +83,7 @@
             tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
           }
           
-          // Obtener la cantidad ingresada y calcular el total requerido
+          // Leer la cantidad ingresada
           const quantity = document.getElementById("quantity").value;
           if (quantity <= 0) {
             statusDiv.innerText = "La cantidad debe ser mayor a cero.";
@@ -95,13 +91,12 @@
           }
           // Suponiendo que cada mint cuesta 1 ADRIAN (1e18 en wei)
           const requiredAmount = ethers.utils.parseUnits(quantity.toString(), "ether");
-          
-          // Obtener la dirección del usuario para consultar el allowance
           const userAddress = await signer.getAddress();
+          
           statusDiv.innerText = "Verificando aprobación de tokens...";
           let allowance = await tokenContract.allowance(userAddress, mintContractAddress);
           
-          // Si la aprobación es insuficiente, se solicita aprobar la cantidad necesaria
+          // Si el allowance es insuficiente, se solicita la aprobación
           if (allowance.lt(requiredAmount)) {
             statusDiv.innerText = "Aprobando tokens ADRIAN...";
             const txApprove = await tokenContract.approve(mintContractAddress, requiredAmount);
@@ -125,7 +120,6 @@
         }
       }
       
-      // Asociar el botón a la función única de aprobación y mint
       document.getElementById("approveMintButton").addEventListener("click", handleApproveAndMint);
     </script>
   </body>
