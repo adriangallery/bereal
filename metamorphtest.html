@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8">
-    <title>Mint Token - Evento ID 6</title>
+    <title>Aprobar y Mint - Evento ID 6</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -20,113 +20,113 @@
         font-size: 1rem;
         width: 60px;
       }
-      #status {
+      #status, #walletAddress {
         margin-top: 1rem;
         font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <h1>Mint Token - Evento ID 6</h1>
-    <button id="connectWallet">Conectar Wallet</button>
+    <h1>Aprobar y Mint - Evento ID 6</h1>
+    
     <div id="walletAddress"></div>
-
+    
     <div style="margin-top:1rem;">
       <label for="quantity">Cantidad:</label>
-      <!-- Se recomienda 1, ya que el evento requiere 1 ADRIAN -->
+      <!-- Se recomienda 1 ya que el evento requiere 1 ADRIAN por mint -->
       <input type="number" id="quantity" min="1" value="1">
     </div>
     
-    <!-- Botón para aprobar el gasto de tokens ADRIAN -->
-    <button id="approveButton">Aprobar Tokens</button>
-    <!-- Botón para ejecutar el mint -->
-    <button id="mintButton">Realizar Mint</button>
+    <button id="approveMintButton">Aprobar y Mint</button>
     
     <div id="status"></div>
     
-    <!-- Importar ethers.js desde un CDN -->
+    <!-- Importar ethers.js -->
     <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
     <script>
-      // Dirección del contrato de mint y de la token ADRIAN
-      const contractAddress = "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD";
+      // Direcciones de contrato
+      const mintContractAddress = "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD";
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-      const mintEventId = 6; // Se usará el mint event con ID 6
-      // Se requiere 1 ADRIAN (1e18 en wei)
-      const requiredAmount = ethers.BigNumber.from("1000000000000000000");
-
-      // ABI mínimo para interactuar con el contrato de mint
+      const mintEventId = 6; // Se usará el evento con ID 6
+      
+      // ABI mínimo del contrato de mint (para la función mint)
       const mintAbi = [
         "function mint(uint256 eventId, uint256 quantity) external",
         "function mintEvents(uint256) view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
       ];
-
-      // ABI mínimo de ERC20 para usar approve y allowance
+      
+      // ABI mínimo ERC20 (para approve y allowance)
       const erc20Abi = [
         "function approve(address spender, uint256 amount) external returns (bool)",
         "function allowance(address owner, address spender) view returns (uint256)"
       ];
-
-      let provider;
-      let signer;
-      let mintContract;
-      let tokenContract;
-
-      // Conectar la wallet
-      document.getElementById("connectWallet").addEventListener("click", async () => {
-        if (window.ethereum) {
-          try {
+      
+      let provider, signer, mintContract, tokenContract;
+      
+      // Función que gestiona la conexión, aprobación y mint en un solo botón
+      async function handleApproveAndMint() {
+        const statusDiv = document.getElementById("status");
+        statusDiv.innerText = "";
+        
+        // Verificar que haya un proveedor Ethereum
+        if (!window.ethereum) {
+          statusDiv.innerText = "No se encontró un proveedor Ethereum (instala MetaMask).";
+          return;
+        }
+        
+        try {
+          // Si no se ha conectado aún, se solicita la conexión
+          if (!provider) {
             await window.ethereum.request({ method: "eth_requestAccounts" });
             provider = new ethers.providers.Web3Provider(window.ethereum);
             signer = provider.getSigner();
             const userAddress = await signer.getAddress();
             document.getElementById("walletAddress").innerText = "Conectado: " + userAddress;
-            mintContract = new ethers.Contract(contractAddress, mintAbi, signer);
+            // Instanciar los contratos
+            mintContract = new ethers.Contract(mintContractAddress, mintAbi, signer);
             tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
-          } catch (error) {
-            console.error(error);
-            document.getElementById("status").innerText = "Error al conectar la wallet.";
           }
-        } else {
-          document.getElementById("status").innerText = "No se encontró un proveedor Ethereum (instala MetaMask).";
-        }
-      });
-
-      // Función para aprobar el gasto de tokens ADRIAN
-      document.getElementById("approveButton").addEventListener("click", async () => {
-        if (!tokenContract) {
-          document.getElementById("status").innerText = "Conecta tu wallet primero.";
-          return;
-        }
-        try {
-          document.getElementById("status").innerText = "Aprobando tokens...";
-          const tx = await tokenContract.approve(contractAddress, requiredAmount);
-          document.getElementById("status").innerText = "Transacción de aprobación enviada. Esperando confirmación...";
-          await tx.wait();
-          document.getElementById("status").innerText = "¡Tokens aprobados!";
+          
+          // Obtener la cantidad ingresada y calcular el total requerido
+          const quantity = document.getElementById("quantity").value;
+          if (quantity <= 0) {
+            statusDiv.innerText = "La cantidad debe ser mayor a cero.";
+            return;
+          }
+          // Suponiendo que cada mint cuesta 1 ADRIAN (1e18 en wei)
+          const requiredAmount = ethers.utils.parseUnits(quantity.toString(), "ether");
+          
+          // Obtener la dirección del usuario para consultar el allowance
+          const userAddress = await signer.getAddress();
+          statusDiv.innerText = "Verificando aprobación de tokens...";
+          let allowance = await tokenContract.allowance(userAddress, mintContractAddress);
+          
+          // Si la aprobación es insuficiente, se solicita aprobar la cantidad necesaria
+          if (allowance.lt(requiredAmount)) {
+            statusDiv.innerText = "Aprobando tokens ADRIAN...";
+            const txApprove = await tokenContract.approve(mintContractAddress, requiredAmount);
+            statusDiv.innerText = "Transacción de aprobación enviada. Esperando confirmación...";
+            await txApprove.wait();
+            statusDiv.innerText = "Tokens aprobados.";
+          } else {
+            statusDiv.innerText = "Tokens ya aprobados.";
+          }
+          
+          // Realizar el mint
+          statusDiv.innerText = "Ejecutando mint...";
+          const txMint = await mintContract.mint(mintEventId, quantity);
+          statusDiv.innerText = "Transacción de mint enviada. Esperando confirmación...";
+          await txMint.wait();
+          statusDiv.innerText = "¡Mint completado!";
+          
         } catch (error) {
           console.error(error);
-          document.getElementById("status").innerText = "Error en la aprobación: " + (error.message || error);
+          statusDiv.innerText = "Error: " + (error.message || error);
         }
-      });
-
-      // Función para realizar el mint
-      document.getElementById("mintButton").addEventListener("click", async () => {
-        if (!mintContract) {
-          document.getElementById("status").innerText = "Conecta tu wallet primero.";
-          return;
-        }
-        const quantity = document.getElementById("quantity").value;
-        document.getElementById("status").innerText = "Enviando transacción de mint...";
-        try {
-          const tx = await mintContract.mint(mintEventId, quantity);
-          document.getElementById("status").innerText = "Transacción enviada. Esperando confirmación...";
-          await tx.wait();
-          document.getElementById("status").innerText = "¡Mint completado!";
-        } catch (error) {
-          console.error(error);
-          document.getElementById("status").innerText = "Error en el mint: " + (error.message || error);
-        }
-      });
+      }
+      
+      // Asociar el botón a la función única de aprobación y mint
+      document.getElementById("approveMintButton").addEventListener("click", handleApproveAndMint);
     </script>
   </body>
 </html>
