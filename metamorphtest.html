@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Mint Token - Evento ID 6</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 1rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+      }
+      input {
+        padding: 0.5rem;
+        font-size: 1rem;
+        width: 60px;
+      }
+      #status {
+        margin-top: 1rem;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Mint Token - Evento ID 6</h1>
+    <button id="connectWallet">Conectar Wallet</button>
+    <div id="walletAddress"></div>
+
+    <div style="margin-top:1rem;">
+      <label for="quantity">Cantidad:</label>
+      <!-- Se recomienda 1, ya que el evento requiere 1 ADRIAN -->
+      <input type="number" id="quantity" min="1" value="1">
+    </div>
+    
+    <!-- Botón para aprobar el gasto de tokens ADRIAN -->
+    <button id="approveButton">Aprobar Tokens</button>
+    <!-- Botón para ejecutar el mint -->
+    <button id="mintButton">Realizar Mint</button>
+    
+    <div id="status"></div>
+    
+    <!-- Importar ethers.js desde un CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+    <script>
+      // Dirección del contrato de mint y de la token ADRIAN
+      const contractAddress = "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD";
+      const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      const mintEventId = 6; // Se usará el mint event con ID 6
+      // Se requiere 1 ADRIAN (1e18 en wei)
+      const requiredAmount = ethers.BigNumber.from("1000000000000000000");
+
+      // ABI mínimo para interactuar con el contrato de mint
+      const mintAbi = [
+        "function mint(uint256 eventId, uint256 quantity) external",
+        "function mintEvents(uint256) view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
+      ];
+
+      // ABI mínimo de ERC20 para usar approve y allowance
+      const erc20Abi = [
+        "function approve(address spender, uint256 amount) external returns (bool)",
+        "function allowance(address owner, address spender) view returns (uint256)"
+      ];
+
+      let provider;
+      let signer;
+      let mintContract;
+      let tokenContract;
+
+      // Conectar la wallet
+      document.getElementById("connectWallet").addEventListener("click", async () => {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            const userAddress = await signer.getAddress();
+            document.getElementById("walletAddress").innerText = "Conectado: " + userAddress;
+            mintContract = new ethers.Contract(contractAddress, mintAbi, signer);
+            tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+          } catch (error) {
+            console.error(error);
+            document.getElementById("status").innerText = "Error al conectar la wallet.";
+          }
+        } else {
+          document.getElementById("status").innerText = "No se encontró un proveedor Ethereum (instala MetaMask).";
+        }
+      });
+
+      // Función para aprobar el gasto de tokens ADRIAN
+      document.getElementById("approveButton").addEventListener("click", async () => {
+        if (!tokenContract) {
+          document.getElementById("status").innerText = "Conecta tu wallet primero.";
+          return;
+        }
+        try {
+          document.getElementById("status").innerText = "Aprobando tokens...";
+          const tx = await tokenContract.approve(contractAddress, requiredAmount);
+          document.getElementById("status").innerText = "Transacción de aprobación enviada. Esperando confirmación...";
+          await tx.wait();
+          document.getElementById("status").innerText = "¡Tokens aprobados!";
+        } catch (error) {
+          console.error(error);
+          document.getElementById("status").innerText = "Error en la aprobación: " + (error.message || error);
+        }
+      });
+
+      // Función para realizar el mint
+      document.getElementById("mintButton").addEventListener("click", async () => {
+        if (!mintContract) {
+          document.getElementById("status").innerText = "Conecta tu wallet primero.";
+          return;
+        }
+        const quantity = document.getElementById("quantity").value;
+        document.getElementById("status").innerText = "Enviando transacción de mint...";
+        try {
+          const tx = await mintContract.mint(mintEventId, quantity);
+          document.getElementById("status").innerText = "Transacción enviada. Esperando confirmación...";
+          await tx.wait();
+          document.getElementById("status").innerText = "¡Mint completado!";
+        } catch (error) {
+          console.error(error);
+          document.getElementById("status").innerText = "Error en el mint: " + (error.message || error);
+        }
+      });
+    </script>
+  </body>
+</html>
