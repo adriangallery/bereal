@@ -29,7 +29,8 @@
   </div>
 
   <script>
-    const proxyAddress = "0xc7d2d3c4d76e449a90fe0729f69806b734d48cac";
+    // Nueva dirección del contrato proxy
+    const proxyAddress = "0x80d65a08a22daae72a3265e90c49b51c3e0fd816";
     const proxyABI = [
       "function getUserClaimStatus(address) view returns (bool, uint256, uint256)",
       "function claimNFT()"
@@ -57,8 +58,6 @@
       const address = await signer.getAddress();
       try {
         const [hasClaimed, tokenBalance, nftBalance] = await contract.getUserClaimStatus(address);
-        
-        // Mostrar balances
         document.getElementById("adrianBalance").innerText = ethers.utils.formatEther(tokenBalance);
         document.getElementById("nftBalance").innerText = nftBalance.toString();
 
@@ -86,11 +85,10 @@
         const contract = new ethers.Contract(proxyAddress, proxyABI, signer);
         document.getElementById("statusMessage").innerText = "Claiming... Please wait.";
 
-        // Intentar estimar el gas para claimNFT y usar un gasLimit manual
+        // Intentar estimar el gas para claimNFT y usar un límite manual si es necesario
         let gasLimit;
         try {
           const estimatedGas = await contract.estimateGas.claimNFT();
-          // Multiplicamos por 2 para tener un margen de seguridad
           gasLimit = estimatedGas.mul(2);
         } catch (gasError) {
           console.warn("Gas estimation failed, using fallback gas limit", gasError);
