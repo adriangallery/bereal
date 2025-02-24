@@ -1,4 +1,4 @@
-<!-- components/menu.html -->
+<!-- components/menu2.html -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
     <a class="navbar-brand" href="index.html">$ADRIAN</a>
@@ -19,6 +19,7 @@
         <li class="nav-item"><a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a></li>
         <li class="nav-item">
           <button id="connectWallet" class="btn btn-warning">Connect Wallet</button>
+          <span id="walletInfo" class="text-white ms-2"></span>
         </li>
       </ul>
     </div>
@@ -26,12 +27,15 @@
 </nav>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", async function() {
     const connectButton = document.getElementById("connectWallet");
+    const walletInfo = document.getElementById("walletInfo");
     const storedAccount = localStorage.getItem("walletAddress");
-    if (storedAccount) {
-      connectButton.textContent = `Connected: ${storedAccount.substring(0, 6)}...${storedAccount.slice(-4)}`;
-      connectButton.disabled = true;
+    const storedSignature = localStorage.getItem("walletSignature");
+    
+    if (storedAccount && storedSignature) {
+      walletInfo.textContent = `Connected: ${storedAccount.substring(0, 6)}...${storedAccount.slice(-4)}`;
+      connectButton.style.display = "none";
     }
 
     connectButton.addEventListener("click", async () => {
@@ -48,8 +52,8 @@
 
           localStorage.setItem("walletAddress", userAccount);
           localStorage.setItem("walletSignature", signature);
-          connectButton.textContent = `Connected: ${userAccount.substring(0, 6)}...${userAccount.slice(-4)}`;
-          connectButton.disabled = true;
+          walletInfo.textContent = `Connected: ${userAccount.substring(0, 6)}...${userAccount.slice(-4)}`;
+          connectButton.style.display = "none";
         } catch (error) {
           console.error("Error connecting wallet:", error);
         }
