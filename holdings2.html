@@ -25,8 +25,6 @@
       padding: 0;
       font-family: sans-serif;
     }
-
-    /* Quita el margen automático de Bootstrap en el body */
     body > * {
       margin: 0;
       padding: 0;
@@ -59,18 +57,22 @@
       margin-bottom: 2rem;
     }
 
-    /* Tarjeta NFT: apariencia inspirada en OpenSea */
+    /* ========== NFT CARD STYLES ========== */
     .nft-card {
-      background-color: #121212;
-      border: none;
+      background-color: #1f1f1f; /* Fondo un poco más claro que el negro para destacar */
+      color: #ccc;              /* Texto gris (no blanco puro) */
       border-radius: 8px;
+      border: 1px solid #333;   /* Borde sutil para delimitar la tarjeta */
       position: relative;
       overflow: hidden;
       transition: transform 0.2s ease-in-out;
       cursor: pointer;
     }
+    .nft-card:hover {
+      transform: scale(1.01);
+    }
 
-    /* Efecto “zoom” en la imagen al hacer hover en la tarjeta */
+    /* Imagen dentro de la tarjeta */
     .nft-card img {
       transition: transform 0.2s ease-in-out;
       border-radius: 8px 8px 0 0;
@@ -79,14 +81,17 @@
       transform: scale(1.05);
     }
 
-    /* Zoom sutil de toda la tarjeta (opcional) */
-    .nft-card:hover {
-      transform: scale(1.01);
-    }
-
-    /* Contenido de la tarjeta */
+    /* Texto dentro de la tarjeta */
     .nft-card .card-body {
       padding: 1rem;
+    }
+    .nft-card .card-title {
+      color: #eee; /* Un tono más claro para el título */
+      margin-bottom: 0.5rem;
+    }
+    .nft-card .card-text {
+      color: #ccc; /* Mantén la coherencia con el resto del texto */
+      margin-bottom: 0;
     }
 
     /* Botón “See details” que aparece al hacer hover */
@@ -95,7 +100,7 @@
       bottom: 10px;
       right: 10px;
       display: none;
-      background-color: #007bff; /* color primario bootstrap */
+      background-color: #007bff;
       color: #fff;
       border: none;
       padding: 0.5rem 0.75rem;
@@ -107,8 +112,6 @@
     .see-details-btn:hover {
       background-color: #0056b3;
     }
-
-    /* Al hacer hover en la tarjeta, se muestra el botón */
     .nft-card:hover .see-details-btn {
       display: block;
     }
