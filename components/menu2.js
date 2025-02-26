@@ -4,7 +4,25 @@ if (typeof ethers === 'undefined') {
   console.error("ethers.js no está cargado");
 }
 
+/**
+ * Función que actúa como toggle:
+ * - Si no hay wallet conectada, intenta conectar.
+ * - Si ya hay wallet conectada, "desconecta" (limpia el estado).
+ */
 window.menuConnectWallet = async function() {
+  // Si ya hay una cuenta conectada, simula desconexión
+  if (window.menuUserAccount) {
+    console.log("Desconectando la wallet...");
+    window.menuUserAccount = null;
+    window.menuSigner = null;
+    window.menuProvider = null;
+    document.getElementById("menuConnectButton").innerHTML = "🟦🟥 Connect Wallet";
+    if (typeof window.onMenuWalletDisconnected === "function") {
+      window.onMenuWalletDisconnected();
+    }
+    return;
+  }
+  // Sino, conecta la wallet
   console.log("menuConnectWallet() invoked");
   if (window.ethereum) {
     window.menuProvider = new ethers.providers.Web3Provider(window.ethereum);
@@ -34,6 +52,7 @@ window.menuConnectWallet = async function() {
   }
 };
 
+// Al cargar la página, chequeamos si ya hay conexión y actualizamos el botón.
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.ethereum) {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
