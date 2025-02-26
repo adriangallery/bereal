@@ -45,8 +45,8 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargar menú desde components/menu.html
-    fetch('components/menu.html')
+    // Cargamos el menú desde components/menu2.html (asegúrate de tener este archivo)
+    fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
@@ -55,6 +55,8 @@
         console.error('Error loading menu:', error);
       });
   </script>
+  <!-- Cargamos la lógica del menú -->
+  <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
   <section class="hero text-center">
@@ -68,9 +70,11 @@
   <div class="container my-5">
     <div id="claimSection" class="text-center">
       <h2>#0007 METAMORPH (SOOON)</h2>
-      <button id="connectWallet" class="btn btn-primary my-3">Connect Wallet</button>
-      <p id="walletStatus">Not connected</p>
+      <!-- El botón de conexión ya se gestiona en el menú, por lo que aquí se oculta -->
+      <button id="connectWallet" class="btn btn-primary my-3" style="display: none;">Connect Wallet</button>
+      <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
 
+      <!-- Esta sección se muestra cuando la wallet esté conectada -->
       <div id="claimInfo" style="display: none;">
         <div class="row justify-content-center mb-3">
           <div class="col-md-4">
@@ -99,7 +103,7 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Cargar footer desde components/footer.html
+    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -143,23 +147,7 @@
 
     let provider, signer, claimContract, userAddress;
 
-    document.getElementById("connectWallet").addEventListener("click", async () => {
-      if (!window.ethereum) {
-        alert("MetaMask not detected.");
-        return;
-      }
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = provider.getSigner();
-      userAddress = await signer.getAddress();
-      document.getElementById("walletStatus").innerText = `Connected: ${userAddress}`;
-      document.getElementById("connectWallet").style.display = "none";
-      document.getElementById("claimInfo").style.display = "block";
-      claimContract = new ethers.Contract(claimContractAddress, claimContractABI, signer);
-      loadClaimInfo();
-      updateConditions();
-    });
-
+    // Definiciones de funciones para cargar la información de claim
     async function loadClaimInfo() {
       try {
         const cost = await claimContract.claimNFTCost();
@@ -297,8 +285,33 @@
         document.getElementById("statusMessage").innerText = "Claim failed. Check console.";
       }
     });
-  </script>
 
+    // Callback que se invoca cuando se conecta la wallet desde el menú (definido en menu2.js)
+    window.onMenuWalletConnected = async function() {
+      // Asignamos variables globales a partir de menu2.js
+      walletAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      // Actualizamos el estado de la wallet
+      document.getElementById("walletStatus").innerText = "Connected: " + walletAddress;
+      // Ocultamos el botón de conexión (si llegara a estar visible) y mostramos la sección de claim
+      document.getElementById("connectWallet").style.display = "none";
+      document.getElementById("claimInfo").style.display = "block";
+      // Instanciamos el contrato de claim usando el signer
+      claimContract = new ethers.Contract(claimContractAddress, claimContractABI, signer);
+      // Cargamos la información de claim y las condiciones
+      loadClaimInfo();
+      updateConditions();
+    };
+
+    // (Opcional) Callback para cuando se desconecta la wallet
+    window.onMenuWalletDisconnected = function() {
+      document.getElementById("walletStatus").innerText = "Wallet not connected. Please connect via the menu.";
+      document.getElementById("claimInfo").style.display = "none";
+      document.getElementById("connectWallet").style.display = "block";
+    };
+  </script>
+  
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
