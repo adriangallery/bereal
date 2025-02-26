@@ -19,14 +19,26 @@
       color: #fff;
       text-shadow: 0 0 5px #000;
     }
-    /* Section title spacing */
     .section-title {
       margin-top: 2rem;
       margin-bottom: 1rem;
     }
-    /* Adjust accordion toggle icon (if needed) */
-    .accordion-button::after {
-      filter: invert(1);
+    /* Accordion header styling to include an image preview */
+    .accordion-button {
+      display: flex;
+      align-items: center;
+    }
+    .accordion-button img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      margin-right: 15px;
+      border-radius: 5px;
+    }
+    /* Optional: style the accordion body for extra visual appeal */
+    .accordion-body {
+      background-color: #f8f9fa;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -44,145 +56,159 @@
   <section class="hero text-center">
     <div class="container">
       <h1>BE REAL | BE ADRIAN</h1>
-      <p class="lead">A community-driven project built on transparency, fun, and commitment.</p>
+      <p class="lead">A community-driven project built on transparency, fun, and unwavering commitment.</p>
     </div>
   </section>
 
   <!-- Main Content -->
   <div class="container my-5">
-    
+
     <!-- About Section -->
     <section id="about">
       <h2 class="section-title">What is $ADRIAN?</h2>
-      <p>$ADRIAN is more than just a token—it's a community-driven project built by true believers who value transparency, fun, and long-term growth. No dev, no rug—just pure commitment to creating something real.</p>
+      <p>$ADRIAN is more than just a token—it's a movement of true believers. Built on transparency and long-term growth, we shun shortcuts: no dev, no rug. Just pure, unyielding commitment.</p>
     </section>
 
     <!-- Why Join Section -->
     <section id="why-join" class="mt-5">
       <h2 class="section-title">Why Join $ADRIAN?</h2>
       <ul class="list-group">
-        <li class="list-group-item">✅ <strong>Fair Launch & Community Focus</strong> – No presale, no VC, just real people.</li>
-        <li class="list-group-item">✅ <strong>GENESIS NFTs</strong> – Exclusive perks & rewards for early adopters.</li>
-        <li class="list-group-item">✅ <strong>Locked Liquidity</strong> – Secure until a specified time.</li>
-        <li class="list-group-item">✅ <strong>Uniswap LP Rewards</strong> – Innovative ways to reward holders.</li>
-        <li class="list-group-item">✅ <strong>Airdrops & Giveaways</strong> – Incentives for community members.</li>
+        <li class="list-group-item">✅ <strong>Fair Launch & Community Focus</strong> – No presale, no VC, only genuine community participation.</li>
+        <li class="list-group-item">✅ <strong>GENESIS NFTs</strong> – Unlock exclusive perks and rewards for early believers.</li>
+        <li class="list-group-item">✅ <strong>Locked Liquidity</strong> – Security and longevity guaranteed.</li>
+        <li class="list-group-item">✅ <strong>Innovative LP Rewards</strong> – Pioneering ways to reward our holders.</li>
+        <li class="list-group-item">✅ <strong>Airdrops & Giveaways</strong> – Regular incentives for the community.</li>
       </ul>
     </section>
 
-    <!-- Genesis NFT Section -->
+    <!-- GENESIS NFT Section -->
     <section id="genesis-nft" class="mt-5">
       <h2 class="section-title">GENESIS NFT – Limited Edition (50 Only)</h2>
-      <p>Holding a <strong>GENESIS NFT</strong> grants you:</p>
+      <p>Own a GENESIS NFT to unlock:</p>
       <ul class="list-group">
-        <li class="list-group-item">🎟️ <strong>Guaranteed Airdrop Allocations</strong> – The more you hold, the bigger your share!</li>
-        <li class="list-group-item">🔓 <strong>Exclusive Perks & Future Utility</strong> – Special rewards, roles & benefits.</li>
-        <li class="list-group-item">🌍 <strong>True OG Status</strong> – Be part of the foundation of $ADRIAN.</li>
+        <li class="list-group-item">🎟️ <strong>Guaranteed Airdrop Allocations</strong> – The more you hold, the larger your share.</li>
+        <li class="list-group-item">🔓 <strong>Exclusive Perks & Future Utility</strong> – Special rewards, roles, and benefits.</li>
+        <li class="list-group-item">🌍 <strong>True OG Status</strong> – Cement your legacy as a founding member.</li>
       </ul>
-      <p class="mt-3">Only <strong>50 exist</strong>, with most already claimed—soon only available on secondary markets!</p>
     </section>
 
     <!-- dApps Showcase Section -->
     <section id="dapps" class="mt-5">
       <h2 class="section-title">dApps Showcase</h2>
       <div class="accordion" id="dAppsAccordion">
+        
         <!-- The TAX Reaper -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingTaxReaper">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTaxReaper" aria-expanded="false" aria-controls="collapseTaxReaper">
-              The TAX Reaper
+              <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua" alt="The TAX Reaper">
+              <span>The TAX Reaper</span>
             </button>
           </h2>
           <div id="collapseTaxReaper" class="accordion-collapse collapse" aria-labelledby="headingTaxReaper" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Claim the tribute generated by every $ADRIAN transaction. Experience the only entity that always gets paid.</p>
-              <a href="taxreaper.html" class="btn btn-primary">Visit The TAX Reaper</a>
+              <p>Claim the tribute generated by every $ADRIAN transaction. The TAX Reaper is the only entity that always gets paid—honoring every contributor with its unique lore.</p>
+              <a href="taxreaper.html" class="btn btn-primary">Explore The TAX Reaper</a>
             </div>
           </div>
         </div>
+        
         <!-- Pump Your ADRIANS -->
         <div class="accordion-item">
-          <h2 class="accordion-header" id="headingPumpit">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePumpit" aria-expanded="false" aria-controls="collapsePumpit">
-              Pump Your ADRIANS
+          <h2 class="accordion-header" id="headingPumpIt">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePumpIt" aria-expanded="false" aria-controls="collapsePumpIt">
+              <img src="https://files.catbox.moe/28f4u1.GIF?w=1000" alt="Pump Your ADRIANS">
+              <span>Pump Your ADRIANS</span>
             </button>
           </h2>
-          <div id="collapsePumpit" class="accordion-collapse collapse" aria-labelledby="headingPumpit" data-bs-parent="#dAppsAccordion">
+          <div id="collapsePumpIt" class="accordion-collapse collapse" aria-labelledby="headingPumpIt" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Supercharge your ADRIANS with steroids! Connect your wallet and pump your tokens for maximum impact.</p>
-              <a href="pumpit.html" class="btn btn-primary">Visit Pump Your ADRIANS</a>
+              <p>Supercharge your ADRIANS with a dose of steroids. Connect your wallet and inject energy into your tokens, all while riding the wave of our innovative ecosystem.</p>
+              <a href="pumpit.html" class="btn btn-primary">Explore Pump Your ADRIANS</a>
             </div>
           </div>
         </div>
+        
         <!-- Your Holdings -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingHoldings">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHoldings" aria-expanded="false" aria-controls="collapseHoldings">
-              Your Holdings
+              <img src="https://adriangallery.com/images/adrian.GIF?w=1000" alt="Your Holdings">
+              <span>Your Holdings</span>
             </button>
           </h2>
           <div id="collapseHoldings" class="accordion-collapse collapse" aria-labelledby="headingHoldings" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Manage and view your $ADRIAN holdings along with your NFT collection in a user-friendly interface.</p>
-              <a href="holdings.html" class="btn btn-primary">Visit Your Holdings</a>
+              <p>Access a sleek dashboard to manage your $ADRIAN tokens and NFT collection. A user-friendly interface to keep track of your digital assets.</p>
+              <a href="holdings.html" class="btn btn-primary">Explore Your Holdings</a>
             </div>
           </div>
         </div>
+        
         <!-- Filthy Rich -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingFilthyRich">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilthyRich" aria-expanded="false" aria-controls="collapseFilthyRich">
-              Filthy Rich
+              <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4" alt="Filthy Rich">
+              <span>Filthy Rich</span>
             </button>
           </h2>
           <div id="collapseFilthyRich" class="accordion-collapse collapse" aria-labelledby="headingFilthyRich" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Mint exclusive open edition NFTs and join an elite community with special privileges.</p>
-              <a href="filthyrich.html" class="btn btn-primary">Visit Filthy Rich</a>
+              <p>Mint exclusive open edition NFTs and join an elite circle. Experience the lavish side of $ADRIAN and secure your place among the digital aristocracy.</p>
+              <a href="filthyrich.html" class="btn btn-primary">Explore Filthy Rich</a>
             </div>
           </div>
         </div>
+        
         <!-- NFT Claim -->
         <div class="accordion-item">
-          <h2 class="accordion-header" id="headingClaim">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseClaim" aria-expanded="false" aria-controls="collapseClaim">
-              NFT Claim
+          <h2 class="accordion-header" id="headingNFTClaim">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNFTClaim" aria-expanded="false" aria-controls="collapseNFTClaim">
+              <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeicth6uhgmll6nnfb6kgvwmyplbzacerpfmbwkjht62nb3bn77ivr4" alt="NFT Claim">
+              <span>NFT Claim</span>
             </button>
           </h2>
-          <div id="collapseClaim" class="accordion-collapse collapse" aria-labelledby="headingClaim" data-bs-parent="#dAppsAccordion">
+          <div id="collapseNFTClaim" class="accordion-collapse collapse" aria-labelledby="headingNFTClaim" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Claim your exclusive NFT and be part of the $ADRIAN legacy. Limited time opportunity!</p>
-              <a href="claim.html" class="btn btn-primary">Visit NFT Claim</a>
+              <p>Claim your exclusive NFT and become a part of the $ADRIAN legacy. Seize this limited-time opportunity to own a piece of our history.</p>
+              <a href="claim.html" class="btn btn-primary">Explore NFT Claim</a>
             </div>
           </div>
         </div>
+        
         <!-- Token Burn Tracker -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingBurnStats">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBurnStats" aria-expanded="false" aria-controls="collapseBurnStats">
-              Token Burn Tracker
+              <img src="https://via.placeholder.com/50?text=Burn" alt="Token Burn Tracker">
+              <span>Token Burn Tracker</span>
             </button>
           </h2>
           <div id="collapseBurnStats" class="accordion-collapse collapse" aria-labelledby="headingBurnStats" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Monitor the burn events of $ADRIAN tokens and stay updated with the latest supply changes.</p>
-              <a href="burnstats.html" class="btn btn-primary">Visit Token Burn Tracker</a>
+              <p>Track every burn event as $ADRIAN tokens vanish—keeping our ecosystem deflationary and dynamic. Stay informed with real-time updates.</p>
+              <a href="burnstats.html" class="btn btn-primary">Explore Token Burn Tracker</a>
             </div>
           </div>
         </div>
+        
         <!-- Auction -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingAuction">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAuction" aria-expanded="false" aria-controls="collapseAuction">
-              $ADRIAN Auction
+              <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/0eb7aed1ebe0b64ad7ad4d38332ebc/9e0eb7aed1ebe0b64ad7ad4d38332ebc.png?w=1000" alt="$ADRIAN Auction">
+              <span>$ADRIAN Auction</span>
             </button>
           </h2>
           <div id="collapseAuction" class="accordion-collapse collapse" aria-labelledby="headingAuction" data-bs-parent="#dAppsAccordion">
             <div class="accordion-body">
-              <p>Participate in exciting auctions and bid for exclusive NFTs within the $ADRIAN ecosystem.</p>
-              <a href="auction.html" class="btn btn-primary">Visit Auction</a>
+              <p>Join the competitive arena where top bidders secure rare NFTs. Experience live bidding and dynamic auction stats in our ever-evolving marketplace.</p>
+              <a href="auction.html" class="btn btn-primary">Explore $ADRIAN Auction</a>
             </div>
           </div>
         </div>
+        
       </div>
     </section>
 
