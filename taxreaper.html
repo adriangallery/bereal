@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$ADRIAN CLAIM - Tribute Claim</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Favicon -->
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS (adjust the path if necessary) -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    /* Styles for the claim section */
+    #claimSection {
+      background: #222;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+      margin-bottom: 2rem;
+    }
+    #conditions p {
+      margin: 5px 0;
+    }
+    /* Hero section with the NFT image (using the lore image) */
+    .hero {
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua') no-repeat center center;
+      background-size: cover;
+      padding: 4rem 0;
+      color: #fff;
+      text-shadow: 0 0 5px #000;
+    }
+    .hero h1 {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Load menu from components/menu.html
+    fetch('components/menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading menu:', error);
+      });
+  </script>
+
+  <!-- Hero Section -->
+  <section class="hero text-center">
+    <div class="container">
+      <h1>THE TAX REAPER</h1>
+      <p class="lead">The only entity that always gets paid. Claim the tribute that all ADRIAN transactions generate.</p>
+    </div>
+  </section>
+
+  <!-- Claim Section -->
+  <div class="container my-5">
+    <div id="claimSection" class="text-center">
+      <h2>THE TAX REAPER Tribute</h2>
+      <button id="connectWallet" class="btn btn-primary my-3">Connect Wallet</button>
+      <p id="walletStatus">Not connected</p>
+
+      <div id="claimInfo" style="display: none;">
+        <div class="row justify-content-center mb-3">
+          <div class="col-md-4">
+            <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua" class="img-fluid rounded" alt="THE TAX REAPER">
+          </div>
+        </div>
+        <p>Current Reaper (NFT Owner): <span id="currentReaper">Loading...</span></p>
+        <p>Total Tribute Collected: <span id="totalCollected">Loading...</span> ADRIAN</p>
+        <p>Remaining Tribute to Claim: <span id="remainingTribute">Loading...</span> ADRIAN</p>
+        <button id="claimBtn" class="btn btn-warning">Claim Tribute</button>
+        <p class="status mt-3" id="statusMessage"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    // Load footer from components/footer.html
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading footer:', error);
+      });
+  </script>
+
+  <!-- JavaScript to interact with the TheTaxReaper contract -->
+  <script>
+    // Contract address and ABI for TheTaxReaper (using the provided address)
+    const reaperContractAddress = "0x2a5e85597c23dbf8c25fa8091c6ab0db49667d5c";
+    const reaperContractABI = [
+      "function claimReaperTribute() external",
+      "function getTotalTributesCollected() external view returns (uint256)",
+      "function getRemainingTributes() external view returns (uint256)",
+      "function getCurrentReaper() external view returns (address)"
+    ];
+
+    let provider, signer, reaperContract, userAddress;
+
+    document.getElementById("connectWallet").addEventListener("click", async () => {
+      if (!window.ethereum) {
+        alert("MetaMask not detected.");
+        return;
+      }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      document.getElementById("walletStatus").innerText = `Connected: ${userAddress}`;
+      document.getElementById("connectWallet").style.display = "none";
+      document.getElementById("claimInfo").style.display = "block";
+      reaperContract = new ethers.Contract(reaperContractAddress, reaperContractABI, signer);
+      loadReaperInfo();
+    });
+
+    async function loadReaperInfo() {
+      try {
+        const totalCollected = await reaperContract.getTotalTributesCollected();
+        const remainingTribute = await reaperContract.getRemainingTributes();
+        const currentReaper = await reaperContract.getCurrentReaper();
+
+        document.getElementById("totalCollected").innerText = ethers.utils.formatEther(totalCollected);
+        document.getElementById("remainingTribute").innerText = ethers.utils.formatEther(remainingTribute);
+        document.getElementById("currentReaper").innerText = currentReaper;
+      } catch (error) {
+        console.error("Error loading tribute information:", error);
+      }
+    }
+
+    document.getElementById("claimBtn").addEventListener("click", async () => {
+      document.getElementById("statusMessage").innerText = "Processing claim...";
+      try {
+        const tx = await reaperContract.claimReaperTribute();
+        await tx.wait();
+        document.getElementById("statusMessage").innerText = "Tribute claimed successfully!";
+        loadReaperInfo();
+      } catch (error) {
+        console.error("Error claiming tribute:", error);
+        document.getElementById("statusMessage").innerText = "Claim failed. Check console.";
+      }
+    });
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
