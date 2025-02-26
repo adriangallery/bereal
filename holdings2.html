@@ -13,7 +13,7 @@
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
-  <!-- Custom Styles -->
+  <!-- Custom Styles (puedes ajustarlos a tu gusto) -->
   <style>
     /* ========== GLOBAL STYLES ========== */
     body {
@@ -128,16 +128,16 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargamos el menú desde components/menu2.html (ahora con el botón Connect Wallet)
+    // 1) Cargamos el HTML del menú desde components/menu2.html
     fetch('components/menu2.html')
-      .then(response => response.text())
+      .then(r => r.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
-      .catch(error => {
-        console.error('Error loading menu2:', error);
-      });
+      .catch(err => console.error('Error loading menu2:', err));
   </script>
+  <!-- 2) Carga la lógica del menú (menuConnectWallet) -->
+  <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
   <section class="hero">
@@ -148,7 +148,7 @@
 
   <!-- MAIN CONTENT WRAPPER -->
   <div class="section-wrapper">
-    <!-- Header con balance y wallet (sin botón, ya que el menú se encarga de conectar) -->
+    <!-- Header con balance y wallet (se actualizará al conectar desde el menú) -->
     <header class="text-center mb-4">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
       <p id="accountDisplay" class="mt-2"></p>
@@ -181,7 +181,7 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Cargamos el footer desde components/footer.html
+    // 3) Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -221,17 +221,17 @@
       return num.toString();
     }
 
-    // Función callback que se invoca desde menu2.html al conectar la wallet
+    // Callback que se invoca cuando se conecta la wallet desde el menú
     window.onMenuWalletConnected = async function() {
-      // Se asignan las variables globales a partir de las definidas en menu2.html
+      // Asignamos las variables globales a partir de las definidas en menu2.js
       provider = window.menuProvider;
       signer = window.menuSigner;
       userAccount = window.menuUserAccount;
 
-      // Actualizamos la visualización en la página de holdings
+      // Actualizamos la visualización en holdings
       document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
 
-      // Instanciamos los contratos usando el signer del menú
+      // Instanciamos los contratos usando el signer
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
 
