@@ -11,9 +11,7 @@
     rel="stylesheet"
   >
   <!-- Ethers.js -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js">
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 
   <!-- Custom Styles -->
   <style>
@@ -29,7 +27,6 @@
       margin: 0;
       padding: 0;
     }
-
     /* ========== HERO SECTION ========== */
     .hero {
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') 
@@ -43,26 +40,23 @@
       font-weight: bold;
       margin: 0;
     }
-
     /* ========== SECTION WRAPPER ========== */
     .section-wrapper {
       max-width: 1200px;
       margin: 0 auto;
       padding: 2rem 1rem;
     }
-
     /* ========== NFT GALLERY ========== */
     .nft-gallery-title {
       text-align: center;
       margin-bottom: 2rem;
     }
-
     /* ========== NFT CARD STYLES ========== */
     .nft-card {
-      background-color: #1f1f1f; /* Fondo un poco más claro que el negro para destacar */
-      color: #ccc;              /* Texto gris (no blanco puro) */
+      background-color: #1f1f1f;
+      color: #ccc;
       border-radius: 8px;
-      border: 1px solid #333;   /* Borde sutil para delimitar la tarjeta */
+      border: 1px solid #333;
       position: relative;
       overflow: hidden;
       transition: transform 0.2s ease-in-out;
@@ -71,8 +65,6 @@
     .nft-card:hover {
       transform: scale(1.01);
     }
-
-    /* Imagen dentro de la tarjeta */
     .nft-card img {
       transition: transform 0.2s ease-in-out;
       border-radius: 8px 8px 0 0;
@@ -80,21 +72,17 @@
     .nft-card:hover img {
       transform: scale(1.05);
     }
-
-    /* Texto dentro de la tarjeta */
     .nft-card .card-body {
       padding: 1rem;
     }
     .nft-card .card-title {
-      color: #eee; /* Un tono más claro para el título */
+      color: #eee;
       margin-bottom: 0.5rem;
     }
     .nft-card .card-text {
-      color: #ccc; /* Mantén la coherencia con el resto del texto */
+      color: #ccc;
       margin-bottom: 0;
     }
-
-    /* Botón “See details” que aparece al hacer hover */
     .see-details-btn {
       position: absolute;
       bottom: 10px;
@@ -115,18 +103,14 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
-
     /* ========== HEADER Y FOOTER PLACEHOLDERS ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
       color: #fff;
     }
-
-    /* Ajusta el margen del header de balance/ connect */
     header.text-center.mb-4 {
       margin-top: 2rem;
     }
-
     /* ========== MODAL STYLES ========== */
     .modal-content {
       background-color: #1c1c1c;
@@ -144,7 +128,7 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load menu from components/menu.html
+    // Cargamos el menú desde components/menu.html
     fetch('components/menu.html')
       .then(response => response.text())
       .then(html => {
@@ -167,7 +151,8 @@
     <!-- Header con balance y wallet -->
     <header class="text-center mb-4">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
-      <button id="connectButton" class="btn btn-primary mt-3">Connect Wallet</button>
+      <!-- Se añade el onclick inline para asegurarnos que se llama a la función -->
+      <button id="connectButton" class="btn btn-primary mt-3" onclick="connectWallet()">Connect Wallet</button>
       <p id="accountDisplay" class="mt-2"></p>
     </header>
 
@@ -175,7 +160,7 @@
     <section>
       <h3 class="nft-gallery-title">My NFTs from the Collection</h3>
       <div id="nftGallery" class="row">
-        <!-- NFT cards se inyectan dinámicamente aquí -->
+        <!-- Las tarjetas NFT se inyectarán aquí -->
       </div>
     </section>
   </div>
@@ -189,7 +174,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- Se inyecta la metadata -->
+          <!-- Se inyectará la metadata -->
         </div>
       </div>
     </div>
@@ -198,7 +183,7 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Load footer from components/footer.html
+    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -209,16 +194,14 @@
       });
 
     let provider, signer, userAccount;
-    // ADRIAN token address and NFT collection contract (ERC1155)
+    // Direcciones y ABIs
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
 
-    // ABI for ERC20
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)"
     ];
 
-    // ABI for ERC1155 (balanceOf, uri, and nextEventId)
     const nftABI = [
       "function balanceOf(address account, uint256 id) view returns (uint256)",
       "function uri(uint256 id) view returns (string)",
@@ -227,7 +210,6 @@
 
     let tokenContract, nftContract;
 
-    // Función para formatear números en abreviatura (K, M, etc.)
     function formatAmount(amount) {
       const num = parseFloat(amount);
       if (num >= 1e6) {
@@ -240,19 +222,22 @@
     }
 
     async function connectWallet() {
+      console.log("connectWallet() invoked");
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         try {
+          console.log("Requesting accounts...");
           await provider.send("eth_requestAccounts", []);
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
+          console.log("Connected account:", userAccount);
           document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
           
-          // Instantiate contracts
+          // Instanciamos los contratos
           tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
           nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
 
-          // Update token balance and load NFTs
+          // Actualizamos balance y cargamos NFTs
           updateTokenBalance();
           loadNFTs();
         } catch (error) {
@@ -267,7 +252,6 @@
     async function updateTokenBalance() {
       try {
         const balanceRaw = await tokenContract.balanceOf(userAccount);
-        // Convertimos el balance a entero dividiendo por 10^18 y luego lo formateamos
         const balanceInt = balanceRaw.div(ethers.constants.WeiPerEther).toString();
         document.getElementById("tokenBalance").innerText = `Balance: ${formatAmount(balanceInt)} $ADRIAN`;
       } catch (error) {
@@ -279,25 +263,22 @@
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
-        galleryDiv.innerHTML = ""; // Clear previous content
+        galleryDiv.innerHTML = ""; // Limpiar contenido previo
 
-        // Get total mint events created
+        // Obtener total de eventos (mint) creados
         const nextEventId = await nftContract.nextEventId();
         const totalEvents = nextEventId.toNumber();
 
         let hasNFT = false;
-        // Iterate through each token ID
         for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
           const balance = await nftContract.balanceOf(userAccount, tokenId);
           if (balance.toNumber() > 0) {
             hasNFT = true;
-            // Get token URI
             let tokenURI = await nftContract.uri(tokenId);
             if (tokenURI.startsWith("ipfs://")) {
               tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
             }
             
-            // Fetch metadata
             let metadata = {};
             try {
               const response = await fetch(tokenURI);
@@ -311,14 +292,10 @@
               imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
             }
             
-            // Use the token name from metadata or fallback to "Token {tokenId}"
             let tokenName = metadata.name || `Token ${tokenId}`;
             
-            // Create a card for the NFT in a responsive grid:
-            // 2 columns on mobile (col-6), 4 columns on medium screens (col-md-3)
             const colDiv = document.createElement("div");
             colDiv.className = "col-6 col-md-3 mb-4";
-
             colDiv.innerHTML = `
               <div class="card nft-card h-100">
                 <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
@@ -326,7 +303,6 @@
                   <h5 class="card-title">${tokenName}</h5>
                   <p class="card-text">Quantity: ${balance.toString()}</p>
                 </div>
-                <!-- Botón overlay que aparece al hover -->
                 <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">
                   See Details
                 </button>
@@ -345,10 +321,8 @@
       }
     }
 
-    // Function to display NFT metadata in a modal when a card is clicked
     async function showMetadata(tokenId) {
       try {
-        // Get the token URI
         let tokenURI = await nftContract.uri(tokenId);
         if (tokenURI.startsWith("ipfs://")) {
           tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
@@ -356,7 +330,6 @@
         const response = await fetch(tokenURI);
         const metadata = await response.json();
         
-        // Build HTML for the modal with metadata details
         let html = `<div class="text-center mb-3">
                       <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
                            class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
@@ -373,11 +346,9 @@
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
         
         document.getElementById("metadataContent").innerHTML = html;
-        // Set the modal title using the NFT title (in bold)
         document.getElementById("metadataModalLabel").innerHTML =
           `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
         
-        // Show the modal using Bootstrap
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
       } catch (error) {
@@ -385,15 +356,9 @@
         alert("Error fetching metadata");
       }
     }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      document.getElementById("connectButton").addEventListener("click", connectWallet);
-    });
   </script>
 
   <!-- Bootstrap JS Bundle -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
