@@ -1,61 +1,345 @@
-<!-- components/menu.html -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" href="index.html">$ADRIAN</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
-        <li class="nav-item"><a class="nav-link" href="auction.html">Adrian Auction</a></li>
-        <li class="nav-item"><a class="nav-link" href="pumpit.html">Pump your ADRIANS</a></li>
-        <li class="nav-item"><a class="nav-link" href="filthyrich.html">Filthy Rich</a></li>
-        <li class="nav-item"><a class="nav-link" href="holdings.html">Your holdings</a></li>
-        <li class="nav-item"><a class="nav-link" href="burnstats.html">Burn Stats</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a></li>
-        <li class="nav-item">
-          <button id="connectWallet" class="btn btn-warning">Connect Wallet</button>
-        </li>
-      </ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>$ADRIAN Auction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS (versión 5.3.0) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  
+  <!-- Auction-specific Styles (puedes moverlos a un CSS externo si lo prefieres) -->
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .navbar-brand {
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+    header img {
+      max-width: 150px;
+    }
+    h1 {
+      text-shadow: 2px 2px 2px #ff0000, -2px -2px 2px #0000ff;
+      margin-top: 1rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      margin-bottom: 1.5rem;
+    }
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 0;
+      border-top: 1px solid #ccc;
+    }
+    .btn-anaglyph-blue {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: #fff;
+    }
+    .btn-anaglyph-blue:hover {
+      background-color: #0069d9;
+      border-color: #0062cc;
+    }
+  </style>
+</head>
+<body>
+  <!-- Menú (componente común) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Cargamos el HTML del menú desde components/menu2.html
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error al cargar el menú:', error);
+      });
+  </script>
+  <!-- Cargamos la lógica del menú -->
+  <script src="components/menu2.js"></script>
+  
+  <!-- Contenido de la Subasta -->
+  <div class="container mt-4">
+    <header class="text-center">
+      <!-- Grid responsivo para dos imágenes en la misma fila -->
+      <div class="row">
+        <div class="col-6">
+          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/0eb7aed1ebe0b64ad7ad4d38332ebc/9e0eb7aed1ebe0b64ad7ad4d38332ebc.png?w=1000" 
+               class="img-fluid rounded" alt="Token ID 3">
+        </div>
+        <div class="col-6">
+          <img src="https://i2.seadn.io/base/0xa92a8f5a47efc77da796dfd0827d07872e7d0429/49c8084415fd8966ffc27acb14021b/7f49c8084415fd8966ffc27acb14021b.png?w=1000" 
+               class="img-fluid rounded" alt="Token ID 4">
+        </div>
+      </div>
+      <h1 class="mt-3">$ADRIAN Auction</h1>
+    </header>
+
+    <!-- Eliminamos el botón Connect duplicado, usaremos el del menú -->
+    <div class="text-center mb-4">
+      <p id="accountDisplay" class="mt-2"></p>
+    </div>
+
+    <!-- Contenido de la Subasta -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Time Remaining</div>
+          <div class="card-body">
+            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Current Highest Bid</div>
+          <div class="card-body">
+            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Auction Stats</div>
+      <div class="card-body">
+        <div id="auctionStatsDisplay">Loading auction stats...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Top 10 Bidders</div>
+      <div class="card-body">
+        <div id="top10Display">Loading top 10...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        My Position
+        <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
+      </div>
+      <div class="card-body">
+        <div id="myPositionDisplay">Not checked</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Place a Bid</div>
+      <div class="card-body">
+        <div class="input-group">
+          <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
+          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Información adicional de la subasta (contrato) -->
+    <div class="text-center mt-4">
+      <p>
+        Contract Address: 
+        <a href="https://base.blockscout.com/address/0x403e6613fd361956AF129fCf0FBbC35C07312061" target="_blank">
+          0x403e6613fd361956AF129fCf0FBbC35C07312061
+        </a>
+      </p>
     </div>
   </div>
-</nav>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const connectButton = document.getElementById("connectWallet");
-    const storedAccount = localStorage.getItem("walletAddress");
-    if (storedAccount) {
-      connectButton.textContent = `Connected: ${storedAccount.substring(0, 6)}...${storedAccount.slice(-4)}`;
-      connectButton.disabled = true;
+  <!-- Footer (componente común) -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error al cargar el footer:', error);
+      });
+  </script>
+
+  <!-- Auction JavaScript -->
+  <script>
+    let provider, signer, auctionContract, tokenContract;
+    let userAccount = "";
+    
+    // Dirección del contrato de subasta y del token
+    const auctionAddress = "0x403e6613fd361956AF129fCf0FBbC35C07312061";
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+
+    // ABI del contrato de subasta
+    const auctionABI = [
+      "function depositTokens(uint256 amount) external",
+      "function depositTokensWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function auctionEndTime() view returns (uint256)",
+      "function highestBid() view returns (uint256)",
+      "function highestBidder() view returns (address)",
+      "function token() view returns (address)",
+      "function getTimeRemaining() view returns (uint256)",
+      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
+      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
+      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)"
+    ];
+
+    // ABI del token (ERC20 estándar)
+    const tokenABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function balanceOf(address account) view returns (uint256)"
+    ];
+
+    // Funciones para actualizar la información de la subasta
+    async function updateHighestBid() {
+      try {
+        const highestBidRaw = await auctionContract.highestBid();
+        document.getElementById("highestBidDisplay").innerText = ethers.utils.formatUnits(highestBidRaw, 18);
+      } catch (error) {
+        console.error("Error fetching highest bid:", error);
+      }
     }
 
-    connectButton.addEventListener("click", async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-          const userAccount = accounts[0];
-
-          const message = "Sign in to Adrian Gallery";
-          const signature = await window.ethereum.request({
-            method: "personal_sign",
-            params: [message, userAccount],
-          });
-
-          localStorage.setItem("walletAddress", userAccount);
-          localStorage.setItem("walletSignature", signature);
-          connectButton.textContent = `Connected: ${userAccount.substring(0, 6)}...${userAccount.slice(-4)}`;
-          connectButton.disabled = true;
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
+    async function updateTimeRemaining() {
+      try {
+        const secondsRemaining = await auctionContract.getTimeRemaining();
+        let secs = secondsRemaining.toNumber();
+        const days = Math.floor(secs / 86400);
+        secs %= 86400;
+        const hours = Math.floor(secs / 3600);
+        secs %= 3600;
+        const minutes = Math.floor(secs / 60);
+        const seconds = secs % 60;
+        
+        let timeDisplay = "";
+        if (days > 0) {
+          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
         }
-      } else {
-        alert("MetaMask not detected. Please install MetaMask.");
+        document.getElementById("timeRemainingDisplay").innerText = timeDisplay;
+      } catch (error) {
+        console.error("Error updating time remaining:", error);
+        document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
       }
-    });
-  });
-</script>
+    }
+
+    async function updateAuctionStats() {
+      try {
+        const [highestBid, highestBidder, totalTokens, bidderCount, auctionEnd] = await auctionContract.getAuctionStats();
+        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
+        statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
+        statsHtml += `<p>Number of Bidders: ${bidderCount.toString()}</p>`;
+        const endDate = new Date(auctionEnd.toNumber() * 1000);
+        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
+        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
+      } catch (error) {
+        console.error("Error fetching auction stats:", error);
+        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
+      }
+    }
+
+    async function updateTop10() {
+      try {
+        const [topBidders, topBids] = await auctionContract.getTop10Bidders();
+        let html = "";
+        for (let i = 0; i < topBidders.length; i++) {
+          const truncated = topBidders[i].slice(-4);
+          const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
+          html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
+        }
+        document.getElementById("top10Display").innerHTML = html;
+      } catch (error) {
+        console.error("Error updating top 10:", error);
+        document.getElementById("top10Display").innerText = "Error loading top 10.";
+      }
+    }
+
+    async function updateMyPosition() {
+      if (!userAccount) {
+        document.getElementById("myPositionDisplay").innerText = "Not connected";
+        return;
+      }
+      try {
+        const [position, bidAmount] = await auctionContract.getBidderPosition(userAccount);
+        document.getElementById("myPositionDisplay").innerText =
+          `Your Position: ${position} - Your Bid: ${ethers.utils.formatUnits(bidAmount, 18)} ADRIAN`;
+      } catch (error) {
+        console.error("Error fetching your position:", error);
+        document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
+      }
+    }
+
+    document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
+
+    async function approveAndDeposit() {
+      const amountInput = document.getElementById("amountInput").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      try {
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
+        alert("Approval transaction sent. Please wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
+
+        const txDeposit = await auctionContract.depositTokens(amount);
+        alert("Deposit transaction sent. Please wait for confirmation.");
+        await txDeposit.wait();
+        alert("Deposit confirmed.");
+
+        updateHighestBid();
+        updateTop10();
+        updateAuctionStats();
+      } catch (error) {
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit. Check console for details.");
+      }
+    }
+
+    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
+
+    // Callback que se invoca cuando se conecta la wallet desde el menú (definido en menu2.js)
+    window.onMenuWalletConnected = async function() {
+      // Asignamos las variables globales a partir de las definidas en menu2.js
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      userAccount = window.menuUserAccount;
+      
+      // Actualizamos la visualización en la página de subasta
+      document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
+      
+      // Instanciamos los contratos usando el signer
+      auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+      
+      // Actualizamos la información de la subasta
+      updateHighestBid();
+      updateTimeRemaining();
+      updateAuctionStats();
+      updateTop10();
+      
+      // Programamos actualizaciones periódicas
+      setInterval(updateTimeRemaining, 5000);
+      setInterval(updateTop10, 10000);
+      setInterval(updateAuctionStats, 15000);
+    };
+    
+    // (Opcional) Callback para cuando se desconecta la wallet
+    window.onMenuWalletDisconnected = function() {
+      document.getElementById("accountDisplay").innerText = "";
+      // Aquí podrías limpiar o reiniciar datos de la subasta según necesites.
+    };
+  </script>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
