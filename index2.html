@@ -46,17 +46,19 @@
   <!-- Menu -->
   <div id="menu-placeholder"></div>
   <script>
-    fetch('components/menu.html')
+    // Cargar menú desde components/menu2.html en lugar de menu.html
+    fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
+  <!-- Cargar la lógica del menú (menu2.js) -->
+  <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
-      <h1>BE REAL | BE ADRIAN</h1>
-      <p class="lead">A community-driven project built on transparency, fun, and unwavering commitment.</p>
+      <!-- Puedes agregar contenido adicional en el hero si lo deseas -->
     </div>
   </section>
 
