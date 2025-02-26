@@ -1,23 +1,87 @@
 <!-- components/menu2.html -->
-<nav class="navbar" style="background-color: #000; border-bottom: 1px solid #333;">
-  <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
-    <a class="navbar-brand" href="index.html" style="color: #fff; font-size: 1.5rem;">$ADRIAN</a>
-    <ul class="navbar-nav" style="display: flex; align-items: center; list-style: none; margin: 0; padding: 0;">
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="index.html" style="color: #fff;">Index</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="auction.html" style="color: #fff;">Adrian Auction</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="pumpit.html" style="color: #fff;">Pump your ADRIANS</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="filthyrich.html" style="color: #fff;">Filthy Rich</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="taxreaper.html" style="color: #fff;">The TAX reaper</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="holdings.html" style="color: #fff;">Your holdings</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="burnstats.html" style="color: #fff;">Burn Stats</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="claim.html" style="color: #fff;">METAMORPH</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="https://twitter.com/adriancerda" target="_blank" style="color: #fff;">Twitter</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="https://discord.gg/YHc5Sh65Hm" target="_blank" style="color: #fff;">Discord</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank" style="color: #fff;">OpenSea</a></li>
-      <li class="nav-item" style="margin-right: 1rem;"><a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank" style="color: #fff;">Chart</a></li>
-      <li class="nav-item">
-        <button class="btn btn-outline-info" id="menuConnectButton" onclick="menuConnectWallet()">Connect Wallet</button>
-      </li>
-    </ul>
+<nav class="navbar navbar-expand-lg" style="background-color: #000; border-bottom: 1px solid #333;">
+  <div class="container-fluid">
+    
+    <!-- Botón hamburguesa (left) -->
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+      style="border: none;"
+    >
+      <span class="navbar-toggler-icon" style="filter: invert(100%);"></span>
+    </button>
+    
+    <!-- Brand (left) -->
+    <a class="navbar-brand ms-2" href="index.html" style="color: #fff; font-size: 1.3rem;">
+      $ADRIAN
+    </a>
+
+    <!-- Enlaces (collapsible en móvil) -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-3">
+        <li class="nav-item">
+          <a class="nav-link text-white" href="index.html">Index</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="auction.html">Adrian Auction</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="pumpit.html">Pump your ADRIANS</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="filthyrich.html">Filthy Rich</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="taxreaper.html">The TAX reaper</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="holdings.html">Your holdings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="burnstats.html">Burn Stats</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="claim.html">METAMORPH</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="https://twitter.com/adriancerda" target="_blank">Twitter</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Botón "Connect" SIEMPRE visible (right) -->
+    <button
+      class="btn d-flex align-items-center me-2"
+      id="menuConnectButton"
+      onclick="menuConnectWallet()"
+      style="
+        background-color: #f6851b;
+        color: #fff;
+        border: none;
+        font-weight: 600;
+        gap: 0.5rem;
+      "
+    >
+      <img
+        src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
+        alt="MetaMask"
+        style="height: 24px;"
+      />
+      Connect
+    </button>
   </div>
 </nav>
