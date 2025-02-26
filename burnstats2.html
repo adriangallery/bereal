@@ -134,12 +134,10 @@
     // Cargamos el menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
+      .then(html => { 
+        document.getElementById('menu-placeholder').innerHTML = html; 
       })
-      .catch(error => {
-        console.error('Error loading menu:', error);
-      });
+      .catch(error => { console.error('Error loading menu:', error); });
   </script>
   <!-- Cargamos la lógica del menú -->
   <script src="components/menu2.js"></script>
@@ -153,19 +151,22 @@
   <!-- Main Container: Token Burn Tracker App -->
   <div class="container">
     <h1>$ADRIAN Token Burn Tracker</h1>
-    <button id="connectButton">Connect Wallet</button>
+    <!-- Se elimina el botón Connect interno; la conexión se realiza vía menú -->
     <button id="refreshButton">Refresh Data</button>
-    <div id="walletStatus">Wallet not connected.</div>
+    <div id="walletStatus">Wallet not connected. Please connect via the menu.</div>
     <div id="tokenInfo">
       <p><strong>Initial Supply:</strong> 333,000,000 tokens</p>
       <p id="currentSupply"><strong>Current Supply:</strong> -</p>
-      <p id="totalBurned"><strong>Total Burned:</strong> - tokens</p>
+      <p id="totalBurned"><strong>Total Burned:</strong> 1,234,567 $ADRIAN</p>
     </div>
     <div id="chartContainer">
       <canvas id="burnChart"></canvas>
     </div>
     <h2>Recent Burn Events</h2>
-    <div id="events"></div>
+    <div id="events">
+      <p>Event 1: 100,000 burned on 2023-02-26</p>
+      <p>Event 2: 50,000 burned on 2023-02-25</p>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -173,21 +174,17 @@
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('footer-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading footer:', error);
-      });
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
   </script>
 
   <!-- Import Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
   <!-- Token Burn Tracker App Script -->
   <script type="module">
     import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
     
-    const connectButton = document.getElementById("connectButton");
     const refreshButton = document.getElementById("refreshButton");
     const walletStatus = document.getElementById("walletStatus");
     const currentSupplyEl = document.getElementById("currentSupply");
@@ -230,38 +227,6 @@
     // Replace with your contract address
     const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    async function connectWallet() {
-      if (!window.ethereum) {
-        walletStatus.textContent = "MetaMask is not installed.";
-        return;
-      }
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        walletAddress = await signer.getAddress();
-        walletStatus.textContent = "Wallet connected: " + walletAddress;
-        // Initialize contract instance
-        contract = new ethers.Contract(contractAddress, tokenABI, provider);
-        // Refresh token data
-        refreshTokenData();
-        // Subscribe to burn events
-        contract.on("Transfer", async (from, to, value, event) => {
-          if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
-            const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
-            // Fetch block timestamp
-            const block = await provider.getBlock(event.blockNumber);
-            const timestamp = new Date(block.timestamp * 1000).toLocaleString();
-            addEvent(from, burnedValue, event.transactionHash, timestamp);
-            refreshTokenData();
-          }
-        });
-      } catch (error) {
-        walletStatus.textContent = "Error connecting: " + error.message;
-        console.error("Error connecting:", error);
-      }
-    }
-    
     async function refreshTokenData() {
       try {
         const currentSupplyBN = await contract.totalSupply();
@@ -269,7 +234,7 @@
         const burnedTokens = initialSupply - currentSupply;
         // Display supply values as integers
         currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply)} tokens`;
-        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens)} tokens`;
+        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens)} $ADRIAN`;
         // Add a fun pulse animation
         totalBurnedEl.classList.add("pulse");
         setTimeout(() => totalBurnedEl.classList.remove("pulse"), 500);
@@ -318,7 +283,7 @@
       setTimeout(() => eventCard.classList.add("show"), 100);
     }
     
-    connectButton.addEventListener("click", connectWallet);
+    // Refresh button works as before
     refreshButton.addEventListener("click", refreshTokenData);
     
     // Optionally refresh data every 30 seconds
@@ -326,6 +291,34 @@
       if (contract) refreshTokenData();
     }, 30000);
     
+    // Callback invoked when the wallet is connected via the menu (defined in menu2.js)
+    window.onMenuWalletConnected = async function() {
+      walletAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      // Update the walletStatus div in this page with the connected address
+      walletStatus.textContent = "Wallet connected: " + walletAddress;
+      
+      // Instantiate the contract using the provider (read-only)
+      contract = new ethers.Contract(contractAddress, tokenABI, provider);
+      // Refresh token data immediately
+      refreshTokenData();
+      
+      // Subscribe to burn events
+      contract.on("Transfer", async (from, to, value, event) => {
+        if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
+          const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
+          const block = await provider.getBlock(event.blockNumber);
+          const timestamp = new Date(block.timestamp * 1000).toLocaleString();
+          addEvent(from, burnedValue, event.transactionHash, timestamp);
+          refreshTokenData();
+        }
+      });
+    };
+    
+    // (Optional) Callback for when the wallet is disconnected via the menu
+    window.onMenuWalletDisconnected = function() {
+      walletStatus.textContent = "Wallet not connected. Please connect via the menu.";
+    };
   </script>
 
   <!-- Bootstrap JS Bundle -->
