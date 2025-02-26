@@ -1,16 +1,9 @@
-<!-- menu2.html -->
+<!-- components/menu2.html -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
     <a class="navbar-brand" href="index.html">$ADRIAN</a>
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#navbarNav"
-      aria-controls="navbarNav"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
@@ -36,84 +29,66 @@
           <a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a>
         </li>
       </ul>
-
-      <!-- Botón "Connect" -->
-      <button
-        class="btn btn-outline-info ms-lg-3"
-        id="connectButton"
-        onclick="connectWallet()"
-      >
-        Connect
+      <!-- Botón "Connect Wallet" -->
+      <button class="btn btn-outline-info ms-lg-3" id="menuConnectButton" onclick="menuConnectWallet()">
+        Connect Wallet
       </button>
     </div>
   </div>
 </nav>
 
-<!-- Script de conexión a MetaMask -->
+<!-- Incluir ethers.js (si no se ha incluido ya en la página) -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
-  // Variables globales (podrás usarlas en otras páginas si quieres)
-  window.connectedProvider = null;
-  window.connectedSigner = null;
-  window.userAccount = null;
+  // Variables globales para el menú
+  window.menuProvider = null;
+  window.menuSigner = null;
+  window.menuUserAccount = null;
 
-  async function connectWallet() {
+  async function menuConnectWallet() {
+    console.log("menuConnectWallet() invoked");
     if (window.ethereum) {
+      window.menuProvider = new ethers.providers.Web3Provider(window.ethereum);
       try {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        // Solicitar cuentas a MetaMask
-        await provider.send("eth_requestAccounts", []);
-        const signer = provider.getSigner();
-        const account = await signer.getAddress();
+        console.log("Requesting accounts from menu...");
+        await window.menuProvider.send("eth_requestAccounts", []);
+        window.menuSigner = window.menuProvider.getSigner();
+        window.menuUserAccount = await window.menuSigner.getAddress();
+        console.log("Menu connected account:", window.menuUserAccount);
+        // Muestra la dirección en formato abreviado
+        document.getElementById("menuConnectButton").textContent =
+          window.menuUserAccount.slice(0, 6) + "..." + window.menuUserAccount.slice(-4);
 
-        // Guardar en variables globales
-        window.connectedProvider = provider;
-        window.connectedSigner = signer;
-        window.userAccount = account;
-
-        // Mostrar la dirección recortada en el botón
-        document.getElementById("connectButton").textContent =
-          account.slice(0, 6) + "..." + account.slice(-4);
-
-        // Si la página que carga este menú tiene una función "onWalletConnected",
-        // la invocamos para actualizar balances, NFTs, etc.
-        if (typeof window.onWalletConnected === "function") {
-          window.onWalletConnected();
+        // Si la página que incluye el menú define una función onMenuWalletConnected,
+        // se invoca para actualizar la interfaz (por ejemplo, balance o NFTs)
+        if (typeof window.onMenuWalletConnected === "function") {
+          window.onMenuWalletConnected();
         }
-
       } catch (error) {
-        console.error("Error connecting wallet:", error);
-        alert("Error connecting wallet. Check console for details.");
+        console.error("Error connecting wallet in menu:", error);
+        alert("Error connecting wallet from menu. Check the console for details.");
       }
     } else {
       alert("MetaMask is not installed!");
     }
   }
 
-  // Chequeo rápido: si el usuario ya está conectado en otra pestaña o refrescó,
-  // se puede volver a asignar la cuenta sin forzar "eth_requestAccounts".
+  // Verifica si el usuario ya está conectado (por ejemplo, si refrescó la página)
   document.addEventListener("DOMContentLoaded", async () => {
     if (window.ethereum) {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const accounts = await provider.listAccounts();
       if (accounts.length > 0) {
-        // Usuario ya conectado
-        const signer = provider.getSigner();
-        const account = accounts[0];
-
-        window.connectedProvider = provider;
-        window.connectedSigner = signer;
-        window.userAccount = account;
-
-        // Cambiamos el texto del botón
-        const btn = document.getElementById("connectButton");
+        window.menuProvider = provider;
+        window.menuSigner = provider.getSigner();
+        window.menuUserAccount = accounts[0];
+        const btn = document.getElementById("menuConnectButton");
         if (btn) {
-          btn.textContent = account.slice(0, 6) + "..." + account.slice(-4);
+          btn.textContent =
+            window.menuUserAccount.slice(0, 6) + "..." + window.menuUserAccount.slice(-4);
         }
-
-        // Llamamos a onWalletConnected si existe
-        if (typeof window.onWalletConnected === "function") {
-          window.onWalletConnected();
+        if (typeof window.onMenuWalletConnected === "function") {
+          window.onMenuWalletConnected();
         }
       }
     }
