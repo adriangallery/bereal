@@ -1,8 +1,16 @@
-<!-- components/menu.html -->
+<!-- menu2.html -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
     <a class="navbar-brand" href="index.html">$ADRIAN</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
@@ -15,11 +23,99 @@
         <li class="nav-item"><a class="nav-link" href="holdings.html">Your holdings</a></li>
         <li class="nav-item"><a class="nav-link" href="burnstats.html">Burn Stats</a></li>
         <li class="nav-item"><a class="nav-link" href="claim.html">METAMORPH</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a></li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://twitter.com/adriancerda" target="_blank">Twitter</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">Chart</a>
+        </li>
       </ul>
+
+      <!-- Botón "Connect" -->
+      <button
+        class="btn btn-outline-info ms-lg-3"
+        id="connectButton"
+        onclick="connectWallet()"
+      >
+        Connect
+      </button>
     </div>
   </div>
 </nav>
+
+<!-- Script de conexión a MetaMask -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script>
+  // Variables globales (podrás usarlas en otras páginas si quieres)
+  window.connectedProvider = null;
+  window.connectedSigner = null;
+  window.userAccount = null;
+
+  async function connectWallet() {
+    if (window.ethereum) {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        // Solicitar cuentas a MetaMask
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+        const account = await signer.getAddress();
+
+        // Guardar en variables globales
+        window.connectedProvider = provider;
+        window.connectedSigner = signer;
+        window.userAccount = account;
+
+        // Mostrar la dirección recortada en el botón
+        document.getElementById("connectButton").textContent =
+          account.slice(0, 6) + "..." + account.slice(-4);
+
+        // Si la página que carga este menú tiene una función "onWalletConnected",
+        // la invocamos para actualizar balances, NFTs, etc.
+        if (typeof window.onWalletConnected === "function") {
+          window.onWalletConnected();
+        }
+
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        alert("Error connecting wallet. Check console for details.");
+      }
+    } else {
+      alert("MetaMask is not installed!");
+    }
+  }
+
+  // Chequeo rápido: si el usuario ya está conectado en otra pestaña o refrescó,
+  // se puede volver a asignar la cuenta sin forzar "eth_requestAccounts".
+  document.addEventListener("DOMContentLoaded", async () => {
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const accounts = await provider.listAccounts();
+      if (accounts.length > 0) {
+        // Usuario ya conectado
+        const signer = provider.getSigner();
+        const account = accounts[0];
+
+        window.connectedProvider = provider;
+        window.connectedSigner = signer;
+        window.userAccount = account;
+
+        // Cambiamos el texto del botón
+        const btn = document.getElementById("connectButton");
+        if (btn) {
+          btn.textContent = account.slice(0, 6) + "..." + account.slice(-4);
+        }
+
+        // Llamamos a onWalletConnected si existe
+        if (typeof window.onWalletConnected === "function") {
+          window.onWalletConnected();
+        }
+      }
+    }
+  });
+</script>
