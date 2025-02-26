@@ -128,14 +128,14 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargamos el menú desde components/menu.html
-    fetch('components/menu.html')
+    // Cargamos el menú desde components/menu2.html (ahora con el botón Connect Wallet)
+    fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
       .catch(error => {
-        console.error('Error loading menu:', error);
+        console.error('Error loading menu2:', error);
       });
   </script>
 
@@ -148,11 +148,9 @@
 
   <!-- MAIN CONTENT WRAPPER -->
   <div class="section-wrapper">
-    <!-- Header con balance y wallet -->
+    <!-- Header con balance y wallet (sin botón, ya que el menú se encarga de conectar) -->
     <header class="text-center mb-4">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
-      <!-- Se añade el onclick inline para asegurarnos que se llama a la función -->
-      <button id="connectButton" class="btn btn-primary mt-3" onclick="connectWallet()">Connect Wallet</button>
       <p id="accountDisplay" class="mt-2"></p>
     </header>
 
@@ -192,9 +190,11 @@
       .catch(error => {
         console.error('Error loading footer:', error);
       });
+  </script>
 
+  <script>
+    // Variables y configuraciones para la conexión y los contratos
     let provider, signer, userAccount;
-    // Direcciones y ABIs
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
 
@@ -221,33 +221,24 @@
       return num.toString();
     }
 
-    async function connectWallet() {
-      console.log("connectWallet() invoked");
-      if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        try {
-          console.log("Requesting accounts...");
-          await provider.send("eth_requestAccounts", []);
-          signer = provider.getSigner();
-          userAccount = await signer.getAddress();
-          console.log("Connected account:", userAccount);
-          document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
-          
-          // Instanciamos los contratos
-          tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-          nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
+    // Función callback que se invoca desde menu2.html al conectar la wallet
+    window.onMenuWalletConnected = async function() {
+      // Se asignan las variables globales a partir de las definidas en menu2.html
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      userAccount = window.menuUserAccount;
 
-          // Actualizamos balance y cargamos NFTs
-          updateTokenBalance();
-          loadNFTs();
-        } catch (error) {
-          console.error("Error connecting wallet:", error);
-          alert("Error connecting wallet. Check the console for details.");
-        }
-      } else {
-        alert("MetaMask is not installed");
-      }
-    }
+      // Actualizamos la visualización en la página de holdings
+      document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
+
+      // Instanciamos los contratos usando el signer del menú
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+      nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
+
+      // Actualizamos el balance y cargamos los NFTs
+      updateTokenBalance();
+      loadNFTs();
+    };
 
     async function updateTokenBalance() {
       try {
