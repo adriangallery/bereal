@@ -15,20 +15,13 @@ window.menuConnectWallet = async function() {
       window.menuUserAccount = await window.menuSigner.getAddress();
       console.log("Cuenta conectada (menú):", window.menuUserAccount);
       
-      // Muestra la dirección en formato abreviado + icono
+      // Actualiza el texto del botón con los emojis y la dirección abreviada
       const btn = document.getElementById("menuConnectButton");
       if (btn) {
-        btn.innerHTML = `
-          <img
-            src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
-            alt="MetaMask"
-            style="height: 24px; margin-right: 0.5rem;"
-          />
-          ${window.menuUserAccount.slice(0, 6)}...${window.menuUserAccount.slice(-4)}
-        `;
+        btn.innerHTML = `🟦🟥 ${window.menuUserAccount.slice(0, 6)}...${window.menuUserAccount.slice(-4)}`;
       }
-
-      // Callback para que la página (holdings2.html, etc.) sepa que se conectó
+      
+      // Llama al callback si está definido
       if (typeof window.onMenuWalletConnected === "function") {
         window.onMenuWalletConnected();
       }
@@ -46,20 +39,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const accounts = await provider.listAccounts();
     if (accounts.length > 0) {
-      // Ya hay una cuenta conectada
       window.menuProvider = provider;
       window.menuSigner = provider.getSigner();
       window.menuUserAccount = accounts[0];
       const btn = document.getElementById("menuConnectButton");
       if (btn) {
-        btn.innerHTML = `
-          <img
-            src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg"
-            alt="MetaMask"
-            style="height: 24px; margin-right: 0.5rem;"
-          />
-          ${window.menuUserAccount.slice(0, 6)}...${window.menuUserAccount.slice(-4)}
-        `;
+        btn.innerHTML = `🟦🟥 ${window.menuUserAccount.slice(0, 6)}...${window.menuUserAccount.slice(-4)}`;
       }
       if (typeof window.onMenuWalletConnected === "function") {
         window.onMenuWalletConnected();
