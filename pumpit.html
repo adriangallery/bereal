@@ -13,7 +13,6 @@
     body {
       background-color: #f8f9fa;
     }
-    /* Mejorar la apariencia del encabezado */
     .navbar-brand {
       background-color: rgba(0, 123, 255, 0.1);
       padding: 0.25rem 0.5rem;
@@ -21,43 +20,45 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
       font-weight: bold;
     }
-    /* Asegurar que la wallet address no se desborde */
     #walletAddress {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    /* Ajustes para el card y sus elementos internos */
     .card {
       margin-top: 1rem;
     }
     .card .btn {
       margin-top: 0.5rem;
     }
-    /* Asegurar márgenes y paddings adecuados en el formulario */
     .form-section {
       margin: 1rem 0;
     }
+    .balance-info {
+      margin: 1rem 0;
+      font-size: 1.1rem;
+    }
   </style>
+  <!-- Ethers.js UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menú (componente común) -->
+  <!-- Menú (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    fetch('components/menu.html')
+    fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
+      .then(html => { 
+        document.getElementById('menu-placeholder').innerHTML = html; 
       })
-      .catch(error => {
-        console.error('Error loading menu:', error);
-      });
+      .catch(error => { console.error('Error loading menu:', error); });
   </script>
+  <!-- Cargar la lógica del menú -->
+  <script src="components/menu2.js"></script>
   
-  <!-- Cabecera con imagen (igual que en el segundo código) -->
-  <header class="text-center">
-      <img src="https://files.catbox.moe/28f4u1.GIF?w=1000" 
-           class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+  <!-- Cabecera con imagen -->
+  <header class="text-center my-4">
+    <img src="https://files.catbox.moe/28f4u1.GIF?w=1000" class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
   </header>
   
   <!-- Main Content -->
@@ -67,19 +68,33 @@
       <p class="lead">Get ready to supercharge your old ADRIANS!</p>
     </div>
     
+    <!-- Estado de la conexión (actualizado vía menú) -->
+    <div class="text-center my-3">
+      <div id="walletAddress" class="border p-2">
+        Wallet not connected. Please connect via the menu.
+      </div>
+    </div>
+    
+    <!-- Mostrar balances de tokens -->
+    <div class="balance-info text-center">
+      <p><strong>ADRIAN to be pumped:</strong> <span id="oldTokenBalance">-</span></p>
+      <p><strong>ADRIAN already pumped:</strong> <span id="newTokenBalance">-</span></p>
+    </div>
+    
+    <!-- Formulario para realizar el swap -->
     <div class="row justify-content-center mt-4">
       <div class="col-md-6">
         <div class="card shadow-sm">
           <div class="card-body">
-            <!-- Formulario unificado -->
             <div class="d-grid gap-3">
-              <button id="connectWallet" class="btn btn-primary">Connect your Wallet!</button>
-              <div id="walletAddress" class="text-center border p-2" title="Wallet Address"></div>
+              <!-- Se elimina el botón interno de conexión -->
+              <!-- Campo de cantidad con botón MAX -->
               <div class="form-section">
-                <label for="amount" class="form-label">
-                  How many ADRIANS do you want to pump today?
-                </label>
-                <input type="number" class="form-control" id="amount" placeholder="Enter amount">
+                <label for="amount" class="form-label">How many ADRIANS do you want to pump?</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="amount" placeholder="Enter amount" min="1" value="1">
+                  <button id="maxButton" class="btn btn-secondary">MAX</button>
+                </div>
               </div>
               <button id="actionButton" class="btn btn-primary">Inject Steroids & Pump!</button>
             </div>
@@ -88,31 +103,33 @@
       </div>
     </div>
   </main>
-
-  <!-- Footer (componente común) -->
+  
+  <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('footer-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading footer:', error);
-      });
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
   </script>
-
-  <!-- Bootstrap 5.3.0 JS Bundle (incluye Popper) -->
+  
+  <!-- Bootstrap JS Bundle (incluye Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Custom JavaScript for Pumpit -->
+  
+  <!-- Custom JavaScript for Pump Your ADRIANS -->
   <script>
-    // Direcciones para el contrato swap y Token A
-    const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
-    const tokenAAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
+    /* 
+      Se utilizan las mismas direcciones del frontend original:
+      - swapContractAddress: 0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430
+      - oldTokenAddress (to be pumped): 0x948686aACc0093AC0c26387c302a5C19f8dbD170
+      - newTokenAddress (already pumped): 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea
+      La funcionalidad es un swap 1:1.
+    */
     
-    // ABI mínima para la función swap
+    const swapContractAddress = "0x7F17C51B916E17689d844B33Cf5BF9d3f1E08430";
+    const oldTokenAddress = "0x948686aACc0093AC0c26387c302a5C19f8dbD170";
+    const newTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    
     const swapAbi = [
       {
         "inputs": [
@@ -124,37 +141,67 @@
         "type": "function"
       }
     ];
-    
-    // ABI mínima del ERC20 para la función approve
     const erc20Abi = [
-      "function approve(address spender, uint256 amount) external returns (bool)"
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function balanceOf(address account) view returns (uint256)",
+      "function allowance(address owner, address spender) view returns (uint256)"
     ];
     
-    let provider;
-    let signer;
-    let swapContract;
-    let tokenAContract;
+    let provider, signer, swapContract, oldTokenContract, newTokenContract;
+    let walletConnected = false;
+    let userAddress = "";
+    const decimals = 18; // Asumimos 18 decimales para ambos tokens
     
-    // Conectar MetaMask e instanciar contratos
-    document.getElementById("connectWallet").onclick = async () => {
-      if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        const address = await signer.getAddress();
-        document.getElementById("walletAddress").innerText = address;
-        // Instanciar el contrato swap y el contrato Token A
-        swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
-        tokenAContract = new ethers.Contract(tokenAAddress, erc20Abi, signer);
-      } else {
-        alert("You need to install MetaMask to pump your ADRIANS!");
-      }
+    // Callback invocado cuando se conecta la wallet vía el menú (menu2.js)
+    window.onMenuWalletConnected = async function() {
+      userAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      walletConnected = true;
+      // Actualizar el estado en este frontend
+      document.getElementById("walletAddress").innerText = userAddress;
+      // Instanciar contratos
+      swapContract = new ethers.Contract(swapContractAddress, swapAbi, signer);
+      oldTokenContract = new ethers.Contract(oldTokenAddress, erc20Abi, signer);
+      newTokenContract = new ethers.Contract(newTokenAddress, erc20Abi, signer);
+      // Actualizar balances
+      updateTokenBalances();
     };
     
-    // Botón único para aprobar y ejecutar el swap
-    document.getElementById("actionButton").onclick = async () => {
-      if (!swapContract || !tokenAContract) {
-        alert("Please pump up your wallet first!");
+    // Función para actualizar los balances de tokens en la interfaz
+    async function updateTokenBalances() {
+      if (!walletConnected) return;
+      try {
+        const oldBalBN = await oldTokenContract.balanceOf(userAddress);
+        const newBalBN = await newTokenContract.balanceOf(userAddress);
+        const oldBal = ethers.utils.formatUnits(oldBalBN, decimals);
+        const newBal = ethers.utils.formatUnits(newBalBN, decimals);
+        document.getElementById("oldTokenBalance").innerText = oldBal;
+        document.getElementById("newTokenBalance").innerText = newBal;
+      } catch (error) {
+        console.error("Error updating token balances:", error);
+      }
+    }
+    
+    // Botón MAX: pone en el input el balance total del token old
+    document.getElementById("maxButton").addEventListener("click", async () => {
+      if (!walletConnected) {
+        alert("Please connect your wallet via the menu first!");
+        return;
+      }
+      try {
+        const balanceBN = await oldTokenContract.balanceOf(userAddress);
+        const balance = ethers.utils.formatUnits(balanceBN, decimals);
+        document.getElementById("amount").value = balance;
+      } catch (error) {
+        console.error("Error getting max balance:", error);
+      }
+    });
+    
+    // Acción de swap (pump)
+    document.getElementById("actionButton").addEventListener("click", async () => {
+      if (!walletConnected || !swapContract || !oldTokenContract) {
+        alert("Please connect your wallet via the menu first!");
         return;
       }
       
@@ -164,26 +211,31 @@
         return;
       }
       
-      // Convertir a la unidad mínima del token (asumiendo 18 decimales)
-      const amount = ethers.utils.parseUnits(inputAmount, 18);
+      // Convertir a la unidad mínima del token
+      const amount = ethers.utils.parseUnits(inputAmount, decimals);
       
       try {
-        // Primero: Aprobar que el contrato swap gaste tu Token A
-        const approveTx = await tokenAContract.approve(swapContractAddress, amount);
+        // Aprobar que el contrato swap gaste tu token old
+        const approveTx = await oldTokenContract.approve(swapContractAddress, amount);
         alert("Steroid injection initiated: " + approveTx.hash);
         await approveTx.wait();
         alert("Steroids approved! Now pumping your ADRIANS...");
         
-        // Segundo: Ejecutar el swap
+        // Ejecutar el swap (1:1)
         const swapTx = await swapContract.swap(amount);
         alert("Pumping in progress: " + swapTx.hash);
         await swapTx.wait();
         alert("Your ADRIANS have been pumped with steroids! Enjoy your supercharged tokens!");
+        // Actualizar balances
+        updateTokenBalances();
       } catch (error) {
         console.error(error);
         alert("Pump failed: " + error.message);
       }
-    };
+    });
   </script>
+  
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
