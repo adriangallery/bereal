@@ -13,7 +13,7 @@
     body {
       background-color: #f8f9fa;
     }
-    /* Claim Section Styles */
+    /* Sección de Claim */
     #claimSection {
       background: #222;
       color: #fff;
@@ -22,7 +22,7 @@
       box-shadow: 0 0 10px rgba(255,255,255,0.1);
       margin-bottom: 2rem;
     }
-    /* Hero Section */
+    /* Hero con imagen del NFT */
     .hero {
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4') no-repeat center center;
       background-size: cover;
@@ -33,7 +33,7 @@
     .hero h1 {
       font-weight: bold;
     }
-    /* NFT Details (Lore & Attributes) */
+    /* Detalles del NFT */
     .nft-details {
       text-align: left;
       background: rgba(0,0,0,0.3);
@@ -44,18 +44,18 @@
       line-height: 1.4;
     }
   </style>
-  <!-- Ethers.js UMD -->
+  <!-- Carga Única de Ethers.js UMD -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu (Header) -->
+  <!-- Menú (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargar el menú nuevo (menu2.html)
+    // Cargar el menú nuevo desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => { 
-        document.getElementById('menu-placeholder').innerHTML = html; 
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
       })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
@@ -69,7 +69,7 @@
       <p class="lead">Burn 100K $ADRIAN tokens to claim your exclusive NFT.</p>
     </div>
   </section>
-
+  
   <!-- Claim Section -->
   <div class="container my-5">
     <div id="claimSection" class="text-center">
@@ -83,11 +83,11 @@
       <!-- Estado de conexión -->
       <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
       
-      <!-- Sección de Claim (visible cuando se conecta la wallet) -->
+      <!-- Sección de Claim (visible al conectar) -->
       <div id="claimInfo" style="display: none;">
         <p>Cost per NFT: <span id="nftCost">100,000</span> ADRIAN</p>
         <p>Your claimed amount: <span id="userClaimed">0</span></p>
-        <!-- No se muestran otros campos innecesarios -->
+        <!-- Se omiten Max per user, Total claimed, Overall max claim y Claim time -->
         <div class="mb-3">
           <input type="number" id="quantity" class="form-control" placeholder="Quantity to claim" min="1" value="1">
         </div>
@@ -95,20 +95,18 @@
         <p class="status mt-3" id="statusMessage"></p>
         
         <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
-          <!-- Condiciones: por ejemplo, que el usuario tenga al menos 100K ADRIAN tokens -->
+          <!-- Se mostrarán las condiciones (por ejemplo, que tenga al menos 100K ADRIAN tokens) -->
         </div>
       </div>
     </div>
   </div>
-
+  
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => { 
-        document.getElementById('footer-placeholder').innerHTML = html; 
-      })
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
@@ -118,13 +116,18 @@
   <!-- Claim Script -->
   <script>
     /* Configuración:
-       - Contrato con el que interactúa (mint event): 0xa92a8F5A47efC77da796dfD0827D07872E7D0429
+       - Contrato de mint: 0xa92a8F5A47efC77da796dfD0827D07872E7D0429
        - Mint event: 6
        - Tokens necesarios por NFT: 100,000 ADRIAN tokens (del contrato 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea)
+       En este frontend, mostramos el coste fijo y verificamos que el usuario tenga al menos 100K ADRIAN tokens.
     */
+    
+    // Direcciones fijas
     const claimContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
+    const requiredTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    // Mint event fijo
     const mintEventId = 6;
-    // Forzamos el costo a 100,000 tokens
+    // Coste por NFT (fijo a 100,000 ADRIAN)
     const costPerNFT = ethers.utils.parseUnits("100000", 18);
     
     // ABI mínimo para la función mint
@@ -132,21 +135,28 @@
       "function mint(uint256 eventId, uint256 quantity) external"
     ];
     
+    // ABI mínima para ERC20
+    const erc20ABI = [
+      "function balanceOf(address account) view returns (uint256)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+    
     let provider, signer, claimContract, userAddress;
     
-    // Función para cargar info (simplificada)
+    // Función para cargar información (fija en este caso)
     async function loadClaimInfo() {
-      // En este ejemplo, fijamos el costo y mantenemos "Your claimed amount" en 0.
+      // Mostramos el coste fijo y dejamos "Your claimed amount" en 0
       document.getElementById("nftCost").innerText = "100,000";
       document.getElementById("userClaimed").innerText = "0";
     }
     
-    // Función para actualizar condiciones (ejemplo: que el usuario tenga al menos 100K ADRIAN tokens)
+    // Función para actualizar condiciones: que el usuario tenga al menos 100,000 ADRIAN tokens
     async function updateConditions() {
       const conditionsDiv = document.getElementById("conditions");
       conditionsDiv.innerHTML = "";
       try {
-        const tokenContract = new ethers.Contract("0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea", ["function balanceOf(address account) view returns (uint256)"], provider);
+        const tokenContract = new ethers.Contract(requiredTokenAddress, erc20ABI, provider);
         const balanceBN = await tokenContract.balanceOf(userAddress);
         const balance = parseFloat(ethers.utils.formatUnits(balanceBN, 18));
         const conditionMet = balance >= 100000;
@@ -164,6 +174,22 @@
       document.getElementById("statusMessage").innerText = "Processing claim...";
       
       try {
+        // Calcular el total a aprobar
+        const totalCost = costPerNFT.mul(quantity);
+        // Instanciar el contrato del token ADRIAN
+        const adrianTokenContract = new ethers.Contract(requiredTokenAddress, erc20ABI, signer);
+        let allowance = await adrianTokenContract.allowance(userAddress, claimContractAddress);
+        // Si la allowance es menor que el total requerido, reiniciamos a 0 (si es mayor a 0) y luego aprobamos
+        if (allowance.lt(totalCost)) {
+          if (allowance.gt(0)) {
+            await adrianTokenContract.approve(claimContractAddress, 0);
+          }
+          document.getElementById("statusMessage").innerText = "Approving ADRIAN tokens...";
+          const approveTx = await adrianTokenContract.approve(claimContractAddress, totalCost);
+          await approveTx.wait();
+          document.getElementById("statusMessage").innerText = "Approval successful. Proceeding with claim...";
+        }
+        
         // Ejecutar la función mint del contrato (swap 1:1)
         const tx = await claimContract.mint(mintEventId, quantity);
         await tx.wait();
@@ -184,6 +210,7 @@
       console.log("onMenuWalletConnected: userAddress =", userAddress);
       document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
       document.getElementById("claimInfo").style.display = "block";
+      // Instanciar el contrato de mint usando el signer
       claimContract = new ethers.Contract(claimContractAddress, claimABI, signer);
       loadClaimInfo();
       updateConditions();
