@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Ethers.js -->
+  <!-- Ethers.js UMD (únicamente UMD para variable global ethers) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- Custom Styles -->
   <link href="css/styles.css" rel="stylesheet">
@@ -20,25 +20,29 @@
   </style>
 </head>
 <body>
-  <!-- Menu (loaded full-width outside the main container) -->
+  <!-- Menu (loaded full-width) -->
   <div id="menu-placeholder" style="width:100%;"></div>
   <script>
-    // Cargar menú desde components/menu2.html
+    // Cargamos el nuevo menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .then(html => { 
+        document.getElementById('menu-placeholder').innerHTML = html; 
+      })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Cargar la lógica del menú -->
+  <!-- Cargamos la lógica del menú -->
   <script src="components/menu2.js"></script>
   
   <!-- Main Container -->
   <main class="container my-4">
     <h1 class="text-center mb-4">Open Edition Mint</h1>
     
-    <!-- Wallet Status (se actualizará cuando se conecte vía menú) -->
+    <!-- Se omite el botón Connect Wallet interno (se conecta desde el menú) -->
     <div class="text-center mb-3">
-      <div id="walletAddress" class="mt-2">Wallet not connected. Please connect via the menu.</div>
+      <div id="walletAddress" class="mt-2">
+        Wallet not connected. Please connect via the menu.
+      </div>
     </div>
     
     <hr>
@@ -59,8 +63,10 @@
     <!-- Mint NFT Section -->
     <section class="mb-4">
       <h2>Mint NFT</h2>
-      <p>Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
-         Each NFT costs 100,000 ADRIAN tokens.</p>
+      <p>
+        Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
+        Each NFT costs 100,000 ADRIAN tokens.
+      </p>
       <div class="text-center">
         <input id="mintQuantity" type="number" min="1" value="1" placeholder="Mint quantity">
       </div>
@@ -78,7 +84,9 @@
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .then(html => { 
+        document.getElementById('footer-placeholder').innerHTML = html; 
+      })
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
@@ -90,8 +98,8 @@
     // Fixed preview image URL
     const desiredPreview = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4";
     
-    // Contract settings
-    const galleryContractAddress = "0xa92a8F5A47efC77da796dfd0827D07872E7D0429";
+    // Contract settings (según la información original)
+    const galleryContractAddress = "0xa92a8F5A47efc77da796dfd0827D07872E7D0429";
     const galleryABI = [
       "function mint(uint256 eventId, uint256 quantity) external",
       "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
@@ -105,10 +113,11 @@
     let walletConnected = false;
     let currentPrice = ethers.BigNumber.from("0");
     
-    // Active mint event: now set to eventId = 6
+    // Active mint event: eventId = 6
     const activeEventId = 6;
     
     // DOM Elements
+    const connectButton = document.getElementById("connectButton"); // Ya no se usará
     const walletAddressDiv = document.getElementById("walletAddress");
     const logDiv = document.getElementById("log");
     const nftImage = document.getElementById("nftImage");
@@ -132,7 +141,6 @@
           <p><strong>Max Supply:</strong> Open Edition</p>
           <p><strong>Minted:</strong> ${minted}</p>
         `;
-        // Force preview image to remain constant
         nftImage.src = desiredPreview;
       } catch (error) {
         console.error("Error loading mint event details:", error);
@@ -178,25 +186,9 @@
       }
     });
     
-    // Callback invoked when the wallet is connected via the menu (menu2.js)
-    window.onMenuWalletConnected = async function() {
-      walletAddressDiv.textContent = "Connected: " + window.menuUserAccount;
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      walletConnected = true;
-      
-      galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
-      tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-      
-      // Load mint event details after connection
-      loadMintEventDetails();
-    };
-    
-    // (Optional) Callback for when the wallet is disconnected via the menu
-    window.onMenuWalletDisconnected = function() {
-      walletAddressDiv.textContent = "Wallet not connected. Please connect via the menu.";
-      walletConnected = false;
-    };
+    // Nota: Este frontend ya no usará el botón "Connect Wallet" interno,
+    // ya que la conexión se gestiona a través del menú (menu2.js)
+    // Por lo tanto, eliminamos o ignoramos el eventListener del botón connectButton.
   </script>
 </body>
 </html>
