@@ -3,111 +3,80 @@
 <head>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN CLAIM - THE BURNED FORTUNE</title>
+  <title>$ADRIAN Mint Open Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js UMD (para que ethers esté global) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- Custom CSS -->
   <link href="css/styles.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    /* Estilos propios para el claim */
-    #claimSection {
-      background: #222;
-      color: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(255,255,255,0.1);
-      margin-bottom: 2rem;
-    }
-    #conditions p {
-      margin: 5px 0;
-    }
-    /* Hero con imagen del NFT */
-    .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4') no-repeat center center;
-      background-size: cover;
-      padding: 4rem 0;
-      color: #fff;
-      text-shadow: 0 0 5px #000;
-    }
-    .hero h1 {
-      font-weight: bold;
-    }
-    /* Estilos para mostrar metadatos del NFT */
-    .nft-details {
-      text-align: left;
-      background: rgba(0,0,0,0.3);
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 1rem;
-    }
+    body { font-family: 'Raleway', sans-serif; margin: 20px; }
+    input, button { padding: 10px; margin: 5px; }
+    #log { margin-top: 20px; white-space: pre-wrap; background: #f4f4f4; padding: 10px; }
+    img { max-width: 300px; display: block; margin-bottom: 10px; border: 1px solid #ccc; }
+    .eventDetails { margin-top: 10px; text-align: left; }
   </style>
-  <!-- Ethers.js UMD (para que ethers esté global) -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu (Header) -->
-  <div id="menu-placeholder"></div>
+  <!-- Menú (cargado full-width desde el nuevo menú) -->
+  <div id="menu-placeholder" style="width:100%;"></div>
   <script>
-    // Cargar el menú desde components/menu2.html (asegúrate de tenerlo actualizado)
+    // Se carga el nuevo menú (menu2.html)
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Cargar la lógica del menú -->
+  <!-- Lógica del menú -->
   <script src="components/menu2.js"></script>
   
-  <!-- Hero Section -->
-  <section class="hero text-center">
-    <div class="container">
-      <h1>Claim your NFT now!</h1>
-      <p class="lead">Burn 100K $ADRIAN tokens to claim your exclusive NFT.</p>
-    </div>
-  </section>
-
-  <!-- Claim Section -->
-  <div class="container my-5">
-    <div id="claimSection" class="text-center">
-      <h2>#0005 THE BURNED FORTUNE</h2>
-      <!-- Descripción y lore -->
-      <div class="nft-details">
-        <p><strong>Description:</strong> Wealth isn’t just about having money. It’s about throwing it into the fire just because you can. This badge isn’t for the cautious. It’s not for the grinders. It’s for the filthy rich, the ones who flex without hesitation. 💸 Burn 100K $ADRIAN tokens. Prove you don’t need them. 🔥 No utility. No perks. Just pure, unapologetic excess. 👑 Yours to brag, yours to flaunt. You didn’t just make it. You burned it to show you don’t need it. Be real. Be reckless. Be Adrian. 💰🔥</p>
-        <p><strong>Attributes:</strong> Rarity: Badge | Edition: Open Edition</p>
-      </div>
-      
-      <!-- Estado de conexión -->
-      <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
-
-      <!-- Esta sección se muestra cuando la wallet esté conectada -->
-      <div id="claimInfo" style="display: none;">
-        <div class="row justify-content-center mb-3">
-          <div class="col-md-4">
-            <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4" class="img-fluid rounded" alt="Claim NFT">
-          </div>
-        </div>
-        <p>Cost per NFT: <span id="nftCost">Loading...</span> ADRIAN</p>
-        <p>Your claimed amount: <span id="userClaimed">0</span></p>
-        <p>Max per user: <span id="maxPerUser">Loading...</span></p>
-        <p>Total claimed: <span id="totalClaimed">Loading...</span></p>
-        <p>Overall max claim: <span id="overallMax">Loading...</span></p>
-        <p>Claim time: <span id="claimTime">Loading...</span></p>
-        <div class="mb-3">
-          <input type="number" id="quantity" class="form-control" placeholder="Quantity to claim" min="1" value="1">
-        </div>
-        <button id="claimBtn" class="btn btn-warning">Claim NFT(s)</button>
-        <p class="status mt-3" id="statusMessage"></p>
-        
-        <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
-          <!-- Se mostrarán las condiciones -->
-        </div>
+  <!-- Main Container -->
+  <main class="container my-4">
+    <h1 class="text-center mb-4">Open Edition Mint</h1>
+    
+    <!-- Mensaje de conexión (se actualiza vía el menú) -->
+    <div class="text-center mb-3">
+      <div id="walletAddress" class="mt-2">
+        Wallet not connected. Please connect via the menu.
       </div>
     </div>
-  </div>
-
+    
+    <hr>
+    
+    <!-- Mint Event Details Section -->
+    <section class="mb-4">
+      <h2>NFT Details</h2>
+      <div id="eventInfo" class="text-center">
+        <!-- Imagen fija de preview -->
+        <img id="nftImage" src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4" alt="NFT Preview">
+        <!-- Detalles del mint -->
+        <div class="eventDetails" id="mintDetails"></div>
+      </div>
+    </section>
+    
+    <hr>
+    
+    <!-- Mint NFT Section -->
+    <section class="mb-4">
+      <h2>Mint NFT</h2>
+      <p>
+        Enter the number of NFTs you want to mint and click the button to approve tokens and mint.<br>
+        Each NFT costs 100,000 ADRIAN tokens.
+      </p>
+      <div class="text-center">
+        <input id="mintQuantity" type="number" min="1" value="1" placeholder="Mint quantity">
+      </div>
+      <div class="text-center">
+        <button id="approveAndMintButton" class="btn btn-success">Approve & Mint NFT</button>
+      </div>
+    </section>
+    
+    <!-- Log Messages -->
+    <div id="log"></div>
+  </main>
+  
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
@@ -117,91 +86,99 @@
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
-  <!-- Token Claim Script -->
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Page Scripts -->
   <script>
-    /* 
-      Configuración:
-      - Contrato con el que interactúa: 0xa92a8F5A47efC77da796dfD0827D07872E7D0429
-      - Mint event: 6
-      - Tokens needed per NFT: 100,000 ADRIAN tokens (del contrato 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea)
-    */
-    const claimContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
-    const claimEventId = 6;
-    const requiredTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    
-    // Para este frontend, asumimos que el contrato de mint tiene una función mint() similar al anterior
-    // y que el costo por NFT se fija en 100,000 ADRIAN tokens.
-    const claimABI = [
-      "function mint(uint256 eventId, uint256 quantity) external"
+    // Configuración según la información original:
+    // Contrato con el que interactúa: 0xa92a8F5A47efC77da796dfD0827D07872E7D0429 (mint event 6)
+    // Tokens necesarios: 100,000 ADRIAN (del contrato 0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea)
+    const galleryContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
+    const activeEventId = 6;
+    // Forzamos el precio a 100,000 tokens (18 decimales)
+    let currentPrice = ethers.utils.parseUnits("100000", 18);
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)"
+    ];
+    const galleryABI = [
+      "function mint(uint256 eventId, uint256 quantity) external",
+      "function mintEvents(uint256) public view returns (uint8 mintType, uint256 price, uint256 maxSupply, uint256 minted, uint256 startTime, uint256 endTime, string memory metadataURI, address paymentReceiver)"
     ];
     
-    // En este ejemplo, para simplificar, el costo lo forzamos a 100,000 tokens
-    const costPerNFT = ethers.utils.parseUnits("100000", 18);
+    let provider, signer, galleryContract;
+    let walletConnected = false;
     
-    let provider, signer, claimContract, userAddress;
+    // DOM Elements
+    const walletAddressDiv = document.getElementById("walletAddress");
+    const logDiv = document.getElementById("log");
+    const nftImage = document.getElementById("nftImage");
+    const mintDetailsDiv = document.getElementById("mintDetails");
+    const approveAndMintButton = document.getElementById("approveAndMintButton");
+    const mintQuantityInput = document.getElementById("mintQuantity");
     
-    async function loadClaimInfo() {
-      // En este ejemplo, podrías mostrar información adicional, pero aquí solo usamos placeholders
-      document.getElementById("nftCost").innerText = "100,000";
-      // Otros valores se dejarán en 0 o Loading...
+    function log(message) {
+      logDiv.textContent += message + "\n";
     }
     
-    async function updateConditions() {
-      const conditionsDiv = document.getElementById("conditions");
-      conditionsDiv.innerHTML = "";
-      // Ejemplo: condición de que el usuario tenga al menos 100k ADRIAN tokens
+    // Cargar detalles del evento de mint (usando mint event 6)
+    async function loadMintEventDetails() {
       try {
-        const tokenContract = new ethers.Contract(requiredTokenAddress, ["function balanceOf(address account) view returns (uint256)"], provider);
-        const userBalanceBN = await tokenContract.balanceOf(userAddress);
-        const userBalance = parseFloat(ethers.utils.formatUnits(userBalanceBN, 18));
-        const conditionMet = userBalance >= 100000;
-        conditionsDiv.innerHTML += `<p>Has at least 100,000 ADRIAN tokens: ${conditionMet ? "Yes" : "No"} (Your balance: ${userBalance.toLocaleString()})</p>`;
+        galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
+        const eventData = await galleryContract.mintEvents(activeEventId);
+        const minted = eventData.minted;
+        mintDetailsDiv.innerHTML = `
+          <p><strong>Price:</strong> ${Number(ethers.utils.formatUnits(currentPrice, 18)).toLocaleString()} ADRIAN tokens</p>
+          <p><strong>Max Supply:</strong> Open Edition</p>
+          <p><strong>Minted:</strong> ${minted}</p>
+        `;
+        nftImage.src = "https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeihnmvtpqkibywrfmpleedvqpuclyk7sqgi5vfgvn4q37nthirxle4";
       } catch (error) {
-        console.error("Error checking conditions:", error);
+        console.error("Error loading mint event details:", error);
+        log("Error loading mint event details: " + error.message);
       }
     }
     
-    document.getElementById("quantity").addEventListener("input", updateConditions);
-    
-    document.getElementById("claimBtn").addEventListener("click", async () => {
-      const quantity = document.getElementById("quantity").value;
-      if (quantity <= 0) return;
-      document.getElementById("statusMessage").innerText = "Processing mint...";
+    // Acción para aprobar y ejecutar el mint (swap)
+    approveAndMintButton.addEventListener("click", async () => {
+      if (!walletConnected || !galleryContract) {
+        log("Please connect your wallet via the menu first.");
+        return;
+      }
+      const mintQuantity = parseInt(mintQuantityInput.value);
+      if (isNaN(mintQuantity) || mintQuantity < 1) {
+        log("Please enter a valid mint quantity (>=1).");
+        return;
+      }
       
       try {
-        // Ejecutar la función mint() del contrato (1:1 swap)
-        const tx = await claimContract.mint(claimEventId, quantity);
+        log("Minting NFT...");
+        const tx = await galleryContract.mint(activeEventId, mintQuantity);
+        log("Mint tx sent: " + tx.hash);
         await tx.wait();
-        document.getElementById("statusMessage").innerText = "Mint successful!";
-        loadClaimInfo();
-        updateConditions();
+        log("NFT minted successfully.");
+        loadMintEventDetails();
       } catch (error) {
         console.error("Mint failed:", error);
-        document.getElementById("statusMessage").innerText = "Mint failed. Check console.";
+        log("Mint failed: " + error.message);
       }
     });
     
-    // Callback para cuando se conecta la wallet vía menú (menu2.js)
+    // Callback para cuando se conecta la wallet vía el menú (menu2.js)
     window.onMenuWalletConnected = async function() {
-      userAddress = window.menuUserAccount;
+      // Asignamos variables globales desde el menú
       provider = window.menuProvider;
       signer = window.menuSigner;
-      console.log("onMenuWalletConnected: userAddress =", userAddress);
-      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
-      document.getElementById("claimInfo").style.display = "block";
-      // Instanciar el contrato de mint usando el signer
-      claimContract = new ethers.Contract(claimContractAddress, claimABI, signer);
-      loadClaimInfo();
-      updateConditions();
+      const connectedAddress = window.menuUserAccount;
+      walletConnected = true;
+      walletAddressDiv.innerText = "Connected: " + connectedAddress;
+      // Cargar detalles del evento de mint
+      loadMintEventDetails();
     };
     
     window.onMenuWalletDisconnected = function() {
-      document.getElementById("walletStatus").innerText = "Wallet not connected. Please connect via the menu.";
-      document.getElementById("claimInfo").style.display = "none";
+      walletAddressDiv.innerText = "Wallet not connected. Please connect via the menu.";
     };
   </script>
-  
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
