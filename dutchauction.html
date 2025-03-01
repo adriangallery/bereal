@@ -105,7 +105,7 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Dutch Auction contract address and ABI (actualizado)
+    // Dutch Auction contract address and ABI (nueva dirección)
     const auctionContractAddress = "0xCE131591a16DADcAc2bBaBE412a5C136dAE217ab";
     const auctionContractABI = [
       "function getCurrentPrice() public view returns (uint256)",
@@ -160,7 +160,7 @@
     }
     
     // Function to update the countdown every second using the stored auctionEndTimestamp.
-    // Also checks if the auction has ended (either by time or by a purchase).
+    // If the auction has ended, it stops updating and fixes the displayed price to finalPrice.
     async function updateCountdown() {
       if (!auctionEndTimestamp) return;
       const now = Math.floor(Date.now() / 1000);
@@ -176,6 +176,7 @@
         // Format winner wallet: show last 4 characters
         const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
         document.getElementById("timeRemaining").innerText = "Auction Ended";
+        // Here we update the main price display with the final price
         document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
         document.getElementById("auctionStatus").innerText =
           "Auction Ended. Final Price: " + formattedPrice + " $ADRIAN. Winner: " + formattedWinner;
@@ -204,7 +205,7 @@
       }
     }
     
-    // Start updating the countdown every second (using an async wrapper)
+    // Start updating the countdown every second
     countdownInterval = setInterval(() => { updateCountdown(); }, 1000);
     // Refresh auction info (price and token balance) every 10 seconds
     setInterval(() => {
