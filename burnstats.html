@@ -20,6 +20,7 @@
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
       color: #fff;
+      font-size: 1.1rem; /* Texto más grande */
     }
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
@@ -71,32 +72,12 @@
       padding: 15px;
       border-radius: 10px;
       text-align: left;
+      line-height: 1.5; /* Mejor legibilidad */
     }
     #chartContainer {
       margin-top: 30px;
       width: 100%;
       height: 300px;
-    }
-    #events {
-      margin-top: 20px;
-      text-align: left;
-    }
-    .eventCard {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px 0;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: transform 0.3s, opacity 0.3s;
-    }
-    .eventCard.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .eventCard p {
-      margin: 5px 0;
     }
     /* Responsive Styles */
     @media (max-width: 600px) {
@@ -122,9 +103,8 @@
       }
     }
   </style>
-  <!-- Ethers.js UMD (para que ethers esté global) -->
+  <!-- Ethers.js UMD -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <!-- Ethers.js Module (si lo necesitas en otras partes) -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js"></script>
 </head>
 <body>
@@ -139,19 +119,18 @@
       })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Cargamos la lógica del menú -->
+  <!-- Lógica del menú -->
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section (Optional) -->
   <header class="text-center">
-    <img src="https://adriangallery.com/images/adrian.GIF?w=1000" 
-         class="img-fluid rounded mx-auto d-block" alt="Profile Picture">
+    <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreibwvcycuyufdvd5dbyhti35kkcs7ecifsu5kwjjp7ugvke3z6qtgq" 
+         class="img-fluid rounded mx-auto d-block" alt="Main Image">
   </header>
 
   <!-- Main Container: Token Burn Tracker App -->
   <div class="container">
     <h1>$ADRIAN Token Burn Tracker</h1>
-    <!-- Se elimina el botón Connect interno; la conexión se realiza vía menú -->
     <button id="refreshButton">Refresh Data</button>
     <div id="walletStatus">Wallet not connected. Please connect via the menu.</div>
     <div id="tokenInfo">
@@ -161,11 +140,6 @@
     </div>
     <div id="chartContainer">
       <canvas id="burnChart"></canvas>
-    </div>
-    <h2>Recent Burn Events</h2>
-    <div id="events">
-      <p>Event 1: 100,000 burned on 2023-02-26</p>
-      <p>Event 2: 50,000 burned on 2023-02-25</p>
     </div>
   </div>
 
@@ -189,7 +163,6 @@
     const walletStatus = document.getElementById("walletStatus");
     const currentSupplyEl = document.getElementById("currentSupply");
     const totalBurnedEl = document.getElementById("totalBurned");
-    const eventsDiv = document.getElementById("events");
     const ctx = document.getElementById("burnChart").getContext("2d");
     
     let provider;
@@ -197,11 +170,9 @@
     let burnChart;
     let walletAddress = "";
     
-    // Set initial supply and decimals (adjust if necessary)
     const initialSupply = 333000000;
     const decimals = 18;
     
-    // Minimal ABI: totalSupply and Transfer event
     const tokenABI = [
       {
         "inputs": [],
@@ -224,7 +195,6 @@
       }
     ];
     
-    // Replace with your contract address
     const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
     async function refreshTokenData() {
@@ -232,14 +202,13 @@
         const currentSupplyBN = await contract.totalSupply();
         const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
         const burnedTokens = initialSupply - currentSupply;
-        // Display supply values as integers
-        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply)} tokens`;
-        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens)} $ADRIAN`;
-        // Add a fun pulse animation
+        
+        // Se aplica el formato de miles con toLocaleString
+        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply).toLocaleString('en-US')} tokens`;
+        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens).toLocaleString('en-US')} $ADRIAN`;
         totalBurnedEl.classList.add("pulse");
         setTimeout(() => totalBurnedEl.classList.remove("pulse"), 500);
         
-        // Update or create the pie chart
         if (burnChart) {
           burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
           burnChart.update();
@@ -256,10 +225,28 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              animation: {
+                animateScale: true,
+                animateRotate: true
+              },
               plugins: {
                 title: {
                   display: true,
-                  text: 'Token Distribution'
+                  text: 'Token Distribution',
+                  color: "#000", // Color negro
+                  font: {
+                    size: 22,
+                    weight: "bold"
+                  }
+                },
+                legend: {
+                  labels: {
+                    color: "#000", // Color negro
+                    font: {
+                      size: 16,
+                      weight: "bold"
+                    }
+                  }
                 }
               }
             }
@@ -270,52 +257,31 @@
       }
     }
     
-    function addEvent(from, value, txHash, timestamp) {
-      const eventCard = document.createElement("div");
-      eventCard.className = "eventCard";
-      eventCard.innerHTML = `
-        <p><strong>From:</strong> ${from}</p>
-        <p><strong>Burned Amount:</strong> ${value} tokens</p>
-        <p><strong>Tx:</strong> ${txHash.substring(0,10)}...</p>
-        <p><strong>Time:</strong> ${timestamp}</p>
-      `;
-      eventsDiv.prepend(eventCard);
-      setTimeout(() => eventCard.classList.add("show"), 100);
-    }
-    
-    // Refresh button works as before
     refreshButton.addEventListener("click", refreshTokenData);
     
-    // Optionally refresh data every 30 seconds
     setInterval(() => {
       if (contract) refreshTokenData();
     }, 30000);
     
-    // Callback invoked when the wallet is connected via the menu (defined in menu2.js)
     window.onMenuWalletConnected = async function() {
       walletAddress = window.menuUserAccount;
       provider = window.menuProvider;
-      // Update the walletStatus div in this page with the connected address
       walletStatus.textContent = "Wallet connected: " + walletAddress;
       
-      // Instantiate the contract using the provider (read-only)
       contract = new ethers.Contract(contractAddress, tokenABI, provider);
-      // Refresh token data immediately
       refreshTokenData();
       
-      // Subscribe to burn events
       contract.on("Transfer", async (from, to, value, event) => {
         if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
           const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
           const block = await provider.getBlock(event.blockNumber);
           const timestamp = new Date(block.timestamp * 1000).toLocaleString();
-          addEvent(from, burnedValue, event.transactionHash, timestamp);
+          // Lógica para manejar el evento de quema, si se desea notificar o registrar
           refreshTokenData();
         }
       });
     };
     
-    // (Optional) Callback for when the wallet is disconnected via the menu
     window.onMenuWalletDisconnected = function() {
       walletStatus.textContent = "Wallet not connected. Please connect via the menu.";
     };
