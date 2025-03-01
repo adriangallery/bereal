@@ -114,6 +114,7 @@
       "function startPrice() public view returns (uint256)",
       "function auctionEndTime() public view returns (uint256)",
       "function finalPrice() public view returns (uint256)",
+      "function auctionEnded() public view returns (bool)",
       "function buy() external",
       "function getWinner() external view returns (address)"
     ];
@@ -127,12 +128,12 @@
     ];
     
     let provider, signer, auctionContract, userAddress, auctionEndTimestamp;
-    let countdownInterval; // To stop the countdown when auction ends
-
+    let countdownInterval; // To clear the countdown when auction ends
+    
     // Load auction info from the contract (price, endTime, etc.)
     async function loadAuctionInfo() {
       try {
-        // Read auctionStartTime and startPrice from the contract
+        // Read auction start time and start price from the contract
         const contractAuctionStartTime = await auctionContract.auctionStartTime();
         const contractStartPrice = await auctionContract.startPrice();
         // Get auctionEndTime and store as global variable for the countdown
@@ -141,7 +142,7 @@
         
         const now = Math.floor(Date.now() / 1000);
         let currentPrice;
-        // If auction hasn't started yet, use startPrice
+        // If auction hasn't started yet, use startPrice; else use getCurrentPrice()
         if (now < contractAuctionStartTime.toNumber()) {
           currentPrice = contractStartPrice;
         } else {
@@ -158,32 +159,31 @@
       }
     }
     
-    // Function to update the countdown every second using the stored auctionEndTimestamp
-    function updateCountdown() {
+    // Function to update the countdown every second using the stored auctionEndTimestamp.
+    // Also checks if the auction has ended (either by time or by a purchase).
+    async function updateCountdown() {
       if (!auctionEndTimestamp) return;
       const now = Math.floor(Date.now() / 1000);
-      let remaining = auctionEndTimestamp - now;
-      if (remaining <= 0) {
-        remaining = 0;
+      
+      // Check if auction has ended via time or contract state
+      const ended = await auctionContract.auctionEnded();
+      if (ended || now >= auctionEndTimestamp) {
         clearInterval(countdownInterval);
-        // Auction ended: fetch finalPrice and winner info
-        Promise.all([
-          auctionContract.finalPrice(),
-          auctionContract.getWinner()
-        ]).then(([finalPrice, winner]) => {
-          const formattedPrice = parseFloat(ethers.utils.formatUnits(finalPrice, 18)).toFixed(3);
-          // Format winner wallet: show last 4 characters
-          const formattedWinner = "..." + winner.slice(-4);
-          document.getElementById("timeRemaining").innerText = "Auction Ended";
-          document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
-          document.getElementById("auctionStatus").innerText =
-            "Auction Ended. Final Price: " + formattedPrice + " $ADRIAN. Winner: " + formattedWinner;
-          document.getElementById("buyBtn").disabled = true;
-        }).catch(error => {
-          console.error("Error fetching final auction info:", error);
-        });
+        // Fetch finalPrice and winner info
+        const finalPrice = await auctionContract.finalPrice();
+        const winner = await auctionContract.getWinner();
+        const formattedPrice = parseFloat(ethers.utils.formatUnits(finalPrice, 18)).toFixed(3);
+        // Format winner wallet: show last 4 characters
+        const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
+        document.getElementById("timeRemaining").innerText = "Auction Ended";
+        document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
+        document.getElementById("auctionStatus").innerText =
+          "Auction Ended. Final Price: " + formattedPrice + " $ADRIAN. Winner: " + formattedWinner;
+        document.getElementById("buyBtn").disabled = true;
         return;
       }
+      
+      let remaining = auctionEndTimestamp - now;
       const days = Math.floor(remaining / (3600 * 24));
       remaining -= days * 3600 * 24;
       const hrs = Math.floor(remaining / 3600);
@@ -204,8 +204,8 @@
       }
     }
     
-    // Start updating the countdown every second
-    countdownInterval = setInterval(updateCountdown, 1000);
+    // Start updating the countdown every second (using an async wrapper)
+    countdownInterval = setInterval(() => { updateCountdown(); }, 1000);
     // Refresh auction info (price and token balance) every 10 seconds
     setInterval(() => {
       if (auctionContract) loadAuctionInfo();
@@ -216,13 +216,19 @@
       try {
         const now = Math.floor(Date.now() / 1000);
         const contractAuctionStartTime = await auctionContract.auctionStartTime();
+        // Check if auction hasn't started
         if (now < contractAuctionStartTime.toNumber()) {
           document.getElementById("auctionStatus").innerText = "Auction hasn't started yet.";
           return;
         }
+        // Check if auction has ended
+        if (now >= auctionEndTimestamp || await auctionContract.auctionEnded()) {
+          document.getElementById("auctionStatus").innerText = "Auction has ended.";
+          return;
+        }
         
         document.getElementById("auctionStatus").innerText = "Processing purchase...";
-        // Get current price (now that auction has started)
+        // Get current price (auction is active)
         const currentPrice = await auctionContract.getCurrentPrice();
         const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         const allowance = await tokenContract.allowance(userAddress, auctionContractAddress);
