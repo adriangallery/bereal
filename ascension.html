@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>$ADRIAN DUTCH AUCTION</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (v5.3.0) -->
+  <!-- Bootstrap CSS v5.3.0 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="css/styles.css" rel="stylesheet">
@@ -38,7 +38,7 @@
       font-size: 1.5rem;
     }
   </style>
-  <!-- Ethers.js UMD -->
+  <!-- Ethers.js (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
@@ -47,9 +47,7 @@
   <script>
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
-      })
+      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
   <script src="components/menu2.js"></script>
@@ -62,30 +60,33 @@
     </div>
   </section>
   
-  <!-- Auction Section -->
+  <!-- Auction/Distribution Section -->
   <div class="container my-5">
     <div id="auctionSection" class="text-center">
-      <h2>Auction Details</h2>
-      <!-- Auction info visible when wallet is connected -->
+      <h2>Auction & Distribution Details</h2>
       <div id="auctionInfo" style="display: none;">
-        <div class="mb-4">
-          <div class="auction-label">Time Remaining:</div>
-          <div id="timeRemaining" class="auction-info">Loading...</div>
-        </div>
-        <div class="mb-4">
-          <div class="auction-label">Current Price:</div>
-          <div id="currentPrice" class="auction-info">Loading...</div>
-        </div>
-        <div class="mb-4">
-          <div class="auction-label">Your ADRIAN Token Balance:</div>
+        <!-- Display user's ADRIAN token balance -->
+        <div class="mb-3">
+          <div class="auction-label">Your ADRIAN Balance:</div>
           <div id="tokenBalance" class="auction-info">Loading...</div>
         </div>
-        <!-- Section for seat info -->
-        <div class="mb-4">
+        <!-- Display total ADRIAN tokens in contract -->
+        <div class="mb-3">
+          <div class="auction-label">Total ADRIAN in Contract:</div>
+          <div id="contractBalance" class="auction-info">Loading...</div>
+        </div>
+        <!-- Display user's seat status -->
+        <div class="mb-3">
           <div class="auction-label">Your Seat Status:</div>
           <div id="seatStatus" class="auction-info">Loading...</div>
         </div>
-        <button id="claimBtn" class="btn btn-success btn-lg">Claim All ADRIAN Distribution</button>
+        <!-- Buttons -->
+        <div class="mb-3">
+          <button id="updateBtn" class="btn btn-info">Update Seat Status</button>
+          <button id="claimBtn" class="btn btn-success">Claim All ADRIAN Distribution</button>
+          <button id="refreshBtn" class="btn btn-secondary">Refresh Info</button>
+        </div>
+        <!-- Auction/Distribution status -->
         <div id="auctionStatus" class="mt-3"></div>
       </div>
     </div>
@@ -96,9 +97,7 @@
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('footer-placeholder').innerHTML = html;
-      })
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
@@ -107,7 +106,7 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // AscendantSeats contract address and ABI (update these values as needed)
+    // Replace these with your actual contract addresses and ABIs.
     const ascendantSeatsAddress = "0xYourAscendantSeatsContractAddress";
     const ascendantSeatsABI = [
       "function seatRole(address) view returns (uint8)",
@@ -115,20 +114,18 @@
       "function seatHolders(uint256) view returns (address)",
       "function updateAllSeatStatuses() external",
       "function claimAllADRIAN() external",
-      // You can add additional view functions if exposed, e.g., to get full seatHolder list if needed
+      "function pitOfFire() view returns (address)",
+      "function threeDLord() view returns (address)"
     ];
 
-    // ADRIAN token contract (already defined in our contract as constant)
     const tokenContractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [
-      "function balanceOf(address account) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)"
+      "function balanceOf(address account) view returns (uint256)"
     ];
 
     let provider, signer, ascendantContract, tokenContract, userAddress;
-    
-    // Initialize Ethers
+
+    // Initialize ethers and connect wallet
     async function initEthers() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -138,31 +135,32 @@
         ascendantContract = new ethers.Contract(ascendantSeatsAddress, ascendantSeatsABI, signer);
         tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         document.getElementById("auctionInfo").style.display = "block";
-        loadSeatStatus();
+        loadUserInfo();
+        loadContractBalance();
       } else {
         alert("Please install MetaMask.");
       }
     }
 
-    // Load the user's seat status from the AscendantSeats contract.
-    async function loadSeatStatus() {
+    // Load and display user's seat status and claim info
+    async function loadUserInfo() {
       try {
         const roleCode = await ascendantContract.seatRole(userAddress);
-        const hasClaimed = await ascendantContract.hasClaimed(userAddress);
+        const claimed = await ascendantContract.hasClaimed(userAddress);
         let roleText = "None";
         if (roleCode == 1) {
           roleText = "True Ascendant";
         } else if (roleCode == 2) {
           roleText = "Ascension";
         }
-        document.getElementById("seatStatus").innerText = roleText + (hasClaimed ? " (Claimed)" : " (Not Claimed)");
+        document.getElementById("seatStatus").innerText = roleText + (claimed ? " (Claimed)" : " (Not Claimed)");
       } catch (error) {
         console.error("Error loading seat status:", error);
         document.getElementById("seatStatus").innerText = "Error";
       }
     }
 
-    // Display ADRIAN token balance of the user.
+    // Load and display user's ADRIAN token balance
     async function loadTokenBalance() {
       try {
         const balance = await tokenContract.balanceOf(userAddress);
@@ -174,32 +172,57 @@
       }
     }
 
-    // Call claimAllADRIAN function from AscendantSeats contract.
+    // Load and display the total ADRIAN token balance in the AscendantSeats contract
+    async function loadContractBalance() {
+      try {
+        const contractBalance = await tokenContract.balanceOf(ascendantSeatsAddress);
+        document.getElementById("contractBalance").innerText =
+          parseFloat(ethers.utils.formatUnits(contractBalance, 18)).toFixed(3) + " $ADRIAN";
+      } catch (error) {
+        console.error("Error loading contract balance:", error);
+        document.getElementById("contractBalance").innerText = "Error";
+      }
+    }
+
+    // Refresh all displayed info
+    async function refreshAllInfo() {
+      await loadUserInfo();
+      await loadTokenBalance();
+      await loadContractBalance();
+    }
+
+    // Call claimAllADRIAN from the AscendantSeats contract
     async function claimAllADRIAN() {
       try {
         document.getElementById("auctionStatus").innerText = "Processing distribution...";
         const tx = await ascendantContract.claimAllADRIAN();
         await tx.wait();
         document.getElementById("auctionStatus").innerText = "Distribution successful!";
-        // Refresh seat status and token balance after distribution.
-        loadSeatStatus();
-        loadTokenBalance();
+        refreshAllInfo();
       } catch (error) {
         console.error("Claim failed:", error);
-        document.getElementById("auctionStatus").innerText = "Distribution failed.";
+        document.getElementById("auctionStatus").innerText = "Distribution failed. Check console.";
       }
     }
 
-    // Connect wallet when page loads
-    window.addEventListener("load", () => {
-      initEthers();
-      loadTokenBalance();
+    // Set up button handlers
+    document.getElementById("claimBtn").addEventListener("click", claimAllADRIAN);
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+      try {
+        document.getElementById("auctionStatus").innerText = "Updating seat statuses...";
+        const tx = await ascendantContract.updateAllSeatStatuses();
+        await tx.wait();
+        document.getElementById("auctionStatus").innerText = "Seat statuses updated.";
+        refreshAllInfo();
+      } catch (error) {
+        console.error("Update failed:", error);
+        document.getElementById("auctionStatus").innerText = "Update failed.";
+      }
     });
+    document.getElementById("refreshBtn").addEventListener("click", refreshAllInfo);
 
-    // Set claim button handler
-    document.getElementById("claimBtn").addEventListener("click", async () => {
-      await claimAllADRIAN();
-    });
+    // Initialize ethers when the page loads
+    window.addEventListener("load", initEthers);
   </script>
 </body>
 </html>
