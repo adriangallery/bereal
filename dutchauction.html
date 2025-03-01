@@ -133,7 +133,16 @@
     // Load auction info from the contract (price, endTime, etc.)
     async function loadAuctionInfo() {
       try {
-        // Read auction start time and start price from the contract
+        // Check if the auction has ended
+        const ended = await auctionContract.auctionEnded();
+        if(ended) {
+          // If auction ended, update current price with finalPrice and exit
+          const finalPrice = await auctionContract.finalPrice();
+          const formattedPrice = parseFloat(ethers.utils.formatUnits(finalPrice, 18)).toFixed(3);
+          document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
+          return;
+        }
+        // Otherwise, read auctionStartTime and startPrice from the contract
         const contractAuctionStartTime = await auctionContract.auctionStartTime();
         const contractStartPrice = await auctionContract.startPrice();
         // Get auctionEndTime and store as global variable for the countdown
@@ -160,22 +169,22 @@
     }
     
     // Function to update the countdown every second using the stored auctionEndTimestamp.
-    // Also checks if the auction has ended (either by time or by a purchase).
+    // Also checks if the auction has ended (by time or contract state).
     async function updateCountdown() {
       if (!auctionEndTimestamp) return;
       const now = Math.floor(Date.now() / 1000);
       
-      // Check if auction has ended via time or contract state
+      // Check if auction ended either by state or time
       const ended = await auctionContract.auctionEnded();
       if (ended || now >= auctionEndTimestamp) {
         clearInterval(countdownInterval);
-        // Fetch finalPrice and winner info
+        // Auction ended: fetch finalPrice and winner info
         const finalPrice = await auctionContract.finalPrice();
         const winner = await auctionContract.getWinner();
         const formattedPrice = parseFloat(ethers.utils.formatUnits(finalPrice, 18)).toFixed(3);
-        // Format winner wallet: show last 4 characters
         const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
         document.getElementById("timeRemaining").innerText = "Auction Ended";
+        // Here we update the main price display with the final price
         document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
         document.getElementById("auctionStatus").innerText =
           "Auction Ended. Final Price: " + formattedPrice + " $ADRIAN. Winner: " + formattedWinner;
@@ -204,7 +213,7 @@
       }
     }
     
-    // Start updating the countdown every second (using an async wrapper)
+    // Start updating the countdown every second
     countdownInterval = setInterval(() => { updateCountdown(); }, 1000);
     // Refresh auction info (price and token balance) every 10 seconds
     setInterval(() => {
@@ -243,7 +252,7 @@
         const tx = await auctionContract.buy();
         await tx.wait();
         document.getElementById("auctionStatus").innerText = "Purchase successful!";
-        // After purchase, update auction info immediately (the countdown will stop via updateCountdown)
+        // After purchase, update auction info immediately (the countdown will then be fixed)
         loadAuctionInfo();
       } catch (error) {
         console.error("Error during purchase:", error);
