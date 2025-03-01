@@ -69,7 +69,6 @@
   <div class="container my-5">
     <div id="auctionSection" class="text-center">
       <h2>Auction Details</h2>
-      <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
       <!-- Auction info visible when wallet is connected -->
       <div id="auctionInfo" style="display: none;">
         <div class="mb-4">
@@ -114,7 +113,8 @@
       "function auctionStartTime() public view returns (uint256)",
       "function startPrice() public view returns (uint256)",
       "function buy() external",
-      "function getWinner() external view returns (address)"
+      "function getWinner() external view returns (address)",
+      "function auctionEndTime() public view returns (uint256)"
     ];
     
     // ADRIAN Token contract address and minimal ABI (ERC20)
@@ -125,13 +125,18 @@
       "function balanceOf(address account) public view returns (uint256)"
     ];
     
-    let provider, signer, auctionContract, userAddress;
+    let provider, signer, auctionContract, userAddress, auctionEndTimestamp;
     
+    // Load auction info from the contract
     async function loadAuctionInfo() {
       try {
-        // Read auctionStartTime and startPrice from the contract
+        // Read auction start time and start price from the contract
         const contractAuctionStartTime = await auctionContract.auctionStartTime();
         const contractStartPrice = await auctionContract.startPrice();
+        // Get auctionEndTime and store as global variable for the countdown
+        const contractAuctionEndTime = await auctionContract.auctionEndTime();
+        auctionEndTimestamp = contractAuctionEndTime.toNumber();
+        
         const now = Math.floor(Date.now() / 1000);
         let currentPrice;
         // If auction hasn't started yet, use startPrice
@@ -140,25 +145,8 @@
         } else {
           currentPrice = await auctionContract.getCurrentPrice();
         }
-        document.getElementById("currentPrice").innerText = ethers.utils.formatUnits(currentPrice, 18) + " ADRIAN";
-        
-        // Get time remaining
-        const timeRemaining = await auctionContract.getTimeRemaining();
-        let seconds = timeRemaining.toNumber();
-        let days = Math.floor(seconds / (3600 * 24));
-        seconds -= days * 3600 * 24;
-        let hrs = Math.floor(seconds / 3600);
-        seconds -= hrs * 3600;
-        let mnts = Math.floor(seconds / 60);
-        seconds -= mnts * 60;
-        document.getElementById("timeRemaining").innerText = `${days}d ${hrs}h ${mnts}m ${seconds}s`;
-        
-        // If auction ended, display winner and disable buy button
-        if (timeRemaining.toNumber() === 0) {
-          const winner = await auctionContract.getWinner();
-          document.getElementById("auctionStatus").innerText = "Auction Ended. Winner: " + winner;
-          document.getElementById("buyBtn").disabled = true;
-        }
+        // Format currentPrice to 3 decimals and append $ADRIAN
+        document.getElementById("currentPrice").innerText = parseFloat(ethers.utils.formatUnits(currentPrice, 18)).toFixed(3) + " $ADRIAN";
         
         // Update user's token balance
         await loadTokenBalance();
@@ -167,26 +155,61 @@
       }
     }
     
+    // Function to update the countdown every second using the stored auctionEndTimestamp
+    function updateCountdown() {
+      if (!auctionEndTimestamp) return;
+      const now = Math.floor(Date.now() / 1000);
+      let remaining = auctionEndTimestamp - now;
+      if (remaining < 0) remaining = 0;
+      const days = Math.floor(remaining / (3600 * 24));
+      remaining -= days * 3600 * 24;
+      const hrs = Math.floor(remaining / 3600);
+      remaining -= hrs * 3600;
+      const mnts = Math.floor(remaining / 60);
+      // Only display days, hours, and minutes
+      document.getElementById("timeRemaining").innerText = `${days}d ${hrs}h ${mnts}m`;
+      
+      // If auction ended, disable buy button and show winner
+      if (remaining === 0) {
+        auctionContract.getWinner().then(winner => {
+          document.getElementById("auctionStatus").innerText = "Auction Ended. Winner: " + winner;
+          document.getElementById("buyBtn").disabled = true;
+        }).catch(error => console.error(error));
+      }
+    }
+    
     async function loadTokenBalance() {
       try {
         const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         const balance = await tokenContract.balanceOf(userAddress);
-        document.getElementById("tokenBalance").innerText = ethers.utils.formatUnits(balance, 18);
+        // Format balance to 3 decimals and append $ADRIAN
+        document.getElementById("tokenBalance").innerText = parseFloat(ethers.utils.formatUnits(balance, 18)).toFixed(3) + " $ADRIAN";
       } catch (error) {
         console.error("Error loading token balance:", error);
         document.getElementById("tokenBalance").innerText = "Error";
       }
     }
     
-    // Update auction info every 10 seconds
+    // Update the countdown every second
+    setInterval(updateCountdown, 1000);
+    
+    // Refresh auction info every 10 seconds (price and token balance)
     setInterval(() => {
       if (auctionContract) loadAuctionInfo();
     }, 10000);
     
     // Buy button handler: performs an approve if necessary, then calls buy()
     document.getElementById("buyBtn").addEventListener("click", async () => {
-      document.getElementById("auctionStatus").innerText = "Processing purchase...";
       try {
+        const now = Math.floor(Date.now() / 1000);
+        const contractAuctionStartTime = await auctionContract.auctionStartTime();
+        if (now < contractAuctionStartTime.toNumber()) {
+          document.getElementById("auctionStatus").innerText = "Auction hasn't started yet.";
+          return;
+        }
+        
+        document.getElementById("auctionStatus").innerText = "Processing purchase...";
+        // Get current price (should be updated already)
         const currentPrice = await auctionContract.getCurrentPrice();
         const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         const allowance = await tokenContract.allowance(userAddress, auctionContractAddress);
@@ -213,7 +236,7 @@
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
       signer = window.menuSigner;
-      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+      // Show auction info section (wallet info is handled by the menu)
       document.getElementById("auctionInfo").style.display = "block";
       auctionContract = new ethers.Contract(auctionContractAddress, auctionContractABI, signer);
       loadAuctionInfo();
@@ -221,7 +244,6 @@
     
     // Callback when wallet is disconnected
     window.onMenuWalletDisconnected = function() {
-      document.getElementById("walletStatus").innerText = "Wallet not connected. Please connect via the menu.";
       document.getElementById("auctionInfo").style.display = "none";
     };
   </script>
