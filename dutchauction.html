@@ -105,8 +105,8 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Dutch Auction contract address and ABI
-    const auctionContractAddress = "0x305ad49c2f13fa7e4893ca783eeae75719fc1982";
+    // Dutch Auction contract address and ABI (actualizado)
+    const auctionContractAddress = "0xCE131591a16DADcAc2bBaBE412a5C136dAE217ab";
     const auctionContractABI = [
       "function getCurrentPrice() public view returns (uint256)",
       "function getTimeRemaining() external view returns (uint256)",
@@ -243,7 +243,7 @@
         const tx = await auctionContract.buy();
         await tx.wait();
         document.getElementById("auctionStatus").innerText = "Purchase successful!";
-        // After purchase, update auction info immediately (the countdown will stop via updateCountdown)
+        // After purchase, update auction info immediately (the countdown will then be fixed)
         loadAuctionInfo();
       } catch (error) {
         console.error("Error during purchase:", error);
