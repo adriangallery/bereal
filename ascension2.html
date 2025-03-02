@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>Ascendants dAPP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS (v5.3.0) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .hero {
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua') no-repeat center center;
+      background-size: cover;
+      padding: 4rem 0;
+      color: #fff;
+      text-shadow: 0 0 5px #000;
+    }
+    .hero h1 { font-weight: bold; font-size: 3rem; }
+    .hero p { font-size: 1.5rem; }
+    #appContainer { margin-top: 2rem; }
+    .info-box {
+      background-color: #222;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+      margin-bottom: 1rem;
+    }
+    .info-label { font-size: 1.3rem; }
+    .info-value { font-size: 2rem; margin-top: 5px; }
+  </style>
+  <!-- Ethers.js UMD (v5) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <!-- Menu placeholder -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading menu:', error); });
+  </script>
+  <script src="components/menu2.js"></script>
+  
+  <!-- Hero Section (inspired by project lore) -->
+  <section class="hero text-center">
+    <div class="container">
+      <h1>Ascendants dAPP</h1>
+      <p>Only the Chosen Few may ascend. Claim your seat and secure your ADRIAN rewards.</p>
+    </div>
+  </section>
+  
+  <!-- Main Dashboard Container -->
+  <div class="container" id="appContainer">
+    <div class="info-box text-center">
+      <h2>Your Dashboard</h2>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="info-label">Your ADRIAN Balance:</div>
+          <div id="tokenBalance" class="info-value">Loading...</div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-label">Total ADRIAN in Pool:</div>
+          <div id="contractBalance" class="info-value">Loading...</div>
+        </div>
+        <div class="col-md-4">
+          <div class="info-label">Your Seat Status:</div>
+          <div id="seatStatus" class="info-value">Loading...</div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <button id="updateBtn" class="btn btn-info me-2">Update Seat Status</button>
+        <button id="refreshBtn" class="btn btn-secondary me-2">Refresh Info</button>
+        <button id="claimSeatBtn" class="btn btn-warning me-2">Claim Seat</button>
+        <button id="claimBtn" class="btn btn-success">Claim ADRIAN Distribution</button>
+      </div>
+      <div id="appStatus" class="mt-3"></div>
+    </div>
+  </div>
+  
+  <!-- Footer placeholder -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+  
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Contract Interaction Script -->
+  <script>
+    // Actual AscendantSeats contract address and ABI
+    const ascendantSeatsAddress = "0xe7fa18a4907eFd3A83cbB059c6b8792d71321ffC";
+    
+    if (!ethers.utils.isAddress(ascendantSeatsAddress)) {
+      document.getElementById("appStatus").innerText = "Invalid AscendantSeats contract address.";
+    }
+    
+    // Extended ABI including a separate claimSeat() function.
+    const ascendantSeatsABI = [
+      "function seatRole(address) view returns (uint8)",
+      "function hasClaimed(address) view returns (bool)",
+      "function seatHolders(uint256) view returns (address)",
+      "function updateAllSeatStatuses() external",
+      "function claimSeat() external",
+      "function claimAllADRIAN() external"
+    ];
+    
+    const tokenContractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    const tokenABI = [ "function balanceOf(address account) view returns (uint256)" ];
+    
+    let provider, signer, ascendantContract, tokenContract, userAddress;
+    
+    async function initEthers() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        // Override ENS resolution to disable it:
+        provider.resolveName = async (name) => name;
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        ascendantContract = new ethers.Contract(ascendantSeatsAddress, ascendantSeatsABI, signer);
+        tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
+        document.getElementById("appStatus").innerText = "Wallet connected: " + userAddress;
+        refreshAllInfo();
+      } else {
+        alert("Please install MetaMask.");
+      }
+    }
+    
+    async function loadTokenBalance() {
+      try {
+        const balance = await tokenContract.balanceOf(userAddress);
+        document.getElementById("tokenBalance").innerText =
+          parseFloat(ethers.utils.formatUnits(balance, 18)).toFixed(3) + " $ADRIAN";
+      } catch (error) {
+        console.error("Error loading token balance:", error);
+        document.getElementById("tokenBalance").innerText = "Error";
+      }
+    }
+    
+    async function loadContractBalance() {
+      try {
+        const contractBalance = await tokenContract.balanceOf(ascendantSeatsAddress);
+        document.getElementById("contractBalance").innerText =
+          parseFloat(ethers.utils.formatUnits(contractBalance, 18)).toFixed(3) + " $ADRIAN";
+      } catch (error) {
+        console.error("Error loading contract balance:", error);
+        document.getElementById("contractBalance").innerText = "Error";
+      }
+    }
+    
+    async function loadSeatStatus() {
+      try {
+        const roleCode = await ascendantContract.seatRole(userAddress);
+        const claimed = await ascendantContract.hasClaimed(userAddress);
+        let roleText = "None";
+        if (roleCode == 1) roleText = "True Ascendant";
+        else if (roleCode == 2) roleText = "Ascension";
+        document.getElementById("seatStatus").innerText = roleText + (claimed ? " (Claimed)" : " (Not Claimed)");
+      } catch (error) {
+        console.error("Error loading seat status:", error);
+        document.getElementById("seatStatus").innerText = "Error";
+      }
+    }
+    
+    async function refreshAllInfo() {
+      await loadTokenBalance();
+      await loadContractBalance();
+      await loadSeatStatus();
+    }
+    
+    async function updateSeatStatuses() {
+      try {
+        document.getElementById("appStatus").innerText = "Updating seat statuses...";
+        const tx = await ascendantContract.updateAllSeatStatuses();
+        await tx.wait();
+        document.getElementById("appStatus").innerText = "Seat statuses updated.";
+        refreshAllInfo();
+      } catch (error) {
+        console.error("Error updating seat statuses:", error);
+        document.getElementById("appStatus").innerText = "Update failed.";
+      }
+    }
+    
+    // Separate function to claim a seat (marks the seat as claimed if eligible)
+    async function claimSeat() {
+      try {
+        document.getElementById("appStatus").innerText = "Claiming your seat...";
+        const tx = await ascendantContract.claimSeat();
+        await tx.wait();
+        document.getElementById("appStatus").innerText = "Seat claimed successfully!";
+        refreshAllInfo();
+      } catch (error) {
+        console.error("Claim seat failed:", error);
+        document.getElementById("appStatus").innerText = "Claim seat failed. Check console.";
+      }
+    }
+    
+    // Function to claim the ADRIAN distribution for all eligible addresses
+    async function claimAllADRIAN() {
+      try {
+        document.getElementById("appStatus").innerText = "Processing distribution...";
+        const tx = await ascendantContract.claimAllADRIAN();
+        await tx.wait();
+        document.getElementById("appStatus").innerText = "Distribution successful!";
+        refreshAllInfo();
+      } catch (error) {
+        console.error("Claim distribution failed:", error);
+        if (error.data && error.data.message && error.data.message.includes("No hay asientos activos")) {
+          document.getElementById("appStatus").innerText = "No active seats found.";
+        } else {
+          document.getElementById("appStatus").innerText = "Distribution failed. Check console.";
+        }
+      }
+    }
+    
+    document.getElementById("updateBtn").addEventListener("click", updateSeatStatuses);
+    document.getElementById("refreshBtn").addEventListener("click", refreshAllInfo);
+    document.getElementById("claimSeatBtn").addEventListener("click", claimSeat);
+    document.getElementById("claimBtn").addEventListener("click", claimAllADRIAN);
+    
+    window.addEventListener("load", initEthers);
+  </script>
+</body>
+</html>
