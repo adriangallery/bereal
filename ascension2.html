@@ -96,14 +96,15 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Actual AscendantSeats contract address and ABI
+    // Use your actual AscendantSeats contract address
     const ascendantSeatsAddress = "0xe7fa18a4907eFd3A83cbB059c6b8792d71321ffC";
     
+    // Validate the AscendantSeats address
     if (!ethers.utils.isAddress(ascendantSeatsAddress)) {
       document.getElementById("appStatus").innerText = "Invalid AscendantSeats contract address.";
     }
     
-    // Extended ABI including a separate claimSeat() function.
+    // Extended ABI including the claimSeat() function.
     const ascendantSeatsABI = [
       "function seatRole(address) view returns (uint8)",
       "function hasClaimed(address) view returns (bool)",
@@ -113,6 +114,7 @@
       "function claimAllADRIAN() external"
     ];
     
+    // ADRIAN token contract (ERC20)
     const tokenContractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [ "function balanceOf(address account) view returns (uint256)" ];
     
@@ -120,9 +122,9 @@
     
     async function initEthers() {
       if (window.ethereum) {
+        // Initialize provider with "any" network to bypass ENS lookup
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        // Override ENS resolution to disable it:
-        provider.resolveName = async (name) => name;
+        provider.resolveName = async (name) => name; // disable ENS
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
@@ -190,24 +192,32 @@
       }
     }
     
-    // Separate function to claim a seat (marks the seat as claimed if eligible)
+    // Separate function to claim the seat.
     async function claimSeat() {
       try {
         document.getElementById("appStatus").innerText = "Claiming your seat...";
+        // Use callStatic to simulate and check for revert reason before sending the transaction.
+        await ascendantContract.callStatic.claimSeat();
         const tx = await ascendantContract.claimSeat();
         await tx.wait();
         document.getElementById("appStatus").innerText = "Seat claimed successfully!";
         refreshAllInfo();
       } catch (error) {
         console.error("Claim seat failed:", error);
-        document.getElementById("appStatus").innerText = "Claim seat failed. Check console.";
+        if (error.data && error.data.message) {
+          document.getElementById("appStatus").innerText = error.data.message;
+        } else {
+          document.getElementById("appStatus").innerText = "Claim seat failed. Check console.";
+        }
       }
     }
     
-    // Function to claim the ADRIAN distribution for all eligible addresses
+    // Function to claim the ADRIAN distribution.
     async function claimAllADRIAN() {
       try {
         document.getElementById("appStatus").innerText = "Processing distribution...";
+        // Optionally use callStatic here as well:
+        await ascendantContract.callStatic.claimAllADRIAN();
         const tx = await ascendantContract.claimAllADRIAN();
         await tx.wait();
         document.getElementById("appStatus").innerText = "Distribution successful!";
