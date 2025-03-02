@@ -95,9 +95,12 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Replace these with your actual contract addresses and ABIs.
-    // Ensure that the addresses are valid hexadecimal addresses (not ENS names)
-    const ascendantSeatsAddress = "0xYourAscendantSeatsContractAddress"; // <-- Update this!
+    // Replace this placeholder with your actual AscendantSeats contract address.
+    const ascendantSeatsAddress = "0xYourAscendantSeatsContractAddress"; 
+    if (!ethers.utils.isAddress(ascendantSeatsAddress)) {
+      document.getElementById("appStatus").innerText = "Invalid AscendantSeats contract address. Please update with a valid address.";
+    }
+    
     const ascendantSeatsABI = [
       "function seatRole(address) view returns (uint8)",
       "function hasClaimed(address) view returns (bool)",
@@ -112,11 +115,9 @@
     
     async function initEthers() {
       if (window.ethereum) {
-        // Initialize provider with network parameter "any" to avoid ENS lookups
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        // Optionally override resolveName to disable ENS entirely:
-        provider.resolveName = async (name) => { return name; };
-        
+        // Override resolveName to prevent ENS resolution errors
+        provider.resolveName = async (name) => name;
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
