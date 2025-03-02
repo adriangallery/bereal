@@ -5,23 +5,38 @@
   <meta charset="UTF-8">
   <title>Ascendants dAPP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
   <link href="css/styles.css" rel="stylesheet">
   <style>
     body { background-color: #f8f9fa; }
-    .hero { background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua') no-repeat center center; background-size: cover; padding: 4rem 0; color: #fff; text-shadow: 0 0 5px #000; }
+    .hero {
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua') no-repeat center center;
+      background-size: cover;
+      padding: 4rem 0;
+      color: #fff;
+      text-shadow: 0 0 5px #000;
+    }
     .hero h1 { font-weight: bold; font-size: 3rem; }
     .hero p { font-size: 1.5rem; }
     #appContainer { margin-top: 2rem; }
-    .info-box { background-color: #222; color: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 0 10px rgba(255,255,255,0.1); margin-bottom: 1rem; }
+    .info-box {
+      background-color: #222;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+      margin-bottom: 1rem;
+    }
     .info-label { font-size: 1.3rem; }
     .info-value { font-size: 2rem; margin-top: 5px; }
   </style>
-  <!-- Ethers.js -->
+  <!-- Ethers.js UMD (v5) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
+  <!-- Menu placeholder -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
@@ -31,6 +46,7 @@
   </script>
   <script src="components/menu2.js"></script>
   
+  <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
       <h1>Ascendants dAPP</h1>
@@ -38,6 +54,7 @@
     </div>
   </section>
   
+  <!-- Main App Container -->
   <div class="container" id="appContainer">
     <div class="info-box text-center">
       <h2>Your Dashboard</h2>
@@ -64,6 +81,7 @@
     </div>
   </div>
   
+  <!-- Footer placeholder -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
@@ -72,11 +90,14 @@
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
+  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
+  <!-- Contract Interaction Script -->
   <script>
-    // Contract addresses and ABIs (update these with your actual values)
-    const ascendantSeatsAddress = "0xYourAscendantSeatsContractAddress"; 
+    // Replace these with your actual contract addresses and ABIs.
+    // Ensure that the addresses are valid hexadecimal addresses (not ENS names)
+    const ascendantSeatsAddress = "0xYourAscendantSeatsContractAddress"; // <-- Update this!
     const ascendantSeatsABI = [
       "function seatRole(address) view returns (uint8)",
       "function hasClaimed(address) view returns (bool)",
@@ -91,8 +112,11 @@
     
     async function initEthers() {
       if (window.ethereum) {
-        // Explicitly set network parameter to "any" to bypass ENS lookups
+        // Initialize provider with network parameter "any" to avoid ENS lookups
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        // Optionally override resolveName to disable ENS entirely:
+        provider.resolveName = async (name) => { return name; };
+        
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
