@@ -20,14 +20,13 @@
       background-size: 400% 400%;
       animation: gradientBG 15s ease infinite;
       color: #fff;
-      font-size: 1.1rem; /* Texto más grande */
+      font-size: 1.1rem;
     }
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
-    /* Pulse Animation */
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.1); }
@@ -36,7 +35,6 @@
     .pulse {
       animation: pulse 0.5s ease-in-out;
     }
-    /* Main Container */
     .container {
       max-width: 800px;
       margin: auto;
@@ -72,14 +70,13 @@
       padding: 15px;
       border-radius: 10px;
       text-align: left;
-      line-height: 1.5; /* Mejor legibilidad */
+      line-height: 1.5;
     }
     #chartContainer {
       margin-top: 30px;
       width: 100%;
       height: 300px;
     }
-    /* Responsive Styles */
     @media (max-width: 600px) {
       .container {
         padding: 10px;
@@ -111,7 +108,7 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargamos el menú desde components/menu2.html
+    // Load the menu from components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => { 
@@ -119,7 +116,7 @@
       })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Lógica del menú -->
+  <!-- Menu logic -->
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section (Optional) -->
@@ -134,9 +131,10 @@
     <button id="refreshButton">Refresh Data</button>
     <div id="walletStatus">Wallet not connected. Please connect via the menu.</div>
     <div id="tokenInfo">
-      <p><strong>Initial Supply:</strong> 333,000,000 tokens</p>
+      <p><strong>Initial Supply:</strong> 333,000,000 $ADRIAN</p>
       <p id="currentSupply"><strong>Current Supply:</strong> -</p>
-      <p id="totalBurned"><strong>Total Burned:</strong> 1,234,567 $ADRIAN</p>
+      <p id="totalBurned"><strong>Total Burned:</strong> -</p>
+      <p id="lpTokens"><strong>Pooled $ADRIAN:</strong> -</p>
     </div>
     <div id="chartContainer">
       <canvas id="burnChart"></canvas>
@@ -163,6 +161,7 @@
     const walletStatus = document.getElementById("walletStatus");
     const currentSupplyEl = document.getElementById("currentSupply");
     const totalBurnedEl = document.getElementById("totalBurned");
+    const lpTokensEl = document.getElementById("lpTokens");
     const ctx = document.getElementById("burnChart").getContext("2d");
     
     let provider;
@@ -173,6 +172,7 @@
     const initialSupply = 333000000;
     const decimals = 18;
     
+    // ABI with totalSupply and balanceOf functions
     const tokenABI = [
       {
         "inputs": [],
@@ -180,6 +180,13 @@
         "outputs": [
           { "internalType": "uint256", "name": "", "type": "uint256" }
         ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
         "type": "function"
       },
@@ -197,29 +204,53 @@
     
     const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
+    // Liquidity Pool wallet addresses
+    const liquidityPoolAddresses = [
+      "0xa41D5fAF7BA8B82E276125dE2a053216e91f4814",
+      "0xA51d80C15B0b67b9f32865D3351977a7006c462f"
+    ];
+    
+    // Function to get the total tokens in the Liquidity Pool (sum of both wallets)
+    async function getLiquidityPoolTotal() {
+      const balances = await Promise.all(
+        liquidityPoolAddresses.map(address => contract.balanceOf(address))
+      );
+      const totalLP = balances.reduce((acc, balanceBN) => {
+        return acc + parseFloat(ethers.utils.formatUnits(balanceBN, decimals));
+      }, 0);
+      return totalLP;
+    }
+    
     async function refreshTokenData() {
       try {
         const currentSupplyBN = await contract.totalSupply();
         const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
+        
+        // Get total tokens in the Liquidity Pool (LP)
+        const lpTokens = await getLiquidityPoolTotal();
+        
+        // Calculate burned tokens and circulating tokens (excluding LP)
         const burnedTokens = initialSupply - currentSupply;
+        const circulatingTokens = currentSupply - lpTokens;
         
-        // Se aplica el formato de miles con toLocaleString
-        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply).toLocaleString('en-US')} tokens`;
+        // Update DOM elements
+        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply).toLocaleString('en-US')} $ADRIAN`;
         totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens).toLocaleString('en-US')} $ADRIAN`;
-        totalBurnedEl.classList.add("pulse");
-        setTimeout(() => totalBurnedEl.classList.remove("pulse"), 500);
+        lpTokensEl.innerHTML = `<strong>Pooled $ADRIAN:</strong> ${Math.floor(lpTokens).toLocaleString('en-US')} $ADRIAN`;
         
+        // Update or create the chart with three categories: Burned, Pooled $ADRIAN, and Circulating
         if (burnChart) {
-          burnChart.data.datasets[0].data = [burnedTokens, currentSupply];
+          burnChart.data.datasets[0].data = [burnedTokens, lpTokens, circulatingTokens];
+          burnChart.data.labels = ['Burned', 'Pooled $ADRIAN', 'Circulating'];
           burnChart.update();
         } else {
           burnChart = new Chart(ctx, {
             type: 'pie',
             data: {
-              labels: ['Burned', 'In Circulation'],
+              labels: ['Burned', 'Pooled $ADRIAN', 'Circulating'],
               datasets: [{
-                data: [burnedTokens, currentSupply],
-                backgroundColor: ['#FF6384', '#36A2EB']
+                data: [burnedTokens, lpTokens, circulatingTokens],
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
               }]
             },
             options: {
@@ -233,7 +264,7 @@
                 title: {
                   display: true,
                   text: 'Token Distribution',
-                  color: "#000", // Color negro
+                  color: "#000",
                   font: {
                     size: 22,
                     weight: "bold"
@@ -241,7 +272,7 @@
                 },
                 legend: {
                   labels: {
-                    color: "#000", // Color negro
+                    color: "#000",
                     font: {
                       size: 16,
                       weight: "bold"
@@ -272,11 +303,11 @@
       refreshTokenData();
       
       contract.on("Transfer", async (from, to, value, event) => {
+        // Logic to handle the burn event, if you wish to notify or log
         if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
           const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
           const block = await provider.getBlock(event.blockNumber);
           const timestamp = new Date(block.timestamp * 1000).toLocaleString();
-          // Lógica para manejar el evento de quema, si se desea notificar o registrar
           refreshTokenData();
         }
       });
