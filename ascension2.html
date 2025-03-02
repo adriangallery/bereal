@@ -96,15 +96,14 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Use your actual AscendantSeats contract address
+    // Use your actual AscendantSeats contract address:
     const ascendantSeatsAddress = "0xe7fa18a4907eFd3A83cbB059c6b8792d71321ffC";
     
-    // Validate the AscendantSeats address
     if (!ethers.utils.isAddress(ascendantSeatsAddress)) {
       document.getElementById("appStatus").innerText = "Invalid AscendantSeats contract address.";
     }
     
-    // Extended ABI including the claimSeat() function.
+    // Extended ABI including claimSeat()
     const ascendantSeatsABI = [
       "function seatRole(address) view returns (uint8)",
       "function hasClaimed(address) view returns (bool)",
@@ -114,7 +113,7 @@
       "function claimAllADRIAN() external"
     ];
     
-    // ADRIAN token contract (ERC20)
+    // ADRIAN token (ERC20) contract ABI and address
     const tokenContractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const tokenABI = [ "function balanceOf(address account) view returns (uint256)" ];
     
@@ -122,9 +121,9 @@
     
     async function initEthers() {
       if (window.ethereum) {
-        // Initialize provider with "any" network to bypass ENS lookup
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        provider.resolveName = async (name) => name; // disable ENS
+        // Override ENS resolution to disable it:
+        provider.resolveName = async (name) => name;
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
@@ -192,23 +191,28 @@
       }
     }
     
-    // Separate function to claim the seat.
+    // Separate function to claim a seat.
     async function claimSeat() {
       try {
         document.getElementById("appStatus").innerText = "Claiming your seat...";
-        // Use callStatic to simulate and check for revert reason before sending the transaction.
-        await ascendantContract.callStatic.claimSeat();
+        // Simulate the transaction using callStatic so we catch errors.
+        try {
+          await ascendantContract.callStatic.claimSeat();
+        } catch (simError) {
+          console.error("Simulation error for claimSeat:", simError);
+          throw simError;
+        }
         const tx = await ascendantContract.claimSeat();
         await tx.wait();
         document.getElementById("appStatus").innerText = "Seat claimed successfully!";
         refreshAllInfo();
       } catch (error) {
         console.error("Claim seat failed:", error);
+        let msg = "Claim seat failed. Check console.";
         if (error.data && error.data.message) {
-          document.getElementById("appStatus").innerText = error.data.message;
-        } else {
-          document.getElementById("appStatus").innerText = "Claim seat failed. Check console.";
+          msg = error.data.message;
         }
+        document.getElementById("appStatus").innerText = msg;
       }
     }
     
@@ -216,19 +220,27 @@
     async function claimAllADRIAN() {
       try {
         document.getElementById("appStatus").innerText = "Processing distribution...";
-        // Optionally use callStatic here as well:
-        await ascendantContract.callStatic.claimAllADRIAN();
+        try {
+          await ascendantContract.callStatic.claimAllADRIAN();
+        } catch (simError) {
+          console.error("Simulation error for claimAllADRIAN:", simError);
+          throw simError;
+        }
         const tx = await ascendantContract.claimAllADRIAN();
         await tx.wait();
         document.getElementById("appStatus").innerText = "Distribution successful!";
         refreshAllInfo();
       } catch (error) {
         console.error("Claim distribution failed:", error);
-        if (error.data && error.data.message && error.data.message.includes("No hay asientos activos")) {
-          document.getElementById("appStatus").innerText = "No active seats found.";
-        } else {
-          document.getElementById("appStatus").innerText = "Distribution failed. Check console.";
+        let msg = "Distribution failed. Check console.";
+        if (error.data && error.data.message) {
+          if (error.data.message.includes("No hay asientos activos")) {
+            msg = "No active seats found.";
+          } else {
+            msg = error.data.message;
+          }
         }
+        document.getElementById("appStatus").innerText = msg;
       }
     }
     
