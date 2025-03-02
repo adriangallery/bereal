@@ -36,10 +36,9 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu placeholder (if available) -->
+  <!-- Menu placeholder -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load external menu if available
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
@@ -96,10 +95,10 @@
   
   <!-- Contract Interaction Script -->
   <script>
-    // Replace the placeholder with your actual AscendantSeats contract address.
+    // Use your actual AscendantSeats contract address
     const ascendantSeatsAddress = "0xe7fa18a4907eFd3A83cbB059c6b8792d71321ffC";
     
-    // Validate address
+    // Validate the contract address
     if (!ethers.utils.isAddress(ascendantSeatsAddress)) {
       document.getElementById("appStatus").innerText = "Invalid AscendantSeats contract address. Please update with a valid address.";
     }
@@ -121,11 +120,10 @@
     
     async function initEthers() {
       if (window.ethereum) {
-        // Initialize provider with "any" network to bypass ENS resolution
+        // Initialize provider with network "any" to avoid ENS lookups
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        // Disable ENS resolution by overriding resolveName
+        // Disable ENS resolution
         provider.resolveName = async (name) => name;
-        
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
@@ -202,7 +200,12 @@
         refreshAllInfo();
       } catch (error) {
         console.error("Claim failed:", error);
-        document.getElementById("appStatus").innerText = "Distribution failed. Check console.";
+        // Check for a specific revert message (e.g., "No hay asientos activos")
+        if (error.data && error.data.message && error.data.message.includes("No hay asientos activos")) {
+          document.getElementById("appStatus").innerText = "No active seats found. Please ensure you have an active seat.";
+        } else {
+          document.getElementById("appStatus").innerText = "Distribution failed. Check console.";
+        }
       }
     }
     
