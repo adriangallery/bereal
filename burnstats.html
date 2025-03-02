@@ -92,8 +92,9 @@
         font-size: 1rem;
         padding: 10px;
       }
+      /* Increase chart container height in mobile */
       #chartContainer {
-        height: 200px;
+        height: 400px;
       }
       #walletStatus {
         font-size: 1rem;
@@ -238,6 +239,11 @@
         totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens).toLocaleString('en-US')} $ADRIAN`;
         lpTokensEl.innerHTML = `<strong>Pooled $ADRIAN:</strong> ${Math.floor(lpTokens).toLocaleString('en-US')} $ADRIAN`;
         
+        // Determine font sizes based on screen width
+        const isMobile = window.innerWidth < 600;
+        const titleFontSize = isMobile ? 26 : 22;
+        const legendFontSize = isMobile ? 20 : 16;
+        
         // Update or create the chart with three categories: Burned, Pooled $ADRIAN, and Circulating
         if (burnChart) {
           burnChart.data.datasets[0].data = [burnedTokens, lpTokens, circulatingTokens];
@@ -264,18 +270,20 @@
                 title: {
                   display: true,
                   text: 'Token Distribution',
-                  color: "#000",
+                  color: "#fff",
                   font: {
-                    size: 22,
-                    weight: "bold"
+                    size: titleFontSize,
+                    weight: "normal"
                   }
                 },
                 legend: {
+                  position: 'bottom',
+                  align: 'center',
                   labels: {
-                    color: "#000",
+                    color: "#fff",
                     font: {
-                      size: 16,
-                      weight: "bold"
+                      size: legendFontSize,
+                      weight: "normal"
                     }
                   }
                 }
@@ -303,7 +311,7 @@
       refreshTokenData();
       
       contract.on("Transfer", async (from, to, value, event) => {
-        // Logic to handle the burn event, if you wish to notify or log
+        // Handle burn events if needed
         if (to.toLowerCase() === "0x0000000000000000000000000000000000000000") {
           const burnedValue = parseFloat(ethers.utils.formatUnits(value, decimals));
           const block = await provider.getBlock(event.blockNumber);
