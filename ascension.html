@@ -25,15 +25,19 @@
     }
     /* Hero Section */
     .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeicth6uhgmll6nnfb6kgvwmyplbzacerpfmbwkjht62nb3bn77ivr4') no-repeat center center;
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeicqhewinan4t5vq465de43iz34kny6jflkytbcfua2ltkbznc5b44') no-repeat center center;
       background-size: cover;
       padding: 4rem 0;
       color: #fff;
       text-shadow: 0 0 5px #000;
+      text-align: center;
     }
     .hero h1 {
       font-weight: bold;
       font-size: 3rem;
+    }
+    .hero p {
+      font-size: 1.5rem;
     }
   </style>
   <!-- Ethers.js UMD (v5) -->
@@ -54,10 +58,10 @@
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
-  <section class="hero text-center">
+  <section class="hero">
     <div class="container">
-      <h1>Claim your $ADRIAN Rewards</h1>
-      <p class="lead">Secure your seat and claim your distribution based on your NFT holdings.</p>
+      <h1>Ascendants dAPP</h1>
+      <p>Only the Chosen Few may ascend. Claim your seat and secure your ADRIAN rewards.</p>
     </div>
   </section>
 
@@ -65,7 +69,7 @@
   <div class="container my-5" id="claimSection">
     <h2 class="text-center">Claim Distribution</h2>
     <p id="walletStatus" class="text-center">Wallet not connected.</p>
-    <!-- This section is displayed when the wallet is connected -->
+    <!-- Displayed when the wallet is connected -->
     <div id="claimInfo" style="display: none;">
       <div class="mb-3">
         <strong>Active Seats:</strong> <span id="activeSeats">Loading...</span>
@@ -124,7 +128,7 @@
 
     async function refreshInfo() {
       try {
-        // Get active seats and display the last 5 characters of each wallet.
+        // Get active seats and display last 5 characters of each wallet address.
         const activeSeats = await claimContract.getActiveSeatHolders();
         let seatsDisplay = activeSeats.map(addr => addr.slice(-5)).join(", ");
         document.getElementById("activeSeats").innerText = seatsDisplay || "None";
@@ -136,8 +140,9 @@
       try {
         // Get claim statistics.
         const stats = await claimContract.getClaimStats();
-        document.getElementById("totalClaimed").innerText = stats.totalClaimed.toString();
-        document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats.tokensAvailable) + " ADRIAN";
+        // Format values: remove decimals by taking the integer part.
+        document.getElementById("totalClaimed").innerText = ethers.utils.formatEther(stats.totalClaimed).split('.')[0];
+        document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats.tokensAvailable).split('.')[0] + " ADRIAN";
       } catch (error) {
         console.error("Error loading claim stats:", error);
         document.getElementById("totalClaimed").innerText = "Error";
