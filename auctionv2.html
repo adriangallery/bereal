@@ -329,13 +329,14 @@
   
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   
-    // New function for Max Bid (10% extra) that takes into account the user's current deposit
+    // New function for Max Bid (10% extra) that accounts for the user's current deposit
     async function maxBidDeposit() {
       try {
         // Get the current highest bid from the contract
         const currentHighestBid = await auctionContract.highestBid();
-        // Get the user's current deposited bid
-        const userCurrentBid = await auctionContract.bids(userAccount);
+        // Get the user's current bid using getBidderPosition (second element is the bid amount)
+        const positionResult = await auctionContract.getBidderPosition(userAccount);
+        const userCurrentBid = positionResult[1]; // bid amount
   
         let requiredTotal;
         if (currentHighestBid.gt(0)) {
