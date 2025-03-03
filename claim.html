@@ -1,65 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN Auction</title>
+  <title>$ADRIAN CLAIM - NFT Claim</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (version 5.3.0) -->
+  <!-- Favicon -->
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
   <style>
     body {
       background-color: #f8f9fa;
     }
-    .navbar-brand {
-      font-weight: bold;
-      font-size: 1.5rem;
+    /* Estilos propios para el claim */
+    #claimSection {
+      background: #222;
+      color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+      margin-bottom: 2rem;
     }
-    /* Hero Section with NFT background */
+    #conditions p {
+      margin: 5px 0;
+    }
+    /* Hero con imagen del NFT */
     .hero {
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeicth6uhgmll6nnfb6kgvwmyplbzacerpfmbwkjht62nb3bn77ivr4') no-repeat center center;
       background-size: cover;
       padding: 4rem 0;
       color: #fff;
       text-shadow: 0 0 5px #000;
-      margin: 5px 0;
     }
     .hero h1 {
       font-weight: bold;
     }
-    /* Token images keep a 4:3 aspect ratio */
-    .token-img {
-      aspect-ratio: 4 / 3;
-      object-fit: cover;
-    }
-    h1 {
-      margin: 5px 0;
-    }
-    .card {
-      margin-bottom: 1.5rem;
-    }
-    footer {
-      margin-top: 2rem;
-      padding: 1rem 0;
-      border-top: 1px solid #ccc;
-    }
-    .btn-anaglyph-blue {
-      background-color: #007bff;
-      border-color: #007bff;
-      color: #fff;
-    }
-    .btn-anaglyph-blue:hover {
-      background-color: #0069d9;
-      border-color: #0062cc;
-    }
   </style>
+  <!-- Ethers.js UMD (para que ethers esté global) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu (common component) -->
+  <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load the menu HTML from components/menu2.html
+    // Cargamos el menú desde components/menu2.html (asegúrate de tenerlo actualizado)
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
@@ -69,108 +55,54 @@
         console.error('Error loading menu:', error);
       });
   </script>
-  <!-- Load the menu logic -->
+  <!-- Cargamos la lógica del menú -->
   <script src="components/menu2.js"></script>
-  
+
   <!-- Hero Section -->
-  <div class="hero text-center">
-    <h1>$ADRIAN Auction</h1>
-    <p>
-      🏆 Top bidder wins #0003 – The True Ascendant (1/1) + a piece of #0004 – ASCENSION (10/10) &nbsp;|&nbsp;
-      🏅 Next 9 get a piece of #0004 – ASCENSION (10/10)
-    </p>
-  </div>
-  
-  <!-- Auction Content -->
-  <div class="container mt-4">
-    <!-- Display connected account -->
-    <div class="text-center mb-4">
-      <p id="accountDisplay" class="mt-2"></p>
+  <section class="hero text-center">
+    <div class="container">
+      <h1>Claim your NFT now!</h1>
+      <p class="lead">Be part of $ADRIAN and get your exclusive NFT.</p>
     </div>
-    
-    <!-- Token Images Row -->
-    <div class="row mb-4">
-      <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeib3vyjihcbxfwrb2kzszrlwg4ttix2aqy7zllcy3fnakv5hlbqfnm" 
-             class="img-fluid rounded token-img" alt="Token ID 3" loading="lazy">
-      </div>
-      <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeifllrpummdtzyudpyvind7ekd7ofjcshdqcmoymzuslvxx2mqxx6a" 
-             class="img-fluid rounded token-img" alt="Token ID 4" loading="lazy">
-      </div>
-    </div>
-    
-    <!-- Auction Details -->
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Time Remaining</div>
-          <div class="card-body">
-            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
+  </section>
+
+  <!-- Claim Section -->
+  <div class="container my-5">
+    <div id="claimSection" class="text-center">
+      <h2>#0007 METAMORPH (SOOON)</h2>
+      <!-- Se elimina el botón de conexión interno -->
+      <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
+
+      <!-- Esta sección se muestra cuando la wallet esté conectada -->
+      <div id="claimInfo" style="display: none;">
+        <div class="row justify-content-center mb-3">
+          <div class="col-md-4">
+            <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeicth6uhgmll6nnfb6kgvwmyplbzacerpfmbwkjht62nb3bn77ivr4" class="img-fluid rounded" alt="Claim NFT">
           </div>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Current Highest Bid</div>
-          <div class="card-body">
-            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
-          </div>
+        <p>Cost per NFT: <span id="nftCost">Loading...</span> ADRIAN</p>
+        <p>Your claimed amount: <span id="userClaimed">0</span></p>
+        <p>Max per user: <span id="maxPerUser">Loading...</span></p>
+        <p>Total claimed: <span id="totalClaimed">Loading...</span></p>
+        <p>Overall max claim: <span id="overallMax">Loading...</span></p>
+        <p>Claim time: <span id="claimTime">Loading...</span></p>
+        <div class="mb-3">
+          <input type="number" id="quantity" class="form-control" placeholder="Quantity to claim" min="1" value="1">
+        </div>
+        <button id="claimBtn" class="btn btn-warning">Claim NFT(s)</button>
+        <p class="status mt-3" id="statusMessage"></p>
+        
+        <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
+          <!-- Se mostrarán las condiciones -->
         </div>
       </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">Auction Stats</div>
-      <div class="card-body">
-        <div id="auctionStatsDisplay">Loading auction stats...</div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">Top 10 Bidders</div>
-      <div class="card-body">
-        <div id="top10Display">Loading top 10...</div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">
-        My Position
-        <button id="myPositionButton" class="btn btn-sm btn-anaglyph-blue float-end">Check My Position</button>
-      </div>
-      <div class="card-body">
-        <div id="myPositionDisplay">Not checked</div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">Place a Bid</div>
-      <div class="card-body">
-        <div class="input-group mb-2">
-          <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
-        </div>
-        <div class="text-center">
-          <button id="maxBidButton" class="btn btn-anaglyph-blue">Max Bid (10% extra)</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Additional auction information (contract) -->
-    <div class="text-center mt-4">
-      <p>
-        Contract Address: 
-        <a href="https://base.blockscout.com/address/0x355b11DaF74340240e66eA5D242838C84B6B1967" target="_blank">
-          0x355b11DaF74340240e66eA5D242838C84B6B1967
-        </a>
-      </p>
     </div>
   </div>
-  
-  <!-- Footer (common component) -->
+
+  <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
+    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -180,232 +112,203 @@
         console.error('Error loading footer:', error);
       });
   </script>
-  
-  <!-- Auction JavaScript -->
+
+  <!-- Token Claim Script -->
   <script>
-    let provider, signer, auctionContract, tokenContract;
-    let userAccount = "";
-    
-    // New Auction Contract Address and Token Address
-    const auctionAddress = "0x355b11DaF74340240e66eA5D242838C84B6B1967";
-    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-  
-    // Updated ABI for the auction contract (including the AuctionExtended event)
-    const auctionABI = [
-      "function bid(uint256 amount) external",
-      "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
-      "function auctionEndTime() view returns (uint256)",
-      "function highestBid() view returns (uint256)",
-      "function highestBidder() view returns (address)",
-      "function token() view returns (address)",
-      "function getTimeRemaining() view returns (uint256)",
-      "function getTop10Bidders() view returns (address[] memory, uint256[] memory)",
-      "function getBidderPosition(address bidder) view returns (uint256, uint256)",
-      "function getAuctionStats() view returns (uint256, address, uint256, uint256, uint256)",
-      "event AuctionExtended(uint256 newAuctionEndTime)"
+    // Dirección y ABI del contrato ADRIANclaim
+    const claimContractAddress = "0x35e99e182f51054f990c40d6a588d3eaba8c68b2";
+    const claimContractABI = [
+      "function claim(uint256 quantity) external",
+      "function claimNFTCost() view returns (uint256)",
+      "function maxClaimPerUser() view returns (uint256)",
+      "function overallMaxClaim() view returns (uint256)",
+      "function totalClaimed() view returns (uint256)",
+      "function claimStartTime() view returns (uint256)",
+      "function claimEndTime() view returns (uint256)",
+      "function userClaimed(address) view returns (uint256)",
+      "function requiredToken() view returns (address)",
+      "function requiredTokenId() view returns (uint256)",
+      "function requiredTokenQuantity() view returns (uint256)",
+      "function adrianToken() view returns (address)",
+      "function claimNFT() view returns (address)",
+      "function claimNFTId() view returns (uint256)"
     ];
-  
-    // Standard ERC20 ABI
-    const tokenABI = [
-      "function approve(address spender, uint256 amount) external returns (bool)",
+
+    // ABIs mínimas para ERC1155 y ERC20
+    const erc1155ABI = [
+      "function balanceOf(address account, uint256 id) view returns (uint256)"
+    ];
+    const erc20ABI = [
+      "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
+      "function approve(address spender, uint256 amount) returns (bool)"
     ];
-  
-    // Update functions for auction details
-    async function updateHighestBid() {
+
+    let provider, signer, claimContract, userAddress;
+
+    async function loadClaimInfo() {
       try {
-        const highestBidRaw = await auctionContract.highestBid();
-        document.getElementById("highestBidDisplay").innerText = ethers.utils.formatUnits(highestBidRaw, 18);
+        const cost = await claimContract.claimNFTCost();
+        const maxPerUser = await claimContract.maxClaimPerUser();
+        const overallMax = await claimContract.overallMaxClaim();
+        const totalClaimed = await claimContract.totalClaimed();
+        const claimStart = await claimContract.claimStartTime();
+        const claimEnd = await claimContract.claimEndTime();
+        const userClaimed = await claimContract.userClaimed(userAddress);
+
+        document.getElementById("nftCost").innerText = ethers.utils.formatEther(cost);
+        document.getElementById("maxPerUser").innerText = maxPerUser.toString();
+        document.getElementById("overallMax").innerText = overallMax.toString();
+        document.getElementById("totalClaimed").innerText = totalClaimed.toString();
+        document.getElementById("userClaimed").innerText = userClaimed.toString();
+
+        let timeInfo = "";
+        const now = Math.floor(Date.now() / 1000);
+        if(claimStart.gt(0)) {
+          timeInfo += "Start: " + new Date(claimStart.toNumber() * 1000).toLocaleString() + " ";
+        }
+        if(claimEnd.gt(0)) {
+          timeInfo += "End: " + new Date(claimEnd.toNumber() * 1000).toLocaleString();
+        }
+        document.getElementById("claimTime").innerText = timeInfo || "Unlimited";
       } catch (error) {
-        console.error("Error fetching highest bid:", error);
+        console.error("Error loading claim info:", error);
       }
     }
-  
-    async function updateTimeRemaining() {
+
+    async function updateConditions() {
+      const conditionsDiv = document.getElementById("conditions");
+      conditionsDiv.innerHTML = "";
+      const now = Math.floor(Date.now() / 1000);
+
+      // 1. Periodo de claim activo
+      const claimStart = await claimContract.claimStartTime();
+      const claimEnd = await claimContract.claimEndTime();
+      let claimActive = true;
+      if(claimStart.gt(0) && now < claimStart.toNumber()){
+        claimActive = false;
+      }
+      if(claimEnd.gt(0) && now > claimEnd.toNumber()){
+        claimActive = false;
+      }
+      conditionsDiv.innerHTML += `<p>Claim period active: ${claimActive ? "Yes" : "No"}</p>`;
+
+      // 2. Condición: token requerido
+      const reqTokenAddr = await claimContract.requiredToken();
+      const reqTokenQuantity = await claimContract.requiredTokenQuantity();
+      const reqTokenId = await claimContract.requiredTokenId();
+      if(reqTokenAddr !== "0x0000000000000000000000000000000000000000" && reqTokenQuantity.gt(0)) {
+        const reqTokenContract = new ethers.Contract(reqTokenAddr, erc1155ABI, provider);
+        const userReqBalance = await reqTokenContract.balanceOf(userAddress, reqTokenId);
+        const reqCondition = userReqBalance.gte(reqTokenQuantity);
+        conditionsDiv.innerHTML += `<p>Has required token (ID ${reqTokenId}): ${reqCondition ? "Yes" : "No"} (Your balance: ${userReqBalance.toString()})</p>`;
+      } else {
+        conditionsDiv.innerHTML += "<p>No required token condition</p>";
+      }
+
+      // 3. Límite individual no excedido
+      const maxPerUser = await claimContract.maxClaimPerUser();
+      const userClaimed = await claimContract.userClaimed(userAddress);
+      if(maxPerUser.gt(0)) {
+        const userLimitOk = userClaimed.lt(maxPerUser);
+        conditionsDiv.innerHTML += `<p>User claim limit: ${userLimitOk ? "Not reached" : "Reached"} (${userClaimed.toString()}/${maxPerUser.toString()})</p>`;
+      } else {
+        conditionsDiv.innerHTML += "<p>User claim limit: Unlimited</p>";
+      }
+
+      // 4. Límite global no alcanzado
+      const overallMax = await claimContract.overallMaxClaim();
+      const totalClaimed = await claimContract.totalClaimed();
+      if(overallMax.gt(0)) {
+        const overallOk = totalClaimed.lt(overallMax);
+        conditionsDiv.innerHTML += `<p>Overall claim limit: ${overallOk ? "Not reached" : "Reached"} (${totalClaimed.toString()}/${overallMax.toString()})</p>`;
+      } else {
+        conditionsDiv.innerHTML += "<p>Overall claim limit: Unlimited</p>";
+      }
+
+      // 5. Contrato tiene suficientes NFTs para cubrir la cantidad a reclamar
+      const claimNFTAddr = await claimContract.claimNFT();
+      const claimNFTId = await claimContract.claimNFTId();
+      const claimNFTContract = new ethers.Contract(claimNFTAddr, erc1155ABI, provider);
+      const availableNFTs = await claimNFTContract.balanceOf(claimContractAddress, claimNFTId);
+      const quantity = parseInt(document.getElementById("quantity").value);
+      const contractNFTOk = availableNFTs.gte(quantity);
+      conditionsDiv.innerHTML += `<p>Contract has enough NFTs: ${contractNFTOk ? "Yes" : "No"} (Available: ${availableNFTs.toString()})</p>`;
+
+      // 6. El usuario tiene suficientes ADRIAN tokens (si costo > 0)
+      const cost = await claimContract.claimNFTCost();
+      if(cost.gt(0)) {
+        const adrianTokenAddr = await claimContract.adrianToken();
+        const adrianContract = new ethers.Contract(adrianTokenAddr, erc20ABI, provider);
+        const userAdrianBalance = await adrianContract.balanceOf(userAddress);
+        const totalCost = cost.mul(quantity);
+        const adrianOk = userAdrianBalance.gte(totalCost);
+        conditionsDiv.innerHTML += `<p>User has enough ADRIAN tokens: ${adrianOk ? "Yes" : "No"} (Balance: ${ethers.utils.formatEther(userAdrianBalance)})</p>`;
+      } else {
+        conditionsDiv.innerHTML += "<p>No ADRIAN token cost required</p>";
+      }
+    }
+
+    document.getElementById("quantity").addEventListener("input", updateConditions);
+
+    document.getElementById("claimBtn").addEventListener("click", async () => {
+      const quantity = document.getElementById("quantity").value;
+      if(quantity <= 0) return;
+      document.getElementById("statusMessage").innerText = "Processing claim...";
+      
       try {
-        const secondsRemaining = await auctionContract.getTimeRemaining();
-        let secs = secondsRemaining.toNumber();
-        const days = Math.floor(secs / 86400);
-        secs %= 86400;
-        const hours = Math.floor(secs / 3600);
-        secs %= 3600;
-        const minutes = Math.floor(secs / 60);
-        const seconds = secs % 60;
+        // Verificar costo y gestionar el approve si es necesario
+        const cost = await claimContract.claimNFTCost();
+        if(cost.gt(0)) {
+          const totalCost = cost.mul(quantity);
+          const adrianTokenAddr = await claimContract.adrianToken();
+          const adrianTokenContract = new ethers.Contract(adrianTokenAddr, erc20ABI, signer);
+          const allowance = await adrianTokenContract.allowance(userAddress, claimContractAddress);
+          if(allowance.lt(totalCost)) {
+            document.getElementById("statusMessage").innerText = "Approving ADRIAN tokens...";
+            const approveTx = await adrianTokenContract.approve(claimContractAddress, totalCost);
+            await approveTx.wait();
+            document.getElementById("statusMessage").innerText = "Approval successful. Proceeding with claim...";
+          }
+        }
         
-        let timeDisplay = "";
-        if (days > 0) {
-          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        } else {
-          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
-        }
-        document.getElementById("timeRemainingDisplay").innerText = timeDisplay;
+        // Ejecutar claim
+        const tx = await claimContract.claim(quantity);
+        await tx.wait();
+        document.getElementById("statusMessage").innerText = "Claim successful!";
+        loadClaimInfo();
+        updateConditions();
       } catch (error) {
-        console.error("Error updating time remaining:", error);
-        document.getElementById("timeRemainingDisplay").innerText = "Error fetching time.";
+        console.error("Claim failed:", error);
+        document.getElementById("statusMessage").innerText = "Claim failed. Check console.";
       }
-    }
-  
-    async function updateAuctionStats() {
-      try {
-        const [highestBid, highestBidder, totalTokens, bidderCount, auctionEnd] = await auctionContract.getAuctionStats();
-        let statsHtml = `<p>Highest Bid: ${ethers.utils.formatUnits(highestBid, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Highest Bidder: ${highestBidder}</p>`;
-        statsHtml += `<p>Total Tokens Deposited: ${ethers.utils.formatUnits(totalTokens, 18)} ADRIAN</p>`;
-        statsHtml += `<p>Number of Bidders: ${bidderCount.toString()}</p>`;
-        const endDate = new Date(auctionEnd.toNumber() * 1000);
-        statsHtml += `<p>Auction Ends At: ${endDate.toLocaleString()}</p>`;
-        document.getElementById("auctionStatsDisplay").innerHTML = statsHtml;
-      } catch (error) {
-        console.error("Error fetching auction stats:", error);
-        document.getElementById("auctionStatsDisplay").innerText = "Error loading auction stats.";
-      }
-    }
-  
-    async function updateTop10() {
-      try {
-        const [topBidders, topBids] = await auctionContract.getTop10Bidders();
-        let html = "";
-        for (let i = 0; i < topBidders.length; i++) {
-          const truncated = topBidders[i].slice(-4);
-          const bidAmount = ethers.utils.formatUnits(topBids[i], 18);
-          html += `<p>${i + 1}. 0x...${truncated} - ${bidAmount} ADRIAN</p>`;
-        }
-        document.getElementById("top10Display").innerHTML = html;
-      } catch (error) {
-        console.error("Error updating top 10:", error);
-        document.getElementById("top10Display").innerText = "Error loading top 10.";
-      }
-    }
-  
-    async function updateMyPosition() {
-      if (!userAccount) {
-        document.getElementById("myPositionDisplay").innerText = "Not connected";
-        return;
-      }
-      try {
-        const [position, bidAmount] = await auctionContract.getBidderPosition(userAccount);
-        document.getElementById("myPositionDisplay").innerText =
-          `Your Position: ${position} - Your Bid: ${ethers.utils.formatUnits(bidAmount, 18)} ADRIAN`;
-      } catch (error) {
-        console.error("Error fetching your position:", error);
-        document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
-      }
-    }
-  
-    document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
-  
-    async function approveAndDeposit() {
-      const amountInput = document.getElementById("amountInput").value;
-      if (!amountInput || amountInput <= 0) {
-        alert("Please enter a valid amount");
-        return;
-      }
-      const amount = ethers.utils.parseUnits(amountInput, 18);
-      try {
-        const txApprove = await tokenContract.approve(auctionAddress, amount);
-        alert("Approval transaction sent. Please wait for confirmation.");
-        await txApprove.wait();
-        alert("Approval confirmed. Proceeding to deposit.");
-  
-        // Call the new bid function
-        const txBid = await auctionContract.bid(amount);
-        alert("Bid transaction sent. Please wait for confirmation.");
-        await txBid.wait();
-        alert("Bid confirmed.");
-  
-        updateHighestBid();
-        updateTop10();
-        updateAuctionStats();
-      } catch (error) {
-        console.error("Error during approve & deposit:", error);
-        alert("Error during approve & deposit. Check console for details.");
-      }
-    }
-  
-    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
-  
-    // New function for Max Bid (10% extra)
-    async function maxBidDeposit() {
-      try {
-        // Get the current highest bid from the contract
-        const currentHighestBid = await auctionContract.highestBid();
-        let newBidAmount;
-        if (currentHighestBid.gt(0)) {
-          // Calculate new bid = highest bid + 10%
-          newBidAmount = currentHighestBid.add(currentHighestBid.div(10));
-        } else {
-          // If no bid yet, set a default minimum (e.g., 1 ADRIAN)
-          newBidAmount = ethers.utils.parseUnits("1", 18);
-        }
-        // Update the input field to show the calculated bid (optional)
-        document.getElementById("amountInput").value = ethers.utils.formatUnits(newBidAmount, 18);
-  
-        const txApprove = await tokenContract.approve(auctionAddress, newBidAmount);
-        alert("Approval transaction sent. Please wait for confirmation.");
-        await txApprove.wait();
-        alert("Approval confirmed. Proceeding with max bid.");
-  
-        const txBid = await auctionContract.bid(newBidAmount);
-        alert("Max bid transaction sent. Please wait for confirmation.");
-        await txBid.wait();
-        alert("Max bid confirmed.");
-  
-        updateHighestBid();
-        updateTop10();
-        updateAuctionStats();
-      } catch (error) {
-        console.error("Error during max bid deposit:", error);
-        alert("Error during max bid deposit. Check console for details.");
-      }
-    }
-  
-    document.getElementById("maxBidButton").addEventListener("click", maxBidDeposit);
-  
-    // Listen for the AuctionExtended event to update the time remaining immediately
-    function listenForAuctionExtensions() {
-      auctionContract.on("AuctionExtended", (newAuctionEndTime) => {
-        console.log("Auction extended to:", newAuctionEndTime.toString());
-        updateTimeRemaining();
-      });
-    }
-  
-    // Callback invoked when the wallet is connected from the menu (defined in menu2.js)
+    });
+
+    // Callback que se invoca cuando se conecta la wallet desde el menú (definido en menu2.js)
     window.onMenuWalletConnected = async function() {
-      // Assign global variables from those defined in menu2.js
+      // Asignamos variables globales a partir de menu2.js
+      userAddress = window.menuUserAccount;
       provider = window.menuProvider;
       signer = window.menuSigner;
-      userAccount = window.menuUserAccount;
-      
-      // Update display on the auction page
-      document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
-      
-      // Instantiate contracts using the signer
-      auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
-      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-      
-      // Start listening for AuctionExtended events
-      listenForAuctionExtensions();
-      
-      // Update auction information
-      updateHighestBid();
-      updateTimeRemaining();
-      updateAuctionStats();
-      updateTop10();
-      
-      // Schedule periodic updates
-      setInterval(updateTimeRemaining, 5000);
-      setInterval(updateTop10, 10000);
-      setInterval(updateAuctionStats, 15000);
+      console.log("onMenuWalletConnected: userAddress =", userAddress);
+      // Actualizamos el estado de la wallet
+      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+      // Mostramos la sección de claim
+      document.getElementById("claimInfo").style.display = "block";
+      // Instanciamos el contrato de claim usando el signer
+      claimContract = new ethers.Contract(claimContractAddress, claimContractABI, signer);
+      // Cargamos la información de claim y las condiciones
+      loadClaimInfo();
+      updateConditions();
     };
-    
-    // (Optional) Callback for wallet disconnection
+
+    // (Opcional) Callback para cuando se desconecta la wallet
     window.onMenuWalletDisconnected = function() {
-      document.getElementById("accountDisplay").innerText = "";
-      // You could also clear or reset auction data here if needed.
+      document.getElementById("walletStatus").innerText = "Wallet not connected. Please connect via the menu.";
+      document.getElementById("claimInfo").style.display = "none";
     };
   </script>
-  
+
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
