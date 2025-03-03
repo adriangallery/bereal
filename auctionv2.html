@@ -312,7 +312,7 @@
         await txApprove.wait();
         alert("Approval confirmed. Proceeding to deposit.");
   
-        // Call the new bid function
+        // Call the bid function
         const txBid = await auctionContract.bid(amount);
         alert("Bid transaction sent. Please wait for confirmation.");
         await txBid.wait();
@@ -329,28 +329,40 @@
   
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
   
-    // New function for Max Bid (10% extra)
+    // New function for Max Bid (10% extra) that takes into account the user's current deposit
     async function maxBidDeposit() {
       try {
         // Get the current highest bid from the contract
         const currentHighestBid = await auctionContract.highestBid();
-        let newBidAmount;
+        // Get the user's current deposited bid
+        const userCurrentBid = await auctionContract.bids(userAccount);
+  
+        let requiredTotal;
         if (currentHighestBid.gt(0)) {
-          // Calculate new bid = highest bid + 10%
-          newBidAmount = currentHighestBid.add(currentHighestBid.div(10));
+          // Calculate required total = highest bid + 10%
+          requiredTotal = currentHighestBid.add(currentHighestBid.div(10));
         } else {
           // If no bid yet, set a default minimum (e.g., 1 ADRIAN)
-          newBidAmount = ethers.utils.parseUnits("1", 18);
+          requiredTotal = ethers.utils.parseUnits("1", 18);
         }
-        // Update the input field to show the calculated bid (optional)
-        document.getElementById("amountInput").value = ethers.utils.formatUnits(newBidAmount, 18);
   
-        const txApprove = await tokenContract.approve(auctionAddress, newBidAmount);
+        // Calculate the additional deposit needed
+        let depositNeeded = requiredTotal.sub(userCurrentBid);
+  
+        if (depositNeeded.lte(0)) {
+          alert("Your current bid already meets or exceeds the required max bid.");
+          return;
+        }
+  
+        // Optionally update the input field to show the deposit needed
+        document.getElementById("amountInput").value = ethers.utils.formatUnits(depositNeeded, 18);
+  
+        const txApprove = await tokenContract.approve(auctionAddress, depositNeeded);
         alert("Approval transaction sent. Please wait for confirmation.");
         await txApprove.wait();
         alert("Approval confirmed. Proceeding with max bid.");
   
-        const txBid = await auctionContract.bid(newBidAmount);
+        const txBid = await auctionContract.bid(depositNeeded);
         alert("Max bid transaction sent. Please wait for confirmation.");
         await txBid.wait();
         alert("Max bid confirmed.");
@@ -406,7 +418,6 @@
     // (Optional) Callback for wallet disconnection
     window.onMenuWalletDisconnected = function() {
       document.getElementById("accountDisplay").innerText = "";
-      // You could also clear or reset auction data here if needed.
     };
   </script>
   
