@@ -43,25 +43,27 @@
   </style>
 </head>
 <body>
-  <!-- Menu -->
+  <!-- Menu: Utilizamos el nuevo menú -->
   <div id="menu-placeholder"></div>
   <script>
-    fetch('components/menu.html')
+    // Cargar el menú desde components/menu2.html
+    fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
+  <!-- Lógica del menú nuevo -->
+  <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
-      
+      <!-- Puedes agregar contenido adicional en el hero si lo deseas -->
     </div>
   </section>
 
   <!-- Main Content -->
   <div class="container my-5">
-
     <!-- About Section -->
     <section id="about">
       <h2 class="section-title">What is $ADRIAN?</h2>
