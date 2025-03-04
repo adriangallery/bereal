@@ -5,10 +5,10 @@
   <meta charset="UTF-8">
   <title>$ADRIAN Raffle</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (version 5.3.0) -->
+  <!-- Bootstrap CSS (versión 5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   
-  <!-- Cargar ethers.js primero para que menu2.js lo use -->
+  <!-- Cargar ethers.js (necesario para menu2.js) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <style>
@@ -73,7 +73,7 @@
         console.error('Error loading menu:', error);
       });
   </script>
-  <!-- Cargar la lógica del menú DESPUÉS de ethers.js -->
+  <!-- Lógica del menú: se debe asegurar que, al conectar la wallet, se actualice window.menuUserAccount y se invoque onMenuWalletConnected() -->
   <script src="components/menu2.js"></script>
   
   <!-- Hero Section -->
@@ -86,7 +86,7 @@
   
   <!-- Contenido del Raffle -->
   <div class="container mt-4">
-    <!-- Mostrar cuenta conectada (se asigna desde el menú) -->
+    <!-- Mostrar cuenta conectada (actualizada desde el menú) -->
     <div class="text-center mb-4">
       <p id="accountDisplayRaffle" class="mt-2"></p>
     </div>
@@ -95,7 +95,7 @@
     <div class="card">
       <div class="card-header">Registro para el Raffle</div>
       <div class="card-body">
-        <!-- Botón para registrarse (la conexión de wallet se hace desde el menú) -->
+        <!-- Botón para registrarse en el Raffle -->
         <div class="text-center mb-3">
           <button id="registerButton" class="btn btn-success">Registrarse en el Raffle</button>
         </div>
