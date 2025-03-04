@@ -103,6 +103,31 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
+    /* ========== ESTILOS PARA NFTs NO POSEÍDOS ========== */
+    .nft-card.unowned {
+      background-color: #ddd;
+      color: #555;
+      filter: grayscale(100%);
+      border: 1px solid #bbb;
+    }
+    .nft-card.unowned .card-title,
+    .nft-card.unowned .card-text {
+      color: #555;
+    }
+    .opensea-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      display: block;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
     /* ========== HEADER Y FOOTER PLACEHOLDERS ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
@@ -260,34 +285,33 @@
         const nextEventId = await nftContract.nextEventId();
         const totalEvents = nextEventId.toNumber();
 
-        let hasNFT = false;
+        let ownedCards = [];
+        let unownedCards = [];
         for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
+          let tokenURI = await nftContract.uri(tokenId);
+          if (tokenURI.startsWith("ipfs://")) {
+            tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+          }
+          
+          let metadata = {};
+          try {
+            const response = await fetch(tokenURI);
+            metadata = await response.json();
+          } catch (metaError) {
+            console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
+          }
+          
+          let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+          if (imageUrl.startsWith("ipfs://")) {
+            imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+          }
+          
+          let tokenName = metadata.name || `Token ${tokenId}`;
           const balance = await nftContract.balanceOf(userAccount, tokenId);
+          
           if (balance.toNumber() > 0) {
-            hasNFT = true;
-            let tokenURI = await nftContract.uri(tokenId);
-            if (tokenURI.startsWith("ipfs://")) {
-              tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-            }
-            
-            let metadata = {};
-            try {
-              const response = await fetch(tokenURI);
-              metadata = await response.json();
-            } catch (metaError) {
-              console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
-            }
-            
-            let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
-            if (imageUrl.startsWith("ipfs://")) {
-              imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-            }
-            
-            let tokenName = metadata.name || `Token ${tokenId}`;
-            
-            const colDiv = document.createElement("div");
-            colDiv.className = "col-6 col-md-3 mb-4";
-            colDiv.innerHTML = `
+            // NFT que el usuario posee
+            let cardHTML = `<div class="col-6 col-md-3 mb-4">
               <div class="card nft-card h-100">
                 <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
                 <div class="card-body">
@@ -298,14 +322,30 @@
                   See Details
                 </button>
               </div>
-            `;
-            galleryDiv.appendChild(colDiv);
+            </div>`;
+            ownedCards.push(cardHTML);
+          } else {
+            // NFT que el usuario NO posee (se muestra en escala de grises)
+            let cardHTML = `<div class="col-6 col-md-3 mb-4">
+              <div class="card nft-card unowned h-100">
+                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${tokenName}</h5>
+                  <p class="card-text">Not owned</p>
+                </div>
+                <a href="https://opensea.io/es/collection/adriangallery" target="_blank" class="opensea-btn">
+                  Buy in Opensea
+                </a>
+              </div>
+            </div>`;
+            unownedCards.push(cardHTML);
           }
         }
         
-        if (!hasNFT) {
-          galleryDiv.innerHTML = "<p>You don't own any NFTs from this collection.</p>";
-        }
+        // Agregar primero los NFTs que el usuario posee
+        ownedCards.forEach(card => galleryDiv.innerHTML += card);
+        // Luego agregar los NFTs que no posee
+        unownedCards.forEach(card => galleryDiv.innerHTML += card);
       } catch (error) {
         console.error("Error loading NFTs:", error);
         document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
