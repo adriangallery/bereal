@@ -41,24 +41,26 @@
       border-radius: 5px;
     }
   </style>
+  <!-- Cargar ethers.js UMD (asegúrate de no cargar la versión module) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu: Utilizamos el nuevo menú -->
+  <!-- Menu: se usa el menú nuevo -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargar el menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .then(html => { 
+        document.getElementById('menu-placeholder').innerHTML = html; 
+      })
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Lógica del menú nuevo -->
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
-      <!-- Puedes agregar contenido adicional en el hero si lo deseas -->
+      <!-- Puedes agregar aquí contenido adicional en el hero si lo deseas -->
     </div>
   </section>
 
@@ -97,7 +99,6 @@
     <section id="dapps" class="mt-5">
       <h2 class="section-title">dApps Showcase</h2>
       <div class="accordion" id="dAppsAccordion">
-        
         <!-- The TAX Reaper -->
         <div class="accordion-item">
           <h2 class="accordion-header" id="headingTaxReaper">
@@ -234,7 +235,6 @@
         <a href="https://basescan.org/address/0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea" class="btn btn-primary btn-lg" target="_blank">Token Address</a>
       </div>
     </section>
-
   </div>
 
   <!-- Footer -->
