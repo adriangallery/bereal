@@ -107,7 +107,7 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
-    /* Botón Buy (para tokens no poseídos) */
+    /* Botón Buy/Mint */
     .opensea-btn {
       position: absolute;
       bottom: 5px;
@@ -228,7 +228,6 @@
 
     // Función para obtener metadata utilizando localStorage como caché
     async function getMetadata(tokenURI) {
-      // Verificar si ya existe la metadata en localStorage
       const cached = localStorage.getItem(tokenURI);
       if (cached) {
         try {
@@ -240,14 +239,10 @@
           console.error("Error parsing cache for", tokenURI, e);
         }
       }
-      // Si no está en caché o ha expirado, se hace fetch
       try {
         const response = await fetch(tokenURI);
         const metadata = await response.json();
-        const toStore = {
-          timestamp: Date.now(),
-          data: metadata
-        };
+        const toStore = { timestamp: Date.now(), data: metadata };
         localStorage.setItem(tokenURI, JSON.stringify(toStore));
         return metadata;
       } catch (error) {
@@ -275,12 +270,8 @@
 
     function formatAmount(amount) {
       const num = parseFloat(amount);
-      if (num >= 1e6) {
-        return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
-      }
-      if (num >= 1e3) {
-        return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-      }
+      if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+      if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
       return num.toString();
     }
 
@@ -289,12 +280,9 @@
       provider = window.menuProvider;
       signer = window.menuSigner;
       userAccount = window.menuUserAccount;
-
       document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
-
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
-
       updateTokenBalance();
       loadNFTs();
     };
@@ -314,46 +302,25 @@
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = ""; // Limpiar contenido previo
-
-        // Obtener total de eventos (mint)
         const nextEventId = await nftContract.nextEventId();
         const totalEvents = nextEventId.toNumber();
-
-        // Usamos un objeto para agrupar tokens con la misma metadata (nombre + imagen)
         let uniqueTokens = {};
-
         for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-          // Saltar tokenId 0 y tokenId 5
-          if (tokenId === 0 || tokenId === 5) continue;
-
+          // Saltar tokenId 0
+          if (tokenId === 0) continue;
           let tokenURI = await nftContract.uri(tokenId);
-          if (tokenURI.startsWith("ipfs://")) {
-            tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
-
-          // Obtenemos la metadata utilizando la función con caché
+          if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
           const metadata = await getMetadata(tokenURI);
-
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
-          if (imageUrl.startsWith("ipfs://")) {
-            imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
+          if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
           let tokenName = metadata.name || `Token ${tokenId}`;
-
-          // Omitir el token si su nombre es "#0006 THE BURNED FORTUNE"
-          if(tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
-
-          // Usamos como clave la combinación de tokenName e imageUrl
+          // Omitir token si su nombre es "#0006 THE BURNED FORTUNE"
+          if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
           let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
-
-          // Obtenemos el balance para este token
           const balance = await nftContract.balanceOf(userAccount, tokenId);
           let ownedCount = balance.toNumber();
-
           if (uniqueTokens[tokenKey]) {
-            // Acumulamos la cantidad
             uniqueTokens[tokenKey].owned += ownedCount;
-            // Si no se había establecido un token representativo y este es poseído, lo asignamos
             if (!uniqueTokens[tokenKey].ownedRepresentative && ownedCount > 0) {
               uniqueTokens[tokenKey].ownedRepresentative = tokenId;
             }
@@ -367,15 +334,14 @@
             };
           }
         }
-
-        // Construir y mostrar las tarjetas
+        // Renderizar tarjetas
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           let cardHTML = "";
           if (token.owned > 0) {
-            // Tarjeta para token poseído
+            // Token poseído: mostrar botón Details
             cardHTML = `
               <div class="card nft-card h-100">
                 <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
@@ -389,19 +355,34 @@
               </div>
             `;
           } else {
-            // Tarjeta para token no poseído (en gris)
-            cardHTML = `
-              <div class="card nft-card unowned h-100">
-                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
-                <div class="card-body">
-                  <h5 class="card-title">${token.tokenName}</h5>
-                  <p class="card-text">Not owned</p>
+            // Token no poseído: si es "#0005 THE BURNED FORTUNE", mostrar botón Mint que redirige a filthyrich.html; de lo contrario, mostrar Buy
+            if (token.tokenName.trim() === "#0005 THE BURNED FORTUNE") {
+              cardHTML = `
+                <div class="card nft-card unowned h-100">
+                  <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                  <div class="card-body">
+                    <h5 class="card-title">${token.tokenName}</h5>
+                    <p class="card-text">Not owned</p>
+                  </div>
+                  <a href="filthyrich.html" target="_blank" class="opensea-btn">
+                    Mint
+                  </a>
                 </div>
-                <a href="https://opensea.io/es/collection/adriangallery" target="_blank" class="opensea-btn">
-                  Buy
-                </a>
-              </div>
-            `;
+              `;
+            } else {
+              cardHTML = `
+                <div class="card nft-card unowned h-100">
+                  <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                  <div class="card-body">
+                    <h5 class="card-title">${token.tokenName}</h5>
+                    <p class="card-text">Not owned</p>
+                  </div>
+                  <a href="https://opensea.io/es/collection/adriangallery" target="_blank" class="opensea-btn">
+                    Buy
+                  </a>
+                </div>
+              `;
+            }
           }
           colDiv.innerHTML = cardHTML;
           galleryDiv.appendChild(colDiv);
@@ -415,19 +396,15 @@
     async function showMetadata(tokenId) {
       try {
         let tokenURI = await nftContract.uri(tokenId);
-        if (tokenURI.startsWith("ipfs://")) {
-          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-        }
-        // Utilizamos la función getMetadata para usar el caché también en el modal
+        if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         const metadata = await getMetadata(tokenURI);
-
         let html = `<div class="text-center mb-3">
                       <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
                            class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
                     </div>`;
         html += `<p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>`;
         html += `<p><strong>Description:</strong> ${metadata.description || 'No description'}</p>`;
-        if(metadata.attributes) {
+        if (metadata.attributes) {
           html += `<p><strong>Attributes:</strong></p><ul>`;
           metadata.attributes.forEach(attr => {
             html += `<li>${attr.trait_type}: ${attr.value}</li>`;
@@ -435,11 +412,8 @@
           html += `</ul>`;
         }
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
-
         document.getElementById("metadataContent").innerHTML = html;
-        document.getElementById("metadataModalLabel").innerHTML =
-          `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
-
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
       } catch (error) {
