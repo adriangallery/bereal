@@ -32,6 +32,10 @@
     .fs-3 {
       font-size: 1.75rem;
     }
+    /* Ensure the canvas container has fixed dimensions */
+    #dailyBurnChart {
+      height: 300px;
+    }
   </style>
 </head>
 <body>
@@ -87,7 +91,7 @@
       <div class="col-12">
         <div class="card p-3">
           <h5 class="card-title text-center">Daily Burn</h5>
-          <canvas id="dailyBurnChart" style="height: 300px;"></canvas>
+          <canvas id="dailyBurnChart"></canvas>
         </div>
       </div>
     </div>
@@ -281,48 +285,45 @@
       return { labels, values };
     }
     
-    // Update the daily burn chart
+    // Update the daily burn chart (destroy existing instance to prevent growth bug)
     function updateDailyBurnChart(labels, values) {
-      if (!dailyBurnChart) {
-        const ctx = document.getElementById("dailyBurnChart").getContext("2d");
-        dailyBurnChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Burned Tokens',
-              data: values,
-              backgroundColor: 'rgba(255,99,132,0.2)',
-              borderColor: 'rgba(255,99,132,1)',
-              borderWidth: 2,
-              pointRadius: 3,
-              pointBackgroundColor: '#fff'
-            }]
-          },
-          options: {
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                ticks: { color: '#fff' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
-              },
-              x: {
-                ticks: { color: '#fff' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
-              }
+      const ctx = document.getElementById("dailyBurnChart").getContext("2d");
+      if (dailyBurnChart) {
+        dailyBurnChart.destroy();
+      }
+      dailyBurnChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Burned Tokens',
+            data: values,
+            backgroundColor: 'rgba(255,99,132,0.2)',
+            borderColor: 'rgba(255,99,132,1)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#fff'
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              ticks: { color: '#fff' },
+              grid: { color: 'rgba(255,255,255,0.1)' }
             },
-            plugins: {
-              legend: {
-                labels: { color: '#fff' }
-              }
+            x: {
+              ticks: { color: '#fff' },
+              grid: { color: 'rgba(255,255,255,0.1)' }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#fff' }
             }
           }
-        });
-      } else {
-        dailyBurnChart.data.labels = labels;
-        dailyBurnChart.data.datasets[0].data = values;
-        dailyBurnChart.update();
-      }
+        }
+      });
     }
     
     // Helper to format numbers
