@@ -8,7 +8,7 @@
   <!-- Bootstrap CSS (version 5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   
-  <!-- Load ethers.js first so that menu2.js can access ethers -->
+  <!-- Cargar ethers.js primero para que menu2.js lo use -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   
   <style>
@@ -19,7 +19,7 @@
       font-weight: bold;
       font-size: 1.5rem;
     }
-    /* Hero Section with a black background */
+    /* Hero Section con fondo negro */
     .hero {
       background-color: #000;
       padding: 4rem 0;
@@ -32,7 +32,7 @@
       font-weight: bold;
       margin: 5px 0;
     }
-    /* Token images keep a 4:3 aspect ratio */
+    /* Imágenes de tokens con aspecto 4:3 */
     .token-img {
       aspect-ratio: 4 / 3;
       object-fit: cover;
@@ -60,10 +60,10 @@
   </style>
 </head>
 <body>
-  <!-- Menu (common component) -->
+  <!-- Menú (componente común) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load the menu HTML from components/menu2.html
+    // Cargar el HTML del menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
@@ -73,7 +73,7 @@
         console.error('Error loading menu:', error);
       });
   </script>
-  <!-- Load the menu logic AFTER ethers.js is loaded -->
+  <!-- Cargar la lógica del menú DESPUÉS de ethers.js -->
   <script src="components/menu2.js"></script>
   
   <!-- Hero Section -->
@@ -84,22 +84,18 @@
     </p>
   </div>
   
-  <!-- Raffle Content -->
+  <!-- Contenido del Raffle -->
   <div class="container mt-4">
-    <!-- Display connected account -->
+    <!-- Mostrar cuenta conectada (se asigna desde el menú) -->
     <div class="text-center mb-4">
       <p id="accountDisplayRaffle" class="mt-2"></p>
     </div>
     
-    <!-- Raffle Registration Card -->
+    <!-- Card de Registro para el Raffle -->
     <div class="card">
       <div class="card-header">Registro para el Raffle</div>
       <div class="card-body">
-        <!-- Botón para conectar la wallet -->
-        <div class="text-center mb-3">
-          <button id="connectWalletButton" class="btn btn-primary">Conectar Wallet</button>
-        </div>
-        <!-- Botón para registrarse -->
+        <!-- Botón para registrarse (la conexión de wallet se hace desde el menú) -->
         <div class="text-center mb-3">
           <button id="registerButton" class="btn btn-success">Registrarse en el Raffle</button>
         </div>
@@ -111,7 +107,7 @@
     </div>
   </div>
   
-  <!-- Footer (common component) -->
+  <!-- Footer (componente común) -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
@@ -124,7 +120,7 @@
       });
   </script>
   
-  <!-- Raffle JavaScript -->
+  <!-- Lógica del Raffle -->
   <script src="raffle.js"></script>
   
   <!-- Bootstrap JS Bundle -->
