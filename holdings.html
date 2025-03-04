@@ -303,6 +303,10 @@
           const metadata = await getMetadata(tokenURI);
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
           if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+          // Si es tokenId 13, forzamos la imagen proporcionada
+          if (tokenId === 13) {
+            imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
+          }
           let tokenName = metadata.name || `Token ${tokenId}`;
           // Omitir token si su nombre es "#0006 THE BURNED FORTUNE"
           if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
@@ -324,7 +328,7 @@
             };
           }
         }
-        // Renderizado de tarjetas
+        // Renderizar tarjetas
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
