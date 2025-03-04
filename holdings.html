@@ -287,7 +287,7 @@
         let uniqueTokens = {};
 
         for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-          // Saltar tokenId 0 (0000) y tokenId 5
+          // Saltar tokenId 0 y tokenId 5
           if (tokenId === 0 || tokenId === 5) continue;
 
           let tokenURI = await nftContract.uri(tokenId);
@@ -308,6 +308,9 @@
             imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
           }
           let tokenName = metadata.name || `Token ${tokenId}`;
+
+          // Omitir el token si su nombre es "#0006 THE BURNED FORTUNE"
+          if(tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
 
           // Usamos como clave la combinación de tokenName e imageUrl
           let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
