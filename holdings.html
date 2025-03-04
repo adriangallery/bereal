@@ -65,7 +65,7 @@
     .nft-card:hover {
       transform: scale(1.01);
     }
-    /* Fuerza todas las imágenes a tener un aspect ratio de 1:1 */
+    /* Fuerza todas las imágenes a tener un aspect-ratio de 1:1 */
     .nft-card img {
       aspect-ratio: 1 / 1;
       object-fit: cover;
@@ -223,6 +223,39 @@
   </script>
 
   <script>
+    // Definimos la duración de la caché en milisegundos (2 días)
+    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000; // 2 días
+
+    // Función para obtener metadata utilizando localStorage como caché
+    async function getMetadata(tokenURI) {
+      // Verificar si ya existe la metadata en localStorage
+      const cached = localStorage.getItem(tokenURI);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+            return parsed.data;
+          }
+        } catch (e) {
+          console.error("Error parsing cache for", tokenURI, e);
+        }
+      }
+      // Si no está en caché o ha expirado, se hace fetch
+      try {
+        const response = await fetch(tokenURI);
+        const metadata = await response.json();
+        const toStore = {
+          timestamp: Date.now(),
+          data: metadata
+        };
+        localStorage.setItem(tokenURI, JSON.stringify(toStore));
+        return metadata;
+      } catch (error) {
+        console.error("Error fetching metadata from", tokenURI, error);
+        return {};
+      }
+    }
+
     // Variables y configuraciones para la conexión y contratos
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
@@ -298,13 +331,8 @@
             tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
           }
 
-          let metadata = {};
-          try {
-            const response = await fetch(tokenURI);
-            metadata = await response.json();
-          } catch (metaError) {
-            console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
-          }
+          // Obtenemos la metadata utilizando la función con caché
+          const metadata = await getMetadata(tokenURI);
 
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
           if (imageUrl.startsWith("ipfs://")) {
@@ -390,8 +418,8 @@
         if (tokenURI.startsWith("ipfs://")) {
           tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         }
-        const response = await fetch(tokenURI);
-        const metadata = await response.json();
+        // Utilizamos la función getMetadata para usar el caché también en el modal
+        const metadata = await getMetadata(tokenURI);
 
         let html = `<div class="text-center mb-3">
                       <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
