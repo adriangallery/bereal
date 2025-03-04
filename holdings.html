@@ -17,8 +17,8 @@
   <style>
     /* ========== GLOBAL STYLES ========== */
     body {
-      background-color: #000; /* Fondo negro */
-      color: #fff;            /* Texto blanco por defecto */
+      background-color: #000;
+      color: #fff;
       margin: 0;
       padding: 0;
       font-family: sans-serif;
@@ -29,8 +29,7 @@
     }
     /* ========== HERO SECTION ========== */
     .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') 
-                  center center no-repeat;
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') center center no-repeat;
       background-size: cover;
       padding: 80px 0;
       text-align: center;
@@ -158,7 +157,6 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargamos el HTML del menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(r => r.text())
       .then(html => {
@@ -166,7 +164,6 @@
       })
       .catch(err => console.error('Error loading menu2:', err));
   </script>
-  <!-- Lógica del menú (menuConnectWallet) -->
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
@@ -178,7 +175,6 @@
 
   <!-- MAIN CONTENT WRAPPER -->
   <div class="section-wrapper">
-    <!-- Header con balance y wallet -->
     <header class="text-center mb-4">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
       <p id="accountDisplay" class="mt-2"></p>
@@ -187,9 +183,7 @@
     <!-- NFT Gallery Section -->
     <section>
       <h3 class="nft-gallery-title">My NFTs from the Collection</h3>
-      <div id="nftGallery" class="row">
-        <!-- Se inyectarán las tarjetas NFT -->
-      </div>
+      <div id="nftGallery" class="row"></div>
     </section>
   </div>
 
@@ -201,9 +195,7 @@
           <h5 class="modal-title" id="metadataModalLabel"></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body" id="metadataContent">
-          <!-- Se inyectará la metadata -->
-        </div>
+        <div class="modal-body" id="metadataContent"></div>
       </div>
     </div>
   </div>
@@ -211,7 +203,6 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -223,8 +214,8 @@
   </script>
 
   <script>
-    // Definimos la duración de la caché en milisegundos (2 días)
-    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000; // 2 días
+    // Duración del caché en milisegundos (2 días)
+    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
     // Función para obtener metadata utilizando localStorage como caché
     async function getMetadata(tokenURI) {
@@ -251,7 +242,7 @@
       }
     }
 
-    // Variables y configuraciones para la conexión y contratos
+    // Variables de conexión y contratos
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
@@ -275,7 +266,6 @@
       return num.toString();
     }
 
-    // Callback al conectar la wallet desde el menú
     window.onMenuWalletConnected = async function() {
       provider = window.menuProvider;
       signer = window.menuSigner;
@@ -301,7 +291,7 @@
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
-        galleryDiv.innerHTML = ""; // Limpiar contenido previo
+        galleryDiv.innerHTML = "";
         const nextEventId = await nftContract.nextEventId();
         const totalEvents = nextEventId.toNumber();
         let uniqueTokens = {};
@@ -334,14 +324,13 @@
             };
           }
         }
-        // Renderizar tarjetas
+        // Renderizado de tarjetas
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           let cardHTML = "";
           if (token.owned > 0) {
-            // Token poseído: mostrar botón Details
             cardHTML = `
               <div class="card nft-card h-100">
                 <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
@@ -355,7 +344,6 @@
               </div>
             `;
           } else {
-            // Token no poseído: si es "#0005 THE BURNED FORTUNE", mostrar botón Mint que redirige a filthyrich.html; de lo contrario, mostrar Buy
             if (token.tokenName.trim() === "#0005 THE BURNED FORTUNE") {
               cardHTML = `
                 <div class="card nft-card unowned h-100">
@@ -364,7 +352,7 @@
                     <h5 class="card-title">${token.tokenName}</h5>
                     <p class="card-text">Not owned</p>
                   </div>
-                  <a href="filthyrich.html" target="_blank" class="opensea-btn">
+                  <a href="filthyrich.html" class="opensea-btn">
                     Mint
                   </a>
                 </div>
@@ -423,7 +411,6 @@
     }
   </script>
 
-  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
