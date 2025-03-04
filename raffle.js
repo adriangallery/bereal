@@ -1,51 +1,56 @@
 // raffle.js
 
-// Variables globales para conexión y ethers.js
-let provider;
-let signer;
-let userAccount = "";
+// Se asume que la wallet ya está conectada a través del menú y que 
+// la dirección del usuario se almacena en window.menuUserAccount.
+// Si no se encuentra, se puede mostrar un mensaje o esperar a que se conecte.
+let userAccount = window.menuUserAccount || "";
+if (userAccount) {
+  document.getElementById("accountDisplayRaffle").innerText = "Wallet conectada: " + userAccount;
+} else {
+  document.getElementById("accountDisplayRaffle").innerText = "Wallet no conectada.";
+}
 
 // Direcciones de las colecciones NFT
-const baseAddress = "0xC38E2Ae060440c9269CcEB8C0EA8019a66Ce8927";       // BASE
-const ethereumAddress = "0x789e35a999c443fE6089544056f728239B8ffeE7";  // ETHEREUM
+const baseAddress = "0xC38E2Ae060440c9269CcEB8C0EA8019a66Ce8927";       // BASE (en Base chain)
+const ethereumAddress = "0x789e35a999c443fE6089544056f728239B8ffeE7";  // ETHEREUM (en Ethereum mainnet)
 
 // ABI mínimo para ERC721 (solo la función balanceOf)
 const erc721ABI = [
   "function balanceOf(address owner) view returns (uint256)"
 ];
 
-// Función para conectar la wallet (MetaMask)
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert("Necesitas instalar MetaMask para continuar.");
-    return;
-  }
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  await provider.send("eth_requestAccounts", []);
-  signer = provider.getSigner();
-  userAccount = await signer.getAddress();
-  document.getElementById("accountDisplayRaffle").innerText = "Wallet conectada: " + userAccount;
-}
-
-// Función para verificar si la wallet posee al menos un NFT de alguna colección
+/**
+ * Verifica que la wallet tenga al menos un NFT de la colección BASE (en Base chain)
+ * o de la colección ETHEREUM (en Ethereum mainnet).
+ *
+ * Se utilizan _providers_ distintos para cada red:
+ * - Para Ethereum mainnet se usa ethers.getDefaultProvider("homestead").
+ * - Para Base se utiliza un JsonRpcProvider con un endpoint válido.
+ */
 async function verifyNFT() {
   if (!userAccount) {
     document.getElementById("statusMessage").innerText = "Por favor, conecta tu wallet primero.";
     return false;
   }
   try {
-    const baseContract = new ethers.Contract(baseAddress, erc721ABI, provider);
-    const ethereumContract = new ethers.Contract(ethereumAddress, erc721ABI, provider);
+    // Provider para Ethereum mainnet (puedes agregar tu API key si lo requieres)
+    const providerEthereum = ethers.getDefaultProvider("homestead");
+    // Provider para la red BASE: reemplaza la URL por un endpoint válido para Base mainnet
+    const providerBase = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
     
+    // Instanciar los contratos en sus respectivas redes
+    const baseContract = new ethers.Contract(baseAddress, erc721ABI, providerBase);
+    const ethereumContract = new ethers.Contract(ethereumAddress, erc721ABI, providerEthereum);
+    
+    // Consultar el balance de NFT en cada contrato
     const baseBalance = await baseContract.balanceOf(userAccount);
     const ethereumBalance = await ethereumContract.balanceOf(userAccount);
     
-    // Retorna true si tiene al menos 1 NFT en alguna colección
-    if (baseBalance.gt(0) || ethereumBalance.gt(0)) {
-      return true;
-    } else {
-      return false;
-    }
+    console.log("Base balance:", baseBalance.toString());
+    console.log("Ethereum balance:", ethereumBalance.toString());
+    
+    // Retorna true si al menos uno es mayor a 0
+    return baseBalance.gt(0) || ethereumBalance.gt(0);
   } catch (error) {
     console.error("Error al verificar NFT:", error);
     return false;
@@ -54,7 +59,6 @@ async function verifyNFT() {
 
 // Función para registrar en el Raffle
 async function registerForRaffle() {
-  // Verificar que la wallet esté conectada y cumpla con los requisitos
   const hasNFT = await verifyNFT();
   if (!hasNFT) {
     document.getElementById("statusMessage").innerText = "No se encontró un NFT válido en tu wallet.";
@@ -62,10 +66,8 @@ async function registerForRaffle() {
   }
   
   document.getElementById("statusMessage").innerText = "¡Registro exitoso! Estás participando en el Raffle.";
-  
-  // Aquí podrías agregar lógica adicional, como enviar la dirección a tu backend
+  // Aquí puedes agregar lógica adicional, como enviar la dirección al backend.
 }
 
-// Asignar eventos a los botones
-document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
+// Asignar evento al botón de registro
 document.getElementById("registerButton").addEventListener("click", registerForRaffle);
