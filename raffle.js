@@ -1,8 +1,6 @@
 // raffle.js
 
-// Se asume que la wallet ya está conectada a través del menú y que 
-// la dirección del usuario se almacena en window.menuUserAccount.
-// Si no se encuentra, se puede mostrar un mensaje o esperar a que se conecte.
+// Se asume que la wallet se conecta desde el menú y se guarda en window.menuUserAccount.
 let userAccount = window.menuUserAccount || "";
 if (userAccount) {
   document.getElementById("accountDisplayRaffle").innerText = "Wallet conectada: " + userAccount;
@@ -10,22 +8,28 @@ if (userAccount) {
   document.getElementById("accountDisplayRaffle").innerText = "Wallet no conectada.";
 }
 
+// Callback para que el menú actualice la wallet conectada.
+window.onMenuWalletConnected = function() {
+  userAccount = window.menuUserAccount;
+  document.getElementById("accountDisplayRaffle").innerText = "Wallet conectada: " + userAccount;
+};
+
 // Direcciones de las colecciones NFT
 const baseAddress = "0xC38E2Ae060440c9269CcEB8C0EA8019a66Ce8927";       // BASE (en Base chain)
 const ethereumAddress = "0x789e35a999c443fE6089544056f728239B8ffeE7";  // ETHEREUM (en Ethereum mainnet)
 
-// ABI mínimo para ERC721 (solo la función balanceOf)
+// ABI mínimo para ERC721 (solo balanceOf)
 const erc721ABI = [
   "function balanceOf(address owner) view returns (uint256)"
 ];
 
 /**
- * Verifica que la wallet tenga al menos un NFT de la colección BASE (en Base chain)
- * o de la colección ETHEREUM (en Ethereum mainnet).
+ * Verifica que la wallet tenga al menos un NFT en:
+ * - La colección BASE (en Base chain)
+ * - O la colección ETHEREUM (en Ethereum mainnet)
  *
- * Se utilizan _providers_ distintos para cada red:
- * - Para Ethereum mainnet se usa ethers.getDefaultProvider("homestead").
- * - Para Base se utiliza un JsonRpcProvider con un endpoint válido.
+ * Se utilizan dos providers distintos para acceder a cada red.
+ * Asegúrate de reemplazar el endpoint de Base con uno válido para esa red.
  */
 async function verifyNFT() {
   if (!userAccount) {
@@ -33,12 +37,12 @@ async function verifyNFT() {
     return false;
   }
   try {
-    // Provider para Ethereum mainnet (puedes agregar tu API key si lo requieres)
+    // Provider para Ethereum mainnet
     const providerEthereum = ethers.getDefaultProvider("homestead");
     // Provider para la red BASE: reemplaza la URL por un endpoint válido para Base mainnet
     const providerBase = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
     
-    // Instanciar los contratos en sus respectivas redes
+    // Instanciar los contratos en cada red
     const baseContract = new ethers.Contract(baseAddress, erc721ABI, providerBase);
     const ethereumContract = new ethers.Contract(ethereumAddress, erc721ABI, providerEthereum);
     
@@ -49,7 +53,7 @@ async function verifyNFT() {
     console.log("Base balance:", baseBalance.toString());
     console.log("Ethereum balance:", ethereumBalance.toString());
     
-    // Retorna true si al menos uno es mayor a 0
+    // Retorna true si alguno de los balances es mayor a 0
     return baseBalance.gt(0) || ethereumBalance.gt(0);
   } catch (error) {
     console.error("Error al verificar NFT:", error);
@@ -69,5 +73,5 @@ async function registerForRaffle() {
   // Aquí puedes agregar lógica adicional, como enviar la dirección al backend.
 }
 
-// Asignar evento al botón de registro
+// Asignar el evento al botón de registro
 document.getElementById("registerButton").addEventListener("click", registerForRaffle);
