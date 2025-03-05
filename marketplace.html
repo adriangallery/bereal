@@ -19,13 +19,25 @@
 
   <!-- Sección para crear un listado -->
   <h2>Crear Listado</h2>
-  <p>Parametros fijos para este ejemplo:</p>
+  <p>Completa los campos para crear un listado:</p>
   <ul>
     <li>Collection: 0xa92a8F5A47efC77da796dfD0827D07872E7D0429</li>
-    <li>Token ID: 7</li>
-    <li>Cantidad: 1</li>
-    <li>Precio: 10 $ADRIAN (10 * 10^18, asumiendo 18 decimales)</li>
-    <li>Duración: 3 días (259200 segundos)</li>
+    <li>
+      Token ID:
+      <input id="tokenIdInput" type="number" placeholder="Token ID" value="7">
+    </li>
+    <li>
+      Cantidad:
+      <input id="quantityInput" type="number" placeholder="Cantidad" value="1">
+    </li>
+    <li>
+      Precio (en $ADRIAN, asumiendo 18 decimales):
+      <input id="priceInput" type="text" placeholder="Precio en tokens" value="10">
+    </li>
+    <li>
+      Duración (en segundos):
+      <input id="durationInput" type="number" placeholder="Duración en segundos" value="259200">
+    </li>
   </ul>
   <button id="createListingButton">Crear Listado</button>
 
@@ -37,15 +49,9 @@
   <script>
     // CONFIGURACIONES:
     // Reemplaza con la dirección de tu contrato NFTMarketplace desplegado.
-    const marketplaceAddress = "0x45c7D235c97E4Cb78fbaCe020e674EB97ba1De5d";
+    const marketplaceAddress = "DIRECCION_DEL_MARKETPLACE";
     // Dirección de la colección (ya definida)
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
-    const tokenId = 7;
-    const quantity = 1;
-    // Precio: 10 tokens $ADRIAN (asumiendo 18 decimales)
-    const price = ethers.utils.parseUnits("10", 18);
-    // Duración: 3 días = 259200 segundos
-    const duration = 259200;
 
     // ABI mínimo para ERC1155 (solo setApprovalForAll)
     const erc1155Abi = [
@@ -107,6 +113,15 @@
         alert("Conecta tu wallet primero");
         return;
       }
+      // Recupera valores de los inputs
+      const tokenId = document.getElementById("tokenIdInput").value;
+      const quantity = document.getElementById("quantityInput").value;
+      const priceInput = document.getElementById("priceInput").value;
+      const duration = document.getElementById("durationInput").value;
+      
+      // Convierte el precio a la unidad correspondiente (asumiendo 18 decimales)
+      const price = ethers.utils.parseUnits(priceInput, 18);
+      
       try {
         const tx = await marketplaceContract.createListing(
           nftCollectionAddress,
