@@ -13,15 +13,14 @@
   <button id="connectButton">Conectar Wallet</button>
   <p id="walletAddress">Wallet no conectada</p>
 
-  <!-- Sección para aprobar el NFT -->
-  <h2>Aprobar NFT para el Marketplace</h2>
-  <button id="approveButton">Aprobar NFT</button>
-
   <!-- Sección para crear un listado -->
-  <h2>Crear Listado</h2>
+  <h2>Crear Listado (Aprobar + Listar)</h2>
   <p>Completa los campos para crear un listado:</p>
   <ul>
-    <li>Collection: 0xa92a8F5A47efC77da796dfD0827D07872E7D0429</li>
+    <li>
+      Dirección de la colección (ERC1155):
+      <input id="collectionInput" type="text" placeholder="Collection address" value="0xa92a8F5A47efC77da796dfD0827D07872E7D0429">
+    </li>
     <li>
       Token ID:
       <input id="tokenIdInput" type="number" placeholder="Token ID" value="7">
@@ -39,7 +38,7 @@
       <input id="durationInput" type="number" placeholder="Duración en segundos" value="259200">
     </li>
   </ul>
-  <button id="createListingButton">Crear Listado</button>
+  <button id="createListingButton">Aprobar NFT y Crear Listado</button>
 
   <!-- Sección para comprar un listado -->
   <h2>Comprar Listado</h2>
@@ -50,15 +49,14 @@
     // CONFIGURACIONES:
     // Reemplaza con la dirección de tu contrato NFTMarketplace desplegado.
     const marketplaceAddress = "DIRECCION_DEL_MARKETPLACE";
-    // Dirección de la colección (ya definida)
-    const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
-
-    // ABI mínimo para ERC1155 (solo setApprovalForAll)
+    
+    // ABI mínimo para ERC1155 (setApprovalForAll e isApprovedForAll)
     const erc1155Abi = [
-      "function setApprovalForAll(address operator, bool approved) external"
+      "function setApprovalForAll(address operator, bool approved) external",
+      "function isApprovedForAll(address account, address operator) external view returns (bool)"
     ];
 
-    // ABI mínimo para el NFTMarketplace (con createListing y buyListing)
+    // ABI mínimo para el NFTMarketplace (createListing y buyListing)
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
       "function buyListing(uint256 listingId) external",
@@ -69,7 +67,6 @@
     let signer;
     let walletAddress;
     let marketplaceContract;
-    let nftContract;
 
     // Función para conectar la wallet (MetaMask)
     async function connectWallet() {
@@ -79,41 +76,23 @@
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("walletAddress").innerText = "Wallet: " + walletAddress;
-        // Inicializamos los contratos con el signer
+        // Inicializamos el contrato del marketplace con el signer
         marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
-        nftContract = new ethers.Contract(nftCollectionAddress, erc1155Abi, signer);
       } else {
-        alert("Instala MetaMask!");
+        alert("¡Instala MetaMask!");
       }
     }
-
     document.getElementById("connectButton").addEventListener("click", connectWallet);
 
-    // Función para aprobar el NFT (setApprovalForAll)
-    async function approveNFT() {
-      if (!nftContract) {
-        alert("Conecta tu wallet primero");
-        return;
-      }
-      try {
-        const tx = await nftContract.setApprovalForAll(marketplaceAddress, true);
-        await tx.wait();
-        alert("NFT aprobado para el marketplace");
-      } catch (error) {
-        console.error(error);
-        alert("Error al aprobar NFT: " + error.message);
-      }
-    }
-
-    document.getElementById("approveButton").addEventListener("click", approveNFT);
-
-    // Función para crear un listado
-    async function createListing() {
+    // Función para aprobar el NFT (si no está aprobado) y luego crear el listado
+    async function approveAndCreateListing() {
       if (!marketplaceContract) {
         alert("Conecta tu wallet primero");
         return;
       }
+      
       // Recupera valores de los inputs
+      const collectionAddress = document.getElementById("collectionInput").value;
       const tokenId = document.getElementById("tokenIdInput").value;
       const quantity = document.getElementById("quantityInput").value;
       const priceInput = document.getElementById("priceInput").value;
@@ -122,16 +101,29 @@
       // Convierte el precio a la unidad correspondiente (asumiendo 18 decimales)
       const price = ethers.utils.parseUnits(priceInput, 18);
       
+      // Inicializa el contrato ERC1155 para la colección indicada
+      const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
+      
       try {
+        // Verifica si el NFT ya está aprobado para el marketplace
+        const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceAddress);
+        if (!approved) {
+          // Si no está aprobado, se envía la transacción de aprobación
+          const approveTx = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          await approveTx.wait();
+          alert("NFT aprobado para el marketplace");
+        }
+        
+        // Una vez aprobado, se crea el listado
         const tx = await marketplaceContract.createListing(
-          nftCollectionAddress,
+          collectionAddress,
           tokenId,
           quantity,
           price,
           duration
         );
         const receipt = await tx.wait();
-        // Buscar el evento ListingCreated para obtener el ID del listado
+        // Busca el evento ListingCreated para obtener el ID del listado
         const event = receipt.events.find(event => event.event === "ListingCreated");
         if (event) {
           const listingId = event.args.listingId.toString();
@@ -141,11 +133,10 @@
         }
       } catch (error) {
         console.error(error);
-        alert("Error al crear listado: " + error.message);
+        alert("Error en el proceso: " + error.message);
       }
     }
-
-    document.getElementById("createListingButton").addEventListener("click", createListing);
+    document.getElementById("createListingButton").addEventListener("click", approveAndCreateListing);
 
     // Función para comprar un listado
     async function buyListing() {
@@ -167,7 +158,6 @@
         alert("Error al comprar listado: " + error.message);
       }
     }
-
     document.getElementById("buyListingButton").addEventListener("click", buyListing);
   </script>
 </body>
