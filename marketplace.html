@@ -199,10 +199,10 @@
       try {
         const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceContract.address);
         if (currentAllowance.lt(requiredAmount)) {
-          // Si el allowance es insuficiente, aprobamos una cantidad máxima
-          const approveTx = await tokenContract.approve(marketplaceContract.address, ethers.constants.MaxUint256);
+          // Ahora aprobamos solo la cantidad requerida, no de forma ilimitada
+          const approveTx = await tokenContract.approve(marketplaceContract.address, requiredAmount);
           await approveTx.wait();
-          alert("Token $ADRIAN aprobado para el marketplace");
+          alert("Token $ADRIAN aprobado para la cantidad requerida");
         }
       } catch (err) {
         console.error("Error en la aprobación de tokens:", err);
