@@ -14,7 +14,7 @@
   <p id="walletAddress">Wallet no conectada</p>
 
   <!-- Sección para crear un listado -->
-  <h2>Crear Listado (Aprobar + Listar)</h2>
+  <h2>Crear Listado (Aprobar NFT + Listar)</h2>
   <p>Completa los campos para crear un listado:</p>
   <ul>
     <li>
@@ -60,6 +60,7 @@
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
       "function buyListing(uint256 listingId) external",
+      "function listings(uint256 listingId) external view returns (tuple(uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime))",
       "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)"
     ];
 
@@ -155,8 +156,12 @@
     }
     document.getElementById("createListingButton").addEventListener("click", approveAndCreateListing);
 
-    // Función para comprar un listado
+    // Función para comprar un listado, incluyendo la aprobación automática de tokens $ADRIAN
     async function buyListing() {
+      // Si no hay signer, se solicita conectar la wallet
+      if (!signer) {
+        await connectWallet();
+      }
       if (!marketplaceContract) {
         alert("Conecta tu wallet primero");
         return;
@@ -166,6 +171,46 @@
         alert("Ingresa el ID del listado");
         return;
       }
+      
+      // Obtenemos los datos del listado para conocer el precio
+      let listing;
+      try {
+        listing = await marketplaceContract.listings(listingId);
+        if (listing.seller === "0x0000000000000000000000000000000000000000") {
+          alert("El listado no existe o ya fue vendido/cancelado");
+          return;
+        }
+      } catch (err) {
+        console.error("Error al leer el listado:", err);
+        alert("Error al leer el listado");
+        return;
+      }
+      
+      const requiredAmount = listing.price; // Monto en tokens requerido
+
+      // Creamos la instancia del contrato ERC20 para $ADRIAN
+      const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      const erc20Abi = [
+          "function allowance(address owner, address spender) view returns (uint256)",
+          "function approve(address spender, uint256 amount) returns (bool)"
+      ];
+      const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+      
+      try {
+        const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceContract.address);
+        if (currentAllowance.lt(requiredAmount)) {
+          // Si el allowance es insuficiente, aprobamos una cantidad máxima
+          const approveTx = await tokenContract.approve(marketplaceContract.address, ethers.constants.MaxUint256);
+          await approveTx.wait();
+          alert("Token $ADRIAN aprobado para el marketplace");
+        }
+      } catch (err) {
+        console.error("Error en la aprobación de tokens:", err);
+        alert("Error al aprobar tokens: " + err.message);
+        return;
+      }
+      
+      // Procedemos a comprar el listado
       try {
         const tx = await marketplaceContract.buyListing(listingId);
         await tx.wait();
