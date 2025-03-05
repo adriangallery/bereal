@@ -37,6 +37,10 @@
       Duración (en segundos):
       <input id="durationInput" type="number" placeholder="Duración en segundos" value="259200">
     </li>
+    <li>
+      Dirección del Marketplace:
+      <input id="marketplaceInput" type="text" placeholder="Marketplace address or ENS" value="0x45c7D235c97E4Cb78fbaCe020e674EB97ba1De5d">
+    </li>
   </ul>
   <button id="createListingButton">Aprobar NFT y Crear Listado</button>
 
@@ -46,10 +50,6 @@
   <button id="buyListingButton">Comprar Listado</button>
 
   <script>
-    // CONFIGURACIONES:
-    // Reemplaza con la dirección de tu contrato NFTMarketplace desplegado.
-    const marketplaceAddress = "DIRECCION_DEL_MARKETPLACE";
-    
     // ABI mínimo para ERC1155 (setApprovalForAll e isApprovedForAll)
     const erc1155Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
@@ -68,6 +68,21 @@
     let walletAddress;
     let marketplaceContract;
 
+    // Función auxiliar para resolver ENS si es necesario
+    async function resolveAddress(addressOrEns) {
+      try {
+        if (ethers.utils.isAddress(addressOrEns)) {
+          return addressOrEns;
+        } else {
+          const resolved = await provider.resolveName(addressOrEns);
+          return resolved || addressOrEns;
+        }
+      } catch (err) {
+        console.error("Error al resolver dirección:", err);
+        return addressOrEns;
+      }
+    }
+
     // Función para conectar la wallet (MetaMask)
     async function connectWallet() {
       if (window.ethereum) {
@@ -76,8 +91,10 @@
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("walletAddress").innerText = "Wallet: " + walletAddress;
-        // Inicializamos el contrato del marketplace con el signer
-        marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+        // Resolver automáticamente la dirección del marketplace
+        const marketplaceInput = document.getElementById("marketplaceInput").value;
+        const resolvedMarketplaceAddress = await resolveAddress(marketplaceInput);
+        marketplaceContract = new ethers.Contract(resolvedMarketplaceAddress, marketplaceAbi, signer);
       } else {
         alert("¡Instala MetaMask!");
       }
@@ -106,10 +123,10 @@
       
       try {
         // Verifica si el NFT ya está aprobado para el marketplace
-        const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceAddress);
+        const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceContract.address);
         if (!approved) {
           // Si no está aprobado, se envía la transacción de aprobación
-          const approveTx = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          const approveTx = await nftContract.setApprovalForAll(marketplaceContract.address, true);
           await approveTx.wait();
           alert("NFT aprobado para el marketplace");
         }
