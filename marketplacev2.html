@@ -12,6 +12,7 @@
     button { padding: 7px 15px; margin-top: 10px; }
     ul { list-style: none; padding: 0; }
     li { border: 1px solid #ddd; margin-bottom: 5px; padding: 5px; }
+    .listing-actions { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -60,25 +61,14 @@
     <ul id="listingsDisplay"></ul>
   </div>
 
-  <!-- Listing Actions Section -->
-  <div class="section">
-    <h2>Listing Actions</h2>
-    <label>
-      Listing ID:
-      <input id="listingIdInput" type="number">
-    </label>
-    <button id="buyListingButton">Buy Listing (entire listing)</button>
-    <button id="cancelListingButton">Cancel Listing</button>
-  </div>
-
   <script>
     // Hardcoded contract addresses:
     const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
     const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // AdrianGallery
-    // Hardcoded ADRIAN token (18 decimals)
+    // Hardcoded ADRIAN token address (18 decimals)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-    // ABIs for ERC1155 (for approvals) and marketplace
+    // ABIs
     const erc1155Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address account, address operator) external view returns (bool)"
@@ -90,12 +80,9 @@
       "function buyListing(uint256 listingId) external",
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
-      "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
-      "event ListingCancelled(uint256 indexed listingId)",
-      "event ListingPurchased(uint256 indexed listingId, address indexed buyer)"
+      "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)"
     ];
 
-    // ABI for ERC20 (for token approvals)
     const erc20Abi = [
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
@@ -128,10 +115,10 @@
       const quantity = document.getElementById("quantityInput").value;
       const pricePerNFT = document.getElementById("priceInput").value;
       const durationSeconds = document.getElementById("durationSelect").value;
-      // Calculate total price = price per NFT * quantity (both as string numbers)
+      // Calculate total price = price per NFT * quantity
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
 
-      // Approve the AdrianGallery collection for NFT transfers
+      // Approve AdrianGallery collection for NFT transfers
       const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
       try {
         const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceAddress);
@@ -150,7 +137,6 @@
       try {
         const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds);
         const receipt = await tx.wait();
-        // Search for the ListingCreated event
         const event = receipt.events.find(e => e.event === "ListingCreated");
         if (event) {
           alert("Listing created with ID: " + event.args.listingId.toString());
@@ -164,7 +150,7 @@
     }
     document.getElementById("createListingButton").addEventListener("click", approveAndCreateListing);
 
-    // Function to refresh active listings (by iterating from 1 to listingIdCounter)
+    // Refresh active listings and display them with a Buy button for each
     async function refreshListings() {
       if (!marketplaceContract) {
         alert("Connect your wallet first.");
@@ -177,15 +163,17 @@
         for (let i = 1; i <= counter.toNumber(); i++) {
           try {
             const listing = await marketplaceContract.listings(i);
-            // If seller is address(0), the listing doesn't exist (deleted)
+            // If seller is address(0), listing doesn't exist
             if (listing.seller !== ethers.constants.AddressZero) {
               // Calculate price per NFT = totalPrice / quantity
-              const pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
+              const pricePerNFT = ethers.utils.formatUnits(ethers.BigNumber.from(listing.price).div(listing.quantity), 18);
               const li = document.createElement("li");
-              li.innerText = "ID: " + listing.id.toString() +
-                             " | Token ID: " + listing.tokenId.toString() +
-                             " | Price per NFT: " + pricePerNFT + " ADRIAN" +
-                             " | Quantity: " + listing.quantity.toString();
+              li.innerHTML = 
+                "ID: " + listing.id.toString() +
+                " | Token ID: " + listing.tokenId.toString() +
+                " | Price per NFT: " + pricePerNFT + " ADRIAN" +
+                " | Quantity: " + listing.quantity.toString() +
+                " <div class='listing-actions'><button onclick='buyListingById(" + listing.id.toString() + ")'>Buy</button></div>";
               display.appendChild(li);
             }
           } catch (err) {
@@ -199,18 +187,13 @@
     }
     document.getElementById("refreshListingsButton").addEventListener("click", refreshListings);
 
-    async function buyListing() {
+    // Function to buy a listing by its ID (triggered from each listing's Buy button)
+    async function buyListingById(listingId) {
       if (!marketplaceContract) {
         alert("Connect your wallet first.");
         return;
       }
-      const listingId = document.getElementById("listingIdInput").value;
-      if (!listingId) {
-        alert("Enter a listing ID.");
-        return;
-      }
-      // Note: The contract v1 buys the entire listing.
-      // Get listing details to confirm it exists.
+      // Get listing details
       let listing;
       try {
         listing = await marketplaceContract.listings(listingId);
@@ -223,9 +206,9 @@
         alert("Error reading listing: " + error.message);
         return;
       }
-      // Approve ADRIAN tokens if needed
+      const requiredAmount = listing.price; // Total price for the listing
+
       try {
-        const requiredAmount = listing.price; // total price for the listing
         const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceAddress);
         if (currentAllowance.lt(requiredAmount)) {
           const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
@@ -242,33 +225,29 @@
         const tx = await marketplaceContract.buyListing(listingId);
         await tx.wait();
         alert("Listing purchased successfully.");
+        refreshListings(); // Refresh listings after purchase
       } catch (error) {
         console.error("Purchase error:", error);
         alert("Error buying listing: " + error.message);
       }
     }
-    document.getElementById("buyListingButton").addEventListener("click", buyListing);
 
-    async function cancelListing() {
+    // Optional: Function to cancel a listing (if you want to add a cancel button per listing)
+    async function cancelListingById(listingId) {
       if (!marketplaceContract) {
         alert("Connect your wallet first.");
-        return;
-      }
-      const listingId = document.getElementById("listingIdInput").value;
-      if (!listingId) {
-        alert("Enter a listing ID to cancel.");
         return;
       }
       try {
         const tx = await marketplaceContract.cancelListing(listingId);
         await tx.wait();
         alert("Listing cancelled successfully.");
+        refreshListings();
       } catch (error) {
         console.error("Cancel error:", error);
         alert("Error cancelling listing: " + error.message);
       }
     }
-    document.getElementById("cancelListingButton").addEventListener("click", cancelListing);
   </script>
 </body>
 </html>
