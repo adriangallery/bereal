@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>$ADRIAN your HOLDINGS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    /* GLOBAL STYLES */
+    body {
+      background-color: #000;
+      color: #fff;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    .section-wrapper { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
+    /* NFT GALLERY */
+    .nft-gallery-title { text-align: center; margin-bottom: 2rem; }
+    /* NFT CARD STYLES */
+    .nft-card {
+      background-color: #1f1f1f;
+      color: #ccc;
+      border-radius: 8px;
+      border: 1px solid #333;
+      overflow: hidden;
+      transition: transform 0.2s ease-in-out;
+      cursor: pointer;
+      position: relative;
+    }
+    .nft-card:hover { transform: scale(1.01); }
+    .nft-card img { aspect-ratio: 1/1; object-fit: cover; border-radius: 8px 8px 0 0; transition: transform 0.2s ease-in-out; }
+    .nft-card:hover img { transform: scale(1.05); }
+    .nft-card .card-body { padding: 1rem; }
+    .nft-card .card-title { color: #eee; margin-bottom: 0.5rem; }
+    .nft-card .card-text { color: #ccc; }
+    /* Unowned style */
+    .nft-card.unowned { background-color: #ddd; color: #555; filter: grayscale(100%); border: 1px solid #bbb; }
+    .nft-card.unowned .card-title, .nft-card.unowned .card-text { color: #555; }
+    /* Remove details button style */
+    .action-btn { margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <!-- Menu/Header -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(r => r.text())
+      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .catch(err => console.error('Error loading menu2:', err));
+  </script>
+  <script src="components/menu2.js"></script>
+
+  <!-- Hero Section -->
+  <section class="hero text-center py-5" style="background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') center center no-repeat; background-size: cover;">
+    <div class="container">
+      <h1 class="mt-3">BE REAL | BE ADRIAN</h1>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <div class="section-wrapper">
+    <header class="text-center mb-4">
+      <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
+      <p id="accountDisplay" class="mt-2"></p>
+    </header>
+    <!-- NFT Gallery -->
+    <section>
+      <h3 class="nft-gallery-title">My NFTs from the Collection</h3>
+      <div id="nftGallery" class="row"></div>
+    </section>
+  </div>
+
+  <!-- Metadata Modal (opens on clicking NFT image) -->
+  <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="metadataModalLabel"></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="metadataContent"></div>
+        <!-- New action buttons below metadata -->
+        <div class="modal-footer border-0 justify-content-center">
+          <button id="listBtn" class="btn btn-primary action-btn">List</button>
+          <button id="buyBtn" class="btn btn-success action-btn">Buy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- List Modal -->
+  <div class="modal fade" id="listModal" tabindex="-1" aria-labelledby="listModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="listModalLabel">Create Listing</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Listing form: note collection is hardcoded as AdrianGallery -->
+          <p>Collection: <strong>AdrianGallery (0xa92a8F5A47efC77da796dfD0827D07872E7D0429)</strong></p>
+          <div class="mb-3">
+            <label for="listTokenId" class="form-label">Token ID:</label>
+            <input id="listTokenId" type="number" class="form-control" readonly>
+          </div>
+          <div class="mb-3">
+            <label for="listQuantity" class="form-label">Quantity:</label>
+            <input id="listQuantity" type="number" class="form-control" value="1">
+          </div>
+          <div class="mb-3">
+            <label for="listPrice" class="form-label">Price per NFT (ADRIAN):</label>
+            <input id="listPrice" type="text" class="form-control" value="10">
+          </div>
+          <div class="mb-3">
+            <label for="listDuration" class="form-label">Duration:</label>
+            <select id="listDuration" class="form-select">
+              <option value="3600">1 hour</option>
+              <option value="86400">1 day</option>
+              <option value="604800">7 days</option>
+              <option value="2592000">30 days</option>
+              <option value="15552000">6 months</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer border-0 justify-content-center">
+          <button id="createListingModalBtn" class="btn btn-primary">Create Listing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buy Modal -->
+  <div class="modal fade" id="buyModal" tabindex="-1" aria-labelledby="buyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="buyModalLabel">Buy Listings</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="buyModalInfo">Loading active listings...</p>
+          <ul id="buyListingsList" class="list-group"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+
+  <!-- Main Script -->
+  <script>
+    // Contract addresses (hardcoded)
+    const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
+    const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // AdrianGallery
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // ADRIAN token
+
+    // ABIs (ERC1155, Marketplace, ERC20)
+    const erc1155Abi = [
+      "function setApprovalForAll(address operator, bool approved) external",
+      "function isApprovedForAll(address account, address operator) external view returns (bool)",
+      "function uri(uint256 id) view returns (string)",
+      "function balanceOf(address account, uint256 id) view returns (uint256)"
+    ];
+    const marketplaceAbi = [
+      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
+      "function cancelListing(uint256 listingId) external",
+      "function buyListing(uint256 listingId) external",
+      "function listingIdCounter() view returns (uint256)",
+      "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
+      "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)"
+    ];
+    const erc20Abi = [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+
+    let provider, signer, userAccount;
+    let marketplaceContract, tokenContract, nftContract;
+    let currentTokenId = null; // Global variable for selected NFT in modal
+
+    // Connect wallet
+    async function connectWallet() {
+      if(window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
+        tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+        nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
+        marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+        updateTokenBalance();
+        loadNFTs();
+      } else {
+        alert("Please install MetaMask.");
+      }
+    }
+    window.onMenuWalletConnected = connectWallet; // For menu integration
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+
+    async function updateTokenBalance() {
+      try {
+        const balanceRaw = await tokenContract.balanceOf(userAccount);
+        const balance = ethers.utils.formatUnits(balanceRaw, 18);
+        document.getElementById("tokenBalance").innerText = `Balance: ${balance} $ADRIAN`;
+      } catch(error) {
+        console.error("Error fetching token balance:", error);
+        document.getElementById("tokenBalance").innerText = "Balance: Error";
+      }
+    }
+
+    // Load NFTs from the collection for the user
+    async function loadNFTs() {
+      try {
+        const galleryDiv = document.getElementById("nftGallery");
+        galleryDiv.innerHTML = "";
+        // Assume nftContract.nextEventId() gives the total token IDs in the collection
+        const nextEventId = await nftContract.nextEventId();
+        const totalEvents = nextEventId.toNumber();
+        let uniqueTokens = {};
+        for(let tokenId = 1; tokenId < totalEvents; tokenId++){
+          let tokenURI = await nftContract.uri(tokenId);
+          if(tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+          const metadata = await fetch(tokenURI).then(r => r.json()).catch(e => ({}));
+          let imageUrl = metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : "https://via.placeholder.com/300?text=No+Image";
+          let tokenName = metadata.name || `Token ${tokenId}`;
+          // Skip specific token name if needed
+          let balance = await nftContract.balanceOf(userAccount, tokenId);
+          let ownedCount = balance.toNumber();
+          let tokenKey = tokenId; // using tokenId as key for simplicity
+          uniqueTokens[tokenKey] = { tokenId, tokenName, imageUrl, owned: ownedCount };
+        }
+        // Render NFT cards
+        for(let key in uniqueTokens){
+          let token = uniqueTokens[key];
+          let colDiv = document.createElement("div");
+          colDiv.className = "col-6 col-md-3 mb-4";
+          // Card: clicking image opens metadata modal
+          let cardHTML = `
+            <div class="card nft-card h-100 ${token.owned > 0 ? "" : "unowned"}" onclick="openMetadataModal(${token.tokenId})">
+              <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+              <div class="card-body">
+                <h5 class="card-title">${token.tokenName}</h5>
+                <p class="card-text">${token.owned > 0 ? "Owned: " + token.owned : "Not owned"}</p>
+              </div>
+            </div>
+          `;
+          colDiv.innerHTML = cardHTML;
+          galleryDiv.appendChild(colDiv);
+        }
+      } catch(error){
+        console.error("Error loading NFTs:", error);
+        document.getElementById("nftGallery").innerHTML = "<p>Error loading NFTs.</p>";
+      }
+    }
+
+    // Open metadata modal with details and action buttons (List, Buy)
+    async function openMetadataModal(tokenId) {
+      currentTokenId = tokenId;
+      try {
+        let tokenURI = await nftContract.uri(tokenId);
+        if(tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        const metadata = await fetch(tokenURI).then(r => r.json()).catch(e => ({}));
+        let html = `<div class="text-center mb-3">
+                      <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
+                           class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
+                    </div>`;
+        html += `<p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>`;
+        html += `<p><strong>Description:</strong> ${metadata.description || 'No description'}</p>`;
+        html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
+        // Set modal content and title
+        document.getElementById("metadataContent").innerHTML = html;
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
+        // Show the modal
+        var metaModal = new bootstrap.Modal(document.getElementById('metadataModal'));
+        metaModal.show();
+      } catch(error){
+        console.error("Error fetching metadata for token", tokenId, error);
+        alert("Error fetching metadata");
+      }
+    }
+
+    // When List button is clicked from metadata modal, open List Modal
+    document.getElementById("listBtn").addEventListener("click", function(event){
+      event.stopPropagation();
+      // Pre-fill the list modal with current tokenId
+      document.getElementById("listTokenId").value = currentTokenId;
+      var listModal = new bootstrap.Modal(document.getElementById('listModal'));
+      listModal.show();
+    });
+
+    // When Buy button is clicked from metadata modal, open Buy Modal
+    document.getElementById("buyBtn").addEventListener("click", function(event){
+      event.stopPropagation();
+      openBuyModal(currentTokenId);
+    });
+
+    // Function to handle creating a listing (called from listModal)
+    async function createListingFromModal() {
+      if(!marketplaceContract) { alert("Connect your wallet first."); return; }
+      const tokenId = document.getElementById("listTokenId").value;
+      const quantity = document.getElementById("listQuantity").value;
+      const pricePerNFT = document.getElementById("listPrice").value;
+      const durationSeconds = document.getElementById("listDuration").value;
+      // Total price = price per NFT * quantity
+      const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
+      try {
+        // Approve the AdrianGallery collection for NFT transfers
+        const nftApproval = await nftContract.isApprovedForAll(userAccount, marketplaceAddress);
+        if(!nftApproval){
+          const txApprove = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          await txApprove.wait();
+          alert("AdrianGallery collection approved for NFT transfers.");
+        }
+      } catch(error){
+        console.error("Error approving collection:", error);
+        alert("Error approving collection: " + error.message);
+        return;
+      }
+      try {
+        const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds);
+        const receipt = await tx.wait();
+        const event = receipt.events.find(e => e.event === "ListingCreated");
+        if(event) {
+          alert("Listing created with ID: " + event.args.listingId.toString());
+        } else {
+          alert("Listing created, but listing ID not found.");
+        }
+      } catch(error){
+        console.error("Error creating listing:", error);
+        alert("Error creating listing: " + error.message);
+      }
+    }
+    document.getElementById("createListingModalBtn").addEventListener("click", createListingFromModal);
+
+    // Function to open the Buy Modal for a given tokenId
+    async function openBuyModal(tokenId) {
+      if(!marketplaceContract) { alert("Connect your wallet first."); return; }
+      try {
+        const counter = await marketplaceContract.listingIdCounter();
+        const listingsForToken = [];
+        // Iterate from 1 to counter to filter listings for this token
+        for(let i = 1; i <= counter.toNumber(); i++){
+          try {
+            const listing = await marketplaceContract.listings(i);
+            if(listing.seller !== ethers.constants.AddressZero && listing.tokenId.toString() === tokenId.toString()){
+              listingsForToken.push(listing);
+            }
+          } catch(e){
+            console.error("Error fetching listing", i, e);
+          }
+        }
+        const buyList = document.getElementById("buyListingsList");
+        buyList.innerHTML = "";
+        if(listingsForToken.length === 0){
+          document.getElementById("buyModalInfo").innerText = "No active listings for this token.";
+        } else {
+          document.getElementById("buyModalInfo").innerText = "";
+          listingsForToken.forEach(listing => {
+            const li = document.createElement("li");
+            li.className = "list-group-item bg-dark text-white";
+            // Calculate price per NFT (if multiple units, total price/quantity)
+            const pricePerNFT = ethers.utils.formatUnits(ethers.BigNumber.from(listing.price).div(listing.quantity), 18);
+            li.innerHTML = `Listing ID: ${listing.id.toString()} | Price per NFT: ${pricePerNFT} ADRIAN | Quantity: ${listing.quantity.toString()} <button class="btn btn-success btn-sm ms-2" onclick="buyListingById(${listing.id.toString()})">Buy</button>`;
+            buyList.appendChild(li);
+          });
+        }
+        var buyModal = new bootstrap.Modal(document.getElementById('buyModal'));
+        buyModal.show();
+      } catch(error){
+        console.error("Error opening buy modal:", error);
+        alert("Error fetching listings for token: " + error.message);
+      }
+    }
+
+    // Function to buy a specific listing (from Buy Modal)
+    async function buyListingById(listingId) {
+      if(!marketplaceContract) { alert("Connect your wallet first."); return; }
+      try {
+        const listing = await marketplaceContract.listings(listingId);
+        if(listing.seller === ethers.constants.AddressZero){
+          alert("Listing does not exist or has been cancelled.");
+          return;
+        }
+        const requiredAmount = listing.price;
+        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
+        if(currentAllowance.lt(requiredAmount)){
+          const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
+          await txApprove.wait();
+          alert("Approved " + ethers.utils.formatUnits(requiredAmount, 18) + " ADRIAN for purchase.");
+        }
+        const tx = await marketplaceContract.buyListing(listingId);
+        await tx.wait();
+        alert("Listing purchased successfully.");
+        // Refresh buy modal listings
+        openBuyModal(currentTokenId);
+      } catch(error){
+        console.error("Error buying listing:", error);
+        alert("Error buying listing: " + error.message);
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
