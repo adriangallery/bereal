@@ -113,7 +113,7 @@
     </section>
   </div>
 
-  <!-- Metadata Modal (opens on clicking NFT image) -->
+  <!-- Metadata Modal (opens on clicking NFT card) -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-dark text-white">
@@ -204,7 +204,7 @@
       const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
       const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // AdrianGallery
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // ADRIAN token
-      const MAX_TOKEN_ID = 100; // Adjust as needed
+      const MAX_TOKEN_ID = 50; // Adjust (lowered to mitigate rate limiting)
 
       // ABIs
       const erc1155Abi = [
@@ -261,7 +261,7 @@
         }
       }
 
-      // Load NFTs: iterate from 1 to MAX_TOKEN_ID, skip tokens that don't exist or are filtered out
+      // Load NFTs: iterate from 1 to MAX_TOKEN_ID and skip tokens that don't exist or are filtered out
       async function loadNFTs() {
         try {
           const galleryDiv = document.getElementById("nftGallery");
@@ -285,7 +285,7 @@
             }
             const metadata = await fetch(tokenURI).then(r => r.json()).catch(e => ({}));
             let tokenName = metadata.name || `Token ${tokenId}`;
-            // Filter out tokens by name (example: skip "#0006 THE BURNED FORTUNE")
+            // Filter out tokens by name if desired (example: skip "#0006 THE BURNED FORTUNE")
             if(tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
             let imageUrl = metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : "https://via.placeholder.com/300?text=No+Image";
             let balanceRaw = await nftContract.balanceOf(userAccount, tokenId);
@@ -297,7 +297,7 @@
             let token = uniqueTokens[key];
             galleryHTML += `
               <div class="col-6 col-md-3 mb-4">
-                <div class="card nft-card h-100 ${token.owned > 0 ? "" : "unowned"}" onclick="openMetadataModal(${token.tokenId})">
+                <div class="card nft-card h-100 ${token.owned > 0 ? "" : "unowned"}" data-tokenid="${token.tokenId}">
                   <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
                   <div class="card-body">
                     <h5 class="card-title">${token.tokenName}</h5>
@@ -308,6 +308,13 @@
             `;
           }
           galleryDiv.innerHTML = galleryHTML;
+          // Attach click handlers to NFT cards
+          document.querySelectorAll(".nft-card").forEach(card => {
+            card.addEventListener("click", function() {
+              const tokenId = this.getAttribute("data-tokenid");
+              openMetadataModal(tokenId);
+            });
+          });
         } catch(error){
           console.error("Error loading NFTs:", error);
           document.getElementById("nftGallery").innerHTML = "<p>Error loading NFTs.</p>";
@@ -338,10 +345,10 @@
           alert("Error fetching metadata");
         }
       }
-      // Expose openMetadataModal globally
+      // Expose openMetadataModal globally if needed (for debugging)
       window.openMetadataModal = openMetadataModal;
 
-      // List button in metadata modal: open List Modal with token id prefilled
+      // List button in metadata modal: open List Modal with current token id prefilled
       document.getElementById("listBtn").addEventListener("click", function(event){
         event.stopPropagation();
         document.getElementById("listTokenId").value = currentTokenId;
@@ -391,7 +398,7 @@
       }
       document.getElementById("createListingModalBtn").addEventListener("click", createListingFromModal);
 
-      // Open Buy Modal: filter listings by tokenId
+      // Open Buy Modal: filter listings for a given token id
       async function openBuyModal(tokenId) {
         if(!marketplaceContract) { alert("Connect your wallet first."); return; }
         try {
@@ -455,7 +462,7 @@
           alert("Error buying listing: " + error.message);
         }
       }
-      window.buyListingById = buyListingById; // Expose for inline onclick
+      window.buyListingById = buyListingById;
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
