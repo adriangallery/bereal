@@ -8,55 +8,52 @@
 </head>
 <body>
   <h1>NFT Marketplace Demo</h1>
-
-  <!-- Sección para conectar la wallet -->
+  
+  <!-- Conectar wallet -->
   <button id="connectButton">Conectar Wallet</button>
   <p id="walletAddress">Wallet no conectada</p>
 
   <!-- Sección para crear un listado -->
   <h2>Crear Listado (Aprobar NFT + Listar)</h2>
-  <p>Completa los campos para crear un listado:</p>
+  <p>Completa los siguientes campos para crear un listado:</p>
   <ul>
     <li>
-      Dirección de la colección (ERC1155):
+      Dirección de la colección (ERC1155):<br>
       <input id="collectionInput" type="text" placeholder="Collection address" value="0xa92a8F5A47efC77da796dfD0827D07872E7D0429">
     </li>
     <li>
-      Token ID:
+      Token ID:<br>
       <input id="tokenIdInput" type="number" placeholder="Token ID" value="7">
     </li>
     <li>
-      Cantidad:
+      Cantidad:<br>
       <input id="quantityInput" type="number" placeholder="Cantidad" value="1">
     </li>
     <li>
-      Precio (en $ADRIAN, asumiendo 18 decimales):
+      Precio (en $ADRIAN, asumiendo 18 decimales):<br>
       <input id="priceInput" type="text" placeholder="Precio en tokens" value="10">
     </li>
     <li>
-      Duración (en segundos):
+      Duración (en segundos):<br>
       <input id="durationInput" type="number" placeholder="Duración en segundos" value="259200">
-    </li>
-    <li>
-      Dirección del Marketplace:
-      <input id="marketplaceInput" type="text" placeholder="Marketplace address or ENS" value="0x45c7D235c97E4Cb78fbaCe020e674EB97ba1De5d">
     </li>
   </ul>
   <button id="createListingButton">Aprobar NFT y Crear Listado</button>
 
   <!-- Sección para comprar un listado -->
   <h2>Comprar Listado</h2>
+  <p>Ingresa el ID del listado:</p>
   <input type="text" id="listingIdInput" placeholder="ID del listado">
   <button id="buyListingButton">Comprar Listado</button>
 
   <script>
-    // ABI mínimo para ERC1155 (setApprovalForAll e isApprovedForAll)
+    // ABI mínimo para ERC1155 (solo para aprobación)
     const erc1155Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address account, address operator) external view returns (bool)"
     ];
 
-    // ABI mínimo para el NFTMarketplace (createListing y buyListing)
+    // ABI mínimo para el contrato NFTMarketplace
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
       "function buyListing(uint256 listingId) external",
@@ -64,25 +61,13 @@
       "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)"
     ];
 
+    // Dirección hardcodeada del contrato NFTMarketplace
+    const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
+
     let provider;
     let signer;
     let walletAddress;
     let marketplaceContract;
-
-    // Función auxiliar para resolver ENS si es necesario
-    async function resolveAddress(addressOrEns) {
-      try {
-        if (ethers.utils.isAddress(addressOrEns)) {
-          return addressOrEns;
-        } else {
-          const resolved = await provider.resolveName(addressOrEns);
-          return resolved || addressOrEns;
-        }
-      } catch (err) {
-        console.error("Error al resolver dirección:", err);
-        return addressOrEns;
-      }
-    }
 
     // Función para conectar la wallet (MetaMask)
     async function connectWallet() {
@@ -92,54 +77,44 @@
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
         document.getElementById("walletAddress").innerText = "Wallet: " + walletAddress;
-        // Resolver automáticamente la dirección del marketplace
-        const marketplaceInput = document.getElementById("marketplaceInput").value;
-        const resolvedMarketplaceAddress = await resolveAddress(marketplaceInput);
-        marketplaceContract = new ethers.Contract(resolvedMarketplaceAddress, marketplaceAbi, signer);
+        marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
       } else {
         alert("¡Instala MetaMask!");
       }
     }
     document.getElementById("connectButton").addEventListener("click", connectWallet);
 
-    // Función para aprobar el NFT (si no está aprobado) y luego crear el listado
+    // Función para aprobar el NFT (si no está aprobado) y crear el listado
     async function approveAndCreateListing() {
       if (!marketplaceContract) {
         alert("Conecta tu wallet primero");
         return;
       }
       
-      // Recupera valores de los inputs
+      // Obtiene los valores de los inputs
       const collectionAddress = document.getElementById("collectionInput").value;
       const tokenId = document.getElementById("tokenIdInput").value;
       const quantity = document.getElementById("quantityInput").value;
       const priceInput = document.getElementById("priceInput").value;
       const duration = document.getElementById("durationInput").value;
       
-      // Convierte el precio a la unidad correspondiente (asumiendo 18 decimales)
+      // Convierte el precio a 18 decimales
       const price = ethers.utils.parseUnits(priceInput, 18);
       
-      // Inicializa el contrato ERC1155 para la colección indicada
+      // Inicializa el contrato ERC1155 de la colección indicada
       const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
       
       try {
         // Verifica si el NFT ya está aprobado para el marketplace
-        const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceContract.address);
+        const approved = await nftContract.isApprovedForAll(walletAddress, marketplaceAddress);
         if (!approved) {
-          // Si no está aprobado, se envía la transacción de aprobación
-          const approveTx = await nftContract.setApprovalForAll(marketplaceContract.address, true);
+          const approveTx = await nftContract.setApprovalForAll(marketplaceAddress, true);
           await approveTx.wait();
           alert("NFT aprobado para el marketplace");
         }
         
-        // Una vez aprobado, se crea el listado
-        const tx = await marketplaceContract.createListing(
-          collectionAddress,
-          tokenId,
-          quantity,
-          price,
-          duration
-        );
+        // Crea el listado en el marketplace
+        const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, price, duration);
         const receipt = await tx.wait();
         // Busca el evento ListingCreated para obtener el ID del listado
         const event = receipt.events.find(event => event.event === "ListingCreated");
@@ -156,9 +131,8 @@
     }
     document.getElementById("createListingButton").addEventListener("click", approveAndCreateListing);
 
-    // Función para comprar un listado, incluyendo la aprobación automática de tokens $ADRIAN
+    // Función para comprar un listado, aprobando primero la cantidad de tokens $ADRIAN necesaria
     async function buyListing() {
-      // Si no hay signer, se solicita conectar la wallet
       if (!signer) {
         await connectWallet();
       }
@@ -172,7 +146,7 @@
         return;
       }
       
-      // Obtenemos los datos del listado para conocer el precio
+      // Obtiene el listado para conocer el precio
       let listing;
       try {
         listing = await marketplaceContract.listings(listingId);
@@ -186,9 +160,9 @@
         return;
       }
       
-      const requiredAmount = listing.price; // Monto en tokens requerido
-
-      // Creamos la instancia del contrato ERC20 para $ADRIAN
+      const requiredAmount = listing.price;
+      
+      // Instancia el contrato ERC20 para $ADRIAN (la dirección está hardcodeada en el contrato)
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
       const erc20Abi = [
           "function allowance(address owner, address spender) view returns (uint256)",
@@ -197,10 +171,9 @@
       const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, signer);
       
       try {
-        const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceContract.address);
+        const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceAddress);
         if (currentAllowance.lt(requiredAmount)) {
-          // Ahora aprobamos solo la cantidad requerida, no de forma ilimitada
-          const approveTx = await tokenContract.approve(marketplaceContract.address, requiredAmount);
+          const approveTx = await tokenContract.approve(marketplaceAddress, requiredAmount);
           await approveTx.wait();
           alert("Token $ADRIAN aprobado para la cantidad requerida");
         }
@@ -210,7 +183,6 @@
         return;
       }
       
-      // Procedemos a comprar el listado
       try {
         const tx = await marketplaceContract.buyListing(listingId);
         await tx.wait();
