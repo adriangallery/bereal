@@ -74,6 +74,10 @@
     .action-btn {
       margin-right: 5px;
     }
+    /* Ensure modals appear above everything */
+    .modal {
+      z-index: 1050 !important;
+    }
   </style>
 </head>
 <body>
@@ -195,6 +199,7 @@
   <!-- Main Script -->
   <script>
     document.addEventListener("DOMContentLoaded", function() {
+      console.log("DOM Loaded");
       // Hardcoded addresses and constants
       const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
       const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // AdrianGallery
@@ -256,7 +261,7 @@
         }
       }
 
-      // Load NFTs: iterate from 1 to MAX_TOKEN_ID and skip tokens with unwanted names
+      // Load NFTs: iterate from 1 to MAX_TOKEN_ID, skip tokens that don't exist or are filtered out
       async function loadNFTs() {
         try {
           const galleryDiv = document.getElementById("nftGallery");
@@ -280,7 +285,7 @@
             }
             const metadata = await fetch(tokenURI).then(r => r.json()).catch(e => ({}));
             let tokenName = metadata.name || `Token ${tokenId}`;
-            // Filter out specific tokens (e.g., "#0006 THE BURNED FORTUNE")
+            // Filter out tokens by name (example: skip "#0006 THE BURNED FORTUNE")
             if(tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
             let imageUrl = metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : "https://via.placeholder.com/300?text=No+Image";
             let balanceRaw = await nftContract.balanceOf(userAccount, tokenId);
@@ -311,6 +316,7 @@
 
       // Open metadata modal: show NFT details and action buttons
       async function openMetadataModal(tokenId) {
+        console.log("openMetadataModal called for tokenId:", tokenId);
         currentTokenId = tokenId;
         try {
           let tokenURI = await nftContract.uri(tokenId);
@@ -332,10 +338,10 @@
           alert("Error fetching metadata");
         }
       }
-      // Expose openMetadataModal to global scope so inline onclick works
+      // Expose openMetadataModal globally
       window.openMetadataModal = openMetadataModal;
 
-      // List button in metadata modal: open List Modal
+      // List button in metadata modal: open List Modal with token id prefilled
       document.getElementById("listBtn").addEventListener("click", function(event){
         event.stopPropagation();
         document.getElementById("listTokenId").value = currentTokenId;
@@ -343,7 +349,7 @@
         listModal.show();
       });
 
-      // Buy button in metadata modal: open Buy Modal
+      // Buy button in metadata modal: open Buy Modal for current token id
       document.getElementById("buyBtn").addEventListener("click", function(event){
         event.stopPropagation();
         openBuyModal(currentTokenId);
@@ -385,7 +391,7 @@
       }
       document.getElementById("createListingModalBtn").addEventListener("click", createListingFromModal);
 
-      // Open Buy Modal: filter listings for a given tokenId
+      // Open Buy Modal: filter listings by tokenId
       async function openBuyModal(tokenId) {
         if(!marketplaceContract) { alert("Connect your wallet first."); return; }
         try {
