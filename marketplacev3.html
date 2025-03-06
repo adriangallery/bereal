@@ -86,6 +86,17 @@
       color: #ccc;
       margin-bottom: 0;
     }
+    /* Styles for unowned NFTs */
+    .nft-card.unowned {
+      background-color: #ddd;
+      color: #555;
+      filter: grayscale(100%);
+      border: 1px solid #bbb;
+    }
+    .nft-card.unowned .card-title,
+    .nft-card.unowned .card-text {
+      color: #555;
+    }
     /* Details Button (for owned tokens) */
     .see-details-btn {
       position: absolute;
@@ -232,7 +243,7 @@
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
     const collectionAddress = nftCollectionAddress; // For marketplace usage
 
-    // Combined token ABI (ERC20 + balanceOf)
+    // Combined token ABI (ERC20 + balanceOf, allowance, approve)
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -341,16 +352,28 @@
           colDiv.className = "col-6 col-md-3 mb-4";
           let cardHTML = "";
           // Both owned and unowned tokens open the same modal on click
-          cardHTML = `
-            <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
-              <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
-              <div class="card-body">
-                <h5 class="card-title">${token.tokenName}</h5>
-                <p class="card-text">${ token.owned > 0 ? 'Owned: ' + token.owned : 'Not owned' }</p>
+          if (token.owned > 0) {
+            cardHTML = `
+              <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
+                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${token.tokenName}</h5>
+                  <p class="card-text">Owned: ${token.owned}</p>
+                </div>
+                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Details</button>
               </div>
-              ${ token.owned > 0 ? `<button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Details</button>` : "" }
-            </div>
-          `;
+            `;
+          } else {
+            cardHTML = `
+              <div class="card nft-card unowned h-100" onclick="showMetadata(${token.ownedRepresentative})">
+                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${token.tokenName}</h5>
+                  <p class="card-text">Not owned</p>
+                </div>
+              </div>
+            `;
+          }
           colDiv.innerHTML = cardHTML;
           galleryDiv.appendChild(colDiv);
         }
@@ -374,7 +397,7 @@
                    <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
                         class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
                  </div>`;
-        // Marketplace actions and active listings appear here (entre la imagen y el nombre)
+        // Marketplace actions and active listings appear here (between the image and NFT details)
         html += `<div id="marketplaceActions">
                    <h5>Marketplace Actions</h5>
                    <button class="btn btn-secondary" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
@@ -463,8 +486,8 @@
           return;
         }
         const requiredAmount = listing.price;
-        // Check ADRIAN token allowance
-        const currentAllowance = await tokenContract.allowance(walletAddress, marketplaceAddress);
+        // Check ADRIAN token allowance using userAccount (not walletAddress)
+        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
         if (currentAllowance.lt(requiredAmount)) {
           const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
           await txApprove.wait();
