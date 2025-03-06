@@ -108,12 +108,15 @@
     </header>
     <!-- NFT Gallery Section -->
     <section>
-      <h3 class="nft-gallery-title">My NFTs from the Collection <span id="galleryLoading" class="ms-2"></span></h3>
+      <h3 class="nft-gallery-title">
+        My NFTs from the Collection 
+        <span id="galleryLoading" class="ms-2"></span>
+      </h3>
       <div id="nftGallery" class="row"></div>
     </section>
   </div>
 
-  <!-- Metadata Modal (opens on clicking NFT card) -->
+  <!-- Metadata Modal (opens when an NFT card is clicked) -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-dark text-white">
@@ -204,7 +207,7 @@
       const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
       const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // AdrianGallery
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // ADRIAN token
-      const MAX_TOKEN_ID = 50; // Adjust (lowered to mitigate rate limiting)
+      const MAX_TOKEN_ID = 50; // Lowered to 50 to reduce RPC calls
 
       // ABIs
       const erc1155Abi = [
@@ -248,7 +251,10 @@
         }
       }
       window.onMenuWalletConnected = connectWallet;
-      document.getElementById("connectButton").addEventListener("click", connectWallet);
+      const connectBtn = document.getElementById("connectButton");
+      if(connectBtn) {
+        connectBtn.addEventListener("click", connectWallet);
+      }
 
       async function updateTokenBalance() {
         try {
@@ -261,7 +267,7 @@
         }
       }
 
-      // Load NFTs: iterate from 1 to MAX_TOKEN_ID and skip tokens that don't exist or are filtered out
+      // Load NFTs using Promise.allSettled to fetch concurrently
       async function loadNFTs() {
         try {
           const galleryDiv = document.getElementById("nftGallery");
@@ -272,7 +278,11 @@
                                     <p>Loading NFTs...</p>
                                   </div>`;
           let uniqueTokens = {};
+          const tokenIds = [];
           for(let tokenId = 1; tokenId <= MAX_TOKEN_ID; tokenId++){
+            tokenIds.push(tokenId);
+          }
+          const results = await Promise.allSettled(tokenIds.map(async (tokenId) => {
             let tokenURI;
             try {
               tokenURI = await nftContract.uri(tokenId);
@@ -281,23 +291,28 @@
               }
             } catch(e) {
               console.warn("Token ID", tokenId, "does not exist. Skipping.");
-              continue;
+              return null;
             }
             const metadata = await fetch(tokenURI).then(r => r.json()).catch(e => ({}));
             let tokenName = metadata.name || `Token ${tokenId}`;
-            // Filter out tokens by name if desired (example: skip "#0006 THE BURNED FORTUNE")
-            if(tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
+            // Filter out specific tokens
+            if(tokenName.trim() === "#0006 THE BURNED FORTUNE") return null;
             let imageUrl = metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : "https://via.placeholder.com/300?text=No+Image";
             let balanceRaw = await nftContract.balanceOf(userAccount, tokenId);
             let ownedCount = balanceRaw.toNumber();
-            uniqueTokens[tokenId] = { tokenId, tokenName, imageUrl, owned: ownedCount };
-          }
+            return { tokenId, tokenName, imageUrl, owned: ownedCount };
+          }));
+          results.forEach(res => {
+            if(res.status === "fulfilled" && res.value != null) {
+              uniqueTokens[res.value.tokenId] = res.value;
+            }
+          });
           let galleryHTML = "";
           for(let key in uniqueTokens){
             let token = uniqueTokens[key];
             galleryHTML += `
               <div class="col-6 col-md-3 mb-4">
-                <div class="card nft-card h-100 ${token.owned > 0 ? "" : "unowned"}" data-tokenid="${token.tokenId}">
+                <div class="card nft-card h-100" data-tokenid="${token.tokenId}">
                   <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
                   <div class="card-body">
                     <h5 class="card-title">${token.tokenName}</h5>
@@ -345,7 +360,7 @@
           alert("Error fetching metadata");
         }
       }
-      // Expose openMetadataModal globally if needed (for debugging)
+      // Expose openMetadataModal globally
       window.openMetadataModal = openMetadataModal;
 
       // List button in metadata modal: open List Modal with current token id prefilled
