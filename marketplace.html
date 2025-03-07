@@ -276,8 +276,18 @@
 
     let tokenContract, nftContract, marketplaceContract;
 
-    // Helper: formato de números en-US, con 2 decimales y comas para los miles
-    function formatAmount(amount) {
+    //
+    // FORMATEADORES
+    //
+    // 1) Formateo para el BALANCE (K, M, etc.)
+    function formatBalance(balance) {
+      const num = parseFloat(balance);
+      if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+      if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+      return num.toString();
+    }
+    // 2) Formateo para precios, approvals, etc. (con comas y 2 decimales)
+    function formatWithCommasAndDecimals(amount) {
       const numeric = Number(amount);
       return numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -298,7 +308,8 @@
       try {
         const balanceRaw = await tokenContract.balanceOf(userAccount);
         const balanceInt = balanceRaw.div(ethers.constants.WeiPerEther).toString();
-        document.getElementById("tokenBalance").innerText = `Balance: ${formatAmount(balanceInt)} $ADRIAN`;
+        // Aquí usamos la función con K y M
+        document.getElementById("tokenBalance").innerText = `Balance: ${formatBalance(balanceInt)} $ADRIAN`;
       } catch (error) {
         console.error("Error fetching token balance:", error);
         document.getElementById("tokenBalance").innerText = "Balance: Error";
@@ -324,6 +335,7 @@
             imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
           }
           let tokenName = metadata.name || `Token ${tokenId}`;
+          // Excluir un token concreto
           if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
           let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
           const balance = await nftContract.balanceOf(userAccount, tokenId);
@@ -335,7 +347,7 @@
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           let cardHTML = "";
-          // Tanto tokens poseídos como no poseídos abren el mismo popup al hacer clic
+          // Botón "Listings" siempre, tanto owned como unowned
           if (token.owned > 0) {
             cardHTML = `
               <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
@@ -344,7 +356,7 @@
                   <h5 class="card-title">${token.tokenName}</h5>
                   <p class="card-text">Owned: ${token.owned}</p>
                 </div>
-                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Details</button>
+                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
               </div>
             `;
           } else {
@@ -355,6 +367,7 @@
                   <h5 class="card-title">${token.tokenName}</h5>
                   <p class="card-text">Not owned</p>
                 </div>
+                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
               </div>
             `;
           }
@@ -535,7 +548,7 @@
           listingsFound.forEach(listing => {
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
             listingsHtml += `<li>
-                Price per NFT: ${formatAmount(pricePerNFT)} $ADRIAN | Quantity: ${listing.quantity.toString()}
+                Price per NFT: ${formatWithCommasAndDecimals(pricePerNFT)} ADRIAN | Quantity: ${listing.quantity.toString()}
                 <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
               </li>`;
           });
@@ -566,7 +579,8 @@
         if (currentAllowance.lt(requiredAmount)) {
           const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
           await txApprove.wait();
-          const approvedAmountStr = formatAmount(ethers.utils.formatUnits(requiredAmount, 18));
+          // Formatear con comas y decimales
+          const approvedAmountStr = formatWithCommasAndDecimals(ethers.utils.formatUnits(requiredAmount, 18));
           alert("Approved " + approvedAmountStr + " ADRIAN for purchase.");
         }
         const tx = await marketplaceContract.buyListing(listingId);
