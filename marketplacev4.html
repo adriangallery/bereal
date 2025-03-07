@@ -39,6 +39,16 @@
 </head>
 <body>
 
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(r => r.text())
+      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .catch(err => console.error('Error loading menu2:', err));
+  </script>
+  <script src="components/menu2.js"></script>
+
   <!-- Hero Section -->
   <section class="hero">
     <div class="container">
@@ -53,23 +63,35 @@
     </header>
   </div>
 
-  <!-- Sección de eventos del marketplace -->
+  <!-- NFT Gallery -->
+  <div id="nftGallery" class="row section-wrapper"></div>
+
+  <!-- Latest Marketplace Events Section -->
   <div class="section-wrapper">
-    <h2 class="text-center">Últimos eventos del Marketplace</h2>
+    <h2 class="text-center">Latest Marketplace Events</h2>
     <ul id="eventList" class="list-group mb-3"></ul>
     <div class="text-center">
-      <button id="loadMoreEvents" class="btn btn-primary" style="display: none;">Cargar más eventos</button>
+      <button id="loadMoreEvents" class="btn btn-primary" style="display: none;">Load More Events</button>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+
+  <!-- Blockchain Interaction Scripts -->
   <script>
     const EVENT_LIMIT = 10;
     let allEvents = [];
     let displayedEvents = 0;
 
-    const provider = new ethers.providers.JsonRpcProvider("URL_RPC_AQUÍ"); // 🚀 Reemplaza con tu RPC
-    const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244"; // Dirección del contrato
+    const provider = new ethers.providers.JsonRpcProvider("URL_RPC_AQUÍ"); // 🚀 Replace with your RPC URL
+    const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244"; // Marketplace contract address
     const marketplaceAbi = [
       "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
       "event ListingCancelled(uint256 indexed listingId)",
@@ -94,7 +116,7 @@
 
         displayNextEvents();
       } catch (error) {
-        console.error("Error cargando eventos:", error);
+        console.error("Error fetching marketplace events:", error);
       }
     }
 
@@ -125,19 +147,19 @@
     function formatEvent(event) {
       switch (event.type) {
         case "ListingCreated":
-          return `📌 <strong>Nuevo listado:</strong> ID ${event.args.listingId} - Precio: ${ethers.utils.formatUnits(event.args.price, 18)} $ADRIAN`;
+          return `📌 <strong>New Listing:</strong> ID ${event.args.listingId} - Price: ${ethers.utils.formatUnits(event.args.price, 18)} $ADRIAN`;
         case "ListingCancelled":
-          return `❌ <strong>Listado cancelado:</strong> ID ${event.args.listingId}`;
+          return `❌ <strong>Listing Cancelled:</strong> ID ${event.args.listingId}`;
         case "ListingPurchased":
-          return `✅ <strong>Compra realizada:</strong> ID ${event.args.listingId} - Comprador: ${event.args.buyer}`;
+          return `✅ <strong>Purchase Completed:</strong> ID ${event.args.listingId} - Buyer: ${event.args.buyer}`;
         case "OfferMade":
-          return `💰 <strong>Nueva oferta:</strong> ${ethers.utils.formatUnits(event.args.offerAmount, 18)} $ADRIAN - Comprador: ${event.args.buyer}`;
+          return `💰 <strong>New Offer:</strong> ${ethers.utils.formatUnits(event.args.offerAmount, 18)} $ADRIAN - Buyer: ${event.args.buyer}`;
         case "OfferWithdrawn":
-          return `🔄 <strong>Oferta retirada:</strong> ID ${event.args.listingId} - Usuario: ${event.args.buyer}`;
+          return `🔄 <strong>Offer Withdrawn:</strong> ID ${event.args.listingId} - User: ${event.args.buyer}`;
         case "OfferAccepted":
-          return `🏆 <strong>Oferta aceptada:</strong> ID ${event.args.listingId} - Comprador: ${event.args.buyer}`;
+          return `🏆 <strong>Offer Accepted:</strong> ID ${event.args.listingId} - Buyer: ${event.args.buyer}`;
         default:
-          return `🔹 Evento desconocido: ${event.type}`;
+          return `🔹 Unknown Event: ${event.type}`;
       }
     }
 
