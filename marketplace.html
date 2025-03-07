@@ -296,7 +296,6 @@
       provider = window.menuProvider;
       signer = window.menuSigner;
       userAccount = window.menuUserAccount;
-      document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
       marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
