@@ -548,7 +548,7 @@
           listingsFound.forEach(listing => {
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
             listingsHtml += `<li>
-                Price per NFT: ${formatWithCommasAndDecimals(pricePerNFT)} ADRIAN | Quantity: ${listing.quantity.toString()}
+                Price per NFT: ${formatWithCommasAndDecimals(pricePerNFT)} $ADRIAN | Quantity: ${listing.quantity.toString()}
                 <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
               </li>`;
           });
