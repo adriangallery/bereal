@@ -211,7 +211,7 @@
 
   <!-- Scripts and logic -->
   <script>
-    // Cache duration in milisegundos (2 días)
+    // Cache duration en milisegundos (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
     // Función para obtener metadata utilizando localStorage como caché
@@ -405,7 +405,9 @@
                    <button class="btn btn-secondary" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
                  </div>
                  <div id="marketplaceListings" class="mt-3"></div>`;
-        // Detalles del NFT
+        // Aquí se inyecta el contenedor para el formulario de Create Listing
+        html += `<div id="createListingForm" style="display:none;"></div>`;
+        // Se separa con un <hr> y a continuación se muestran los detalles del NFT
         html += `<hr>
                  <p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>
                  <p><strong>Description:</strong> ${metadata.description || 'No description provided'}</p>`;
@@ -417,8 +419,6 @@
           html += `</ul>`;
         }
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
-        // Importante: se inyecta el contenedor para el formulario de Create Listing
-        html += `<div id="createListingForm" style="display:none;"></div>`;
         // Asigna el contenido al modal
         document.getElementById("metadataContent").innerHTML = html;
         document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
