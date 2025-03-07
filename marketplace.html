@@ -276,27 +276,10 @@
 
     let tokenContract, nftContract, marketplaceContract;
 
-    // Helper: formato de números
+    // Helper: formato de números en-US, con 2 decimales y comas para los miles
     function formatAmount(amount) {
-      const num = parseFloat(amount);
-      if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
-      if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-      return num.toString();
-    }
-
-    // Función para almacenar un token representativo (incluso si no se posee)
-    function addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount) {
-      if (uniqueTokens[tokenKey]) {
-        uniqueTokens[tokenKey].owned += ownedCount;
-      } else {
-        uniqueTokens[tokenKey] = {
-          owned: ownedCount,
-          ownedRepresentative: tokenId,
-          tokenName: tokenName,
-          imageUrl: imageUrl,
-          tokenURI: tokenURI,
-        };
-      }
+      const numeric = Number(amount);
+      return numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     window.onMenuWalletConnected = async function() {
@@ -383,6 +366,21 @@
         console.error("Error loading NFTs:", error);
         document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
         document.getElementById("loadingSpinner").style.display = "none";
+      }
+    }
+
+    // Función para almacenar un token representativo (incluso si no se posee)
+    function addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount) {
+      if (uniqueTokens[tokenKey]) {
+        uniqueTokens[tokenKey].owned += ownedCount;
+      } else {
+        uniqueTokens[tokenKey] = {
+          owned: ownedCount,
+          ownedRepresentative: tokenId,
+          tokenName: tokenName,
+          imageUrl: imageUrl,
+          tokenURI: tokenURI,
+        };
       }
     }
 
@@ -537,7 +535,7 @@
           listingsFound.forEach(listing => {
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
             listingsHtml += `<li>
-                Price per NFT: ${pricePerNFT} ADRIAN | Quantity: ${listing.quantity.toString()}
+                Price per NFT: ${formatAmount(pricePerNFT)} $ADRIAN | Quantity: ${listing.quantity.toString()}
                 <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
               </li>`;
           });
@@ -568,7 +566,8 @@
         if (currentAllowance.lt(requiredAmount)) {
           const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
           await txApprove.wait();
-          alert("Approved " + ethers.utils.formatUnits(requiredAmount, 18) + " ADRIAN for purchase.");
+          const approvedAmountStr = formatAmount(ethers.utils.formatUnits(requiredAmount, 18));
+          alert("Approved " + approvedAmountStr + " ADRIAN for purchase.");
         }
         const tx = await marketplaceContract.buyListing(listingId);
         await tx.wait();
