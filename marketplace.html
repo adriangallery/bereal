@@ -438,11 +438,11 @@
       formDiv.style.display = "block";
       // Rellenar el formulario con los campos deseados
       formDiv.innerHTML = `
-          <h5>Create Listing for Token ID: ${tokenId}</h5>
+          <h5>Create Listing:</h5>
           <label>Quantity:
             <input type="number" id="listingQuantity" value="1" min="1">
           </label>
-          <label>Price per NFT (ADRIAN):
+          <label>Price per NFT in $ADRIAN:
             <input type="text" id="listingPrice" value="10">
           </label>
           <label>Duration:
@@ -537,7 +537,7 @@
           listingsFound.forEach(listing => {
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
             listingsHtml += `<li>
-                ID: ${listing.id.toString()} | Price per NFT: ${pricePerNFT} ADRIAN | Quantity: ${listing.quantity.toString()}
+                Price per NFT: ${pricePerNFT} ADRIAN | Quantity: ${listing.quantity.toString()}
                 <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
               </li>`;
           });
