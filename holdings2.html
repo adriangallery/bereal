@@ -17,8 +17,8 @@
   <style>
     /* ========== GLOBAL STYLES ========== */
     body {
-      background-color: #000; /* Fondo negro */
-      color: #fff;            /* Texto blanco por defecto */
+      background-color: #000;
+      color: #fff;
       margin: 0;
       padding: 0;
       font-family: sans-serif;
@@ -29,8 +29,7 @@
     }
     /* ========== HERO SECTION ========== */
     .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') 
-                  center center no-repeat;
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') center center no-repeat;
       background-size: cover;
       padding: 80px 0;
       text-align: center;
@@ -65,7 +64,10 @@
     .nft-card:hover {
       transform: scale(1.01);
     }
+    /* Fuerza todas las imágenes a tener un aspect-ratio de 1:1 */
     .nft-card img {
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
       transition: transform 0.2s ease-in-out;
       border-radius: 8px 8px 0 0;
     }
@@ -104,7 +106,7 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
-    /* Botón Buy (para tokens no poseídos) */
+    /* Botón Buy/Mint */
     .opensea-btn {
       position: absolute;
       bottom: 5px;
@@ -155,7 +157,6 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Cargamos el HTML del menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(r => r.text())
       .then(html => {
@@ -163,7 +164,6 @@
       })
       .catch(err => console.error('Error loading menu2:', err));
   </script>
-  <!-- Lógica del menú (menuConnectWallet) -->
   <script src="components/menu2.js"></script>
 
   <!-- Hero Section -->
@@ -175,7 +175,6 @@
 
   <!-- MAIN CONTENT WRAPPER -->
   <div class="section-wrapper">
-    <!-- Header con balance y wallet -->
     <header class="text-center mb-4">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
       <p id="accountDisplay" class="mt-2"></p>
@@ -184,9 +183,7 @@
     <!-- NFT Gallery Section -->
     <section>
       <h3 class="nft-gallery-title">My NFTs from the Collection</h3>
-      <div id="nftGallery" class="row">
-        <!-- Se inyectarán las tarjetas NFT -->
-      </div>
+      <div id="nftGallery" class="row"></div>
     </section>
   </div>
 
@@ -198,9 +195,7 @@
           <h5 class="modal-title" id="metadataModalLabel"></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body" id="metadataContent">
-          <!-- Se inyectará la metadata -->
-        </div>
+        <div class="modal-body" id="metadataContent"></div>
       </div>
     </div>
   </div>
@@ -208,7 +203,6 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
@@ -220,7 +214,35 @@
   </script>
 
   <script>
-    // Variables y configuraciones para la conexión y contratos
+    // Duración del caché en milisegundos (2 días)
+    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
+
+    // Función para obtener metadata utilizando localStorage como caché
+    async function getMetadata(tokenURI) {
+      const cached = localStorage.getItem(tokenURI);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+            return parsed.data;
+          }
+        } catch (e) {
+          console.error("Error parsing cache for", tokenURI, e);
+        }
+      }
+      try {
+        const response = await fetch(tokenURI);
+        const metadata = await response.json();
+        const toStore = { timestamp: Date.now(), data: metadata };
+        localStorage.setItem(tokenURI, JSON.stringify(toStore));
+        return metadata;
+      } catch (error) {
+        console.error("Error fetching metadata from", tokenURI, error);
+        return {};
+      }
+    }
+
+    // Variables de conexión y contratos
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
@@ -239,26 +261,18 @@
 
     function formatAmount(amount) {
       const num = parseFloat(amount);
-      if (num >= 1e6) {
-        return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
-      }
-      if (num >= 1e3) {
-        return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-      }
+      if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+      if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
       return num.toString();
     }
 
-    // Callback al conectar la wallet desde el menú
     window.onMenuWalletConnected = async function() {
       provider = window.menuProvider;
       signer = window.menuSigner;
       userAccount = window.menuUserAccount;
-
       document.getElementById("accountDisplay").innerText = "Connected Account: " + userAccount;
-
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
-
       updateTokenBalance();
       loadNFTs();
     };
@@ -277,56 +291,36 @@
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
-        galleryDiv.innerHTML = ""; // Limpiar contenido previo
-
-        // Obtener total de eventos (mint)
+        galleryDiv.innerHTML = "";
         const nextEventId = await nftContract.nextEventId();
         const totalEvents = nextEventId.toNumber();
-
-        // Usamos un objeto para agrupar tokens con la misma metadata (nombre + imagen)
         let uniqueTokens = {};
-
         for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-          // Saltamos el token 5
-          if (tokenId === 5) continue;
-
+          // Saltar tokenId 0
+          if (tokenId === 0) continue;
           let tokenURI = await nftContract.uri(tokenId);
-          if (tokenURI.startsWith("ipfs://")) {
-            tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          }
-
-          let metadata = {};
-          try {
-            const response = await fetch(tokenURI);
-            metadata = await response.json();
-          } catch (metaError) {
-            console.error(`Error fetching metadata for token ${tokenId}:`, metaError);
-          }
-
+          if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+          const metadata = await getMetadata(tokenURI);
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
-          if (imageUrl.startsWith("ipfs://")) {
-            imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+          if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+          // Si es tokenId 13, forzamos la imagen proporcionada
+          if (tokenId === 13) {
+            imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
           }
           let tokenName = metadata.name || `Token ${tokenId}`;
-
-          // Usamos como clave la combinación de tokenName e imageUrl
+          // Omitir token si su nombre es "#0006 THE BURNED FORTUNE"
+          if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
           let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
-
-          // Obtenemos el balance para este token
           const balance = await nftContract.balanceOf(userAccount, tokenId);
           let ownedCount = balance.toNumber();
-
           if (uniqueTokens[tokenKey]) {
-            // Acumulamos la cantidad
             uniqueTokens[tokenKey].owned += ownedCount;
-            // Si no se había establecido un token representativo y este es poseído, lo asignamos
             if (!uniqueTokens[tokenKey].ownedRepresentative && ownedCount > 0) {
               uniqueTokens[tokenKey].ownedRepresentative = tokenId;
             }
           } else {
             uniqueTokens[tokenKey] = {
               owned: ownedCount,
-              // Si es poseído, guardamos este tokenId para detalles
               ownedRepresentative: ownedCount > 0 ? tokenId : null,
               tokenName: tokenName,
               imageUrl: imageUrl,
@@ -334,15 +328,13 @@
             };
           }
         }
-
-        // Construir y mostrar las tarjetas
+        // Renderizar tarjetas
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           let cardHTML = "";
           if (token.owned > 0) {
-            // Tarjeta para token poseído
             cardHTML = `
               <div class="card nft-card h-100">
                 <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
@@ -356,19 +348,33 @@
               </div>
             `;
           } else {
-            // Tarjeta para token no poseído (en gris)
-            cardHTML = `
-              <div class="card nft-card unowned h-100">
-                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
-                <div class="card-body">
-                  <h5 class="card-title">${token.tokenName}</h5>
-                  <p class="card-text">Not owned</p>
+            if (token.tokenName.trim() === "#0005 THE BURNED FORTUNE") {
+              cardHTML = `
+                <div class="card nft-card unowned h-100">
+                  <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                  <div class="card-body">
+                    <h5 class="card-title">${token.tokenName}</h5>
+                    <p class="card-text">Not owned</p>
+                  </div>
+                  <a href="filthyrich.html" class="opensea-btn">
+                    Mint
+                  </a>
                 </div>
-                <a href="https://opensea.io/es/collection/adriangallery" target="_blank" class="opensea-btn">
-                  Buy
-                </a>
-              </div>
-            `;
+              `;
+            } else {
+              cardHTML = `
+                <div class="card nft-card unowned h-100">
+                  <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                  <div class="card-body">
+                    <h5 class="card-title">${token.tokenName}</h5>
+                    <p class="card-text">Not owned</p>
+                  </div>
+                  <a href="https://opensea.io/es/collection/adriangallery" target="_blank" class="opensea-btn">
+                    Buy
+                  </a>
+                </div>
+              `;
+            }
           }
           colDiv.innerHTML = cardHTML;
           galleryDiv.appendChild(colDiv);
@@ -382,19 +388,15 @@
     async function showMetadata(tokenId) {
       try {
         let tokenURI = await nftContract.uri(tokenId);
-        if (tokenURI.startsWith("ipfs://")) {
-          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-        }
-        const response = await fetch(tokenURI);
-        const metadata = await response.json();
-
+        if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        const metadata = await getMetadata(tokenURI);
         let html = `<div class="text-center mb-3">
                       <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
                            class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
                     </div>`;
         html += `<p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>`;
         html += `<p><strong>Description:</strong> ${metadata.description || 'No description'}</p>`;
-        if(metadata.attributes) {
+        if (metadata.attributes) {
           html += `<p><strong>Attributes:</strong></p><ul>`;
           metadata.attributes.forEach(attr => {
             html += `<li>${attr.trait_type}: ${attr.value}</li>`;
@@ -402,11 +404,8 @@
           html += `</ul>`;
         }
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
-
         document.getElementById("metadataContent").innerHTML = html;
-        document.getElementById("metadataModalLabel").innerHTML =
-          `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
-
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
       } catch (error) {
@@ -416,7 +415,6 @@
     }
   </script>
 
-  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
