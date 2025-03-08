@@ -24,19 +24,49 @@
     .hero h1 {
       font-weight: bold;
     }
+    /* Embed section styling */
+    .embed-section {
+      padding: 2rem 0;
+    }
   </style>
+  <!-- Ethers.js UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
   <!-- Menu -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load the menu from components/menu2.html
+    // Cargamos el menú desde components/menu2.html
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
+        // Una vez cargado el menú, asignamos el evento al botón de "Connect Wallet"
+        const connectBtn = document.getElementById('connectWalletBtn');
+        if(connectBtn) {
+          connectBtn.addEventListener('click', async function() {
+            if (window.ethereum) {
+              try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
+                // Asignamos las variables globales para el menú
+                window.menuUserAccount = account;
+                window.menuProvider = new ethers.providers.Web3Provider(window.ethereum);
+                window.menuSigner = window.menuProvider.getSigner();
+                // Llamamos a la función callback si existe
+                if (typeof window.onMenuWalletConnected === 'function') {
+                  window.onMenuWalletConnected();
+                }
+              } catch (error) {
+                console.error("Error conectando la wallet:", error);
+              }
+            } else {
+              alert("No se detectó una wallet Ethereum.");
+            }
+          });
+        }
       })
-      .catch(error => { console.error('Error loading menu:', error); });
+      .catch(error => { console.error('Error cargando el menú:', error); });
   </script>
   <script src="components/menu2.js"></script>
   
@@ -47,16 +77,25 @@
     </div>
   </section>
   
+  <!-- Embed Section -->
+  <section class="embed-section">
+    <div class="container">
+      <div class="ratio ratio-16x9">
+        <iframe height="100%" width="100%" id="geckoterminal-embed" title="GeckoTerminal Embed" src="https://www.geckoterminal.com/base/pools/0x95ebfcb1c6b345fda69cf56c51e30421e5a35aec?embed=1&info=1&swaps=0&grayscale=0&light_chart=0&chart_type=price&resolution=15m" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>
+  
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Load the footer from components/footer.html
+    // Cargamos el footer desde components/footer.html
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('footer-placeholder').innerHTML = html;
       })
-      .catch(error => { console.error('Error loading footer:', error); });
+      .catch(error => { console.error('Error cargando el footer:', error); });
   </script>
   
   <!-- Bootstrap JS Bundle -->
