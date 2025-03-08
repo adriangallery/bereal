@@ -3,26 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Marketplace Frontend</title>
-  <!-- Se incluye ethers.js desde CDN -->
-  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+  <!-- Se carga ethers.js desde jsDelivr -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h2 {
+      margin-top: 20px;
+    }
+    .listing, .offer, .sale {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body>
+  <h1>Marketplace Frontend</h1>
   <button id="connectWallet">Conectar Wallet</button>
-  
+  <div id="walletAddress"></div>
+
   <h2>Listados Activos</h2>
   <div id="listings">Cargando listados...</div>
-  
+
   <h2>Ofertas</h2>
   <div id="offers">Cargando ofertas...</div>
-  
+
   <h2>Ventas</h2>
   <div id="sales">Cargando ventas...</div>
-  
+
   <script>
-    // Reemplaza esta variable por la dirección de tu contrato desplegado.
+    // Dirección del contrato (reemplázala por la real)
     const contractAddress = "0xYourContractAddressHere";
     
-    // ABI mínima necesaria para interactuar con las funciones y eventos usados.
+    // ABI mínima para interactuar con el contrato
     const contractABI = [
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
@@ -33,28 +50,37 @@
       "event OfferWithdrawn(uint256 indexed listingId, address indexed buyer)",
       "event OfferAccepted(uint256 indexed listingId, address indexed buyer)"
     ];
-    
+
     let provider;
     let signer;
     let contract;
-    
-    // Función para inicializar la conexión con MetaMask y el contrato
+
+    // Función para conectar la wallet y actualizar la interfaz
     async function init() {
-      if (typeof window.ethereum !== 'undefined') {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(contractAddress, contractABI, signer);
-        
-        loadListings();
-        loadOffers();
-        loadSales();
-      } else {
-        alert("Por favor, instala MetaMask");
+      if (!window.ethereum) {
+        alert("MetaMask no está instalado. Por favor, instálalo para usar esta aplicación.");
+        return;
       }
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      try {
+        // Solicita acceso a la wallet
+        await provider.send("eth_requestAccounts", []);
+      } catch (error) {
+        console.error("Error al conectar con MetaMask:", error);
+        return;
+      }
+      signer = provider.getSigner();
+      const userAddress = await signer.getAddress();
+      document.getElementById("walletAddress").innerText = "Wallet conectada: " + userAddress;
+      contract = new ethers.Contract(contractAddress, contractABI, signer);
+      
+      // Cargar datos del contrato
+      loadListings();
+      loadOffers();
+      loadSales();
     }
-    
-    // Función para cargar y mostrar los listados activos
+
+    // Cargar y mostrar los listados activos
     async function loadListings() {
       const listingsDiv = document.getElementById("listings");
       listingsDiv.innerHTML = "Cargando listados...";
@@ -67,10 +93,11 @@
         for (let i = 1; i <= listingCount; i++) {
           try {
             const listing = await contract.listings(i);
-            // Se valida que el listado exista y que no haya expirado
+            // Se muestra solo si el listado existe (vendedor distinto de cero) y no ha expirado
             if (listing.seller !== "0x0000000000000000000000000000000000000000" && currentTime <= listing.expirationTime) {
-              const listingElement = document.createElement("div");
-              listingElement.innerHTML = `
+              const listingDiv = document.createElement("div");
+              listingDiv.className = "listing";
+              listingDiv.innerHTML = `
                 <p><strong>ID:</strong> ${listing.id.toString()}</p>
                 <p><strong>Vendedor:</strong> ${listing.seller}</p>
                 <p><strong>Colección:</strong> ${listing.collection}</p>
@@ -78,9 +105,8 @@
                 <p><strong>Cantidad:</strong> ${listing.quantity.toString()}</p>
                 <p><strong>Precio:</strong> ${listing.price.toString()}</p>
                 <p><strong>Expira:</strong> ${new Date(listing.expirationTime.toNumber() * 1000).toLocaleString()}</p>
-                <hr>
               `;
-              listingsDiv.appendChild(listingElement);
+              listingsDiv.appendChild(listingDiv);
             }
           } catch (err) {
             console.error("Error al cargar el listado", i, err);
@@ -88,18 +114,17 @@
         }
       } catch (error) {
         console.error("Error al obtener el contador de listados", error);
+        listingsDiv.innerHTML = "Error al cargar listados.";
       }
     }
-    
-    // Función para cargar y mostrar las ofertas (utilizando el evento OfferMade)
+
+    // Cargar y mostrar las ofertas (consultando eventos OfferMade)
     async function loadOffers() {
       const offersDiv = document.getElementById("offers");
       offersDiv.innerHTML = "Cargando ofertas...";
       try {
-        // Se crea el filtro para el evento OfferMade
         const filter = contract.filters.OfferMade();
         const events = await contract.queryFilter(filter);
-        // Se agrupan las ofertas por listingId
         const offersMapping = {};
         events.forEach(event => {
           const listingId = event.args.listingId.toString();
@@ -112,10 +137,10 @@
         });
         offersDiv.innerHTML = "";
         for (const listingId in offersMapping) {
-          const listingOffers = offersMapping[listingId];
           const listingDiv = document.createElement("div");
+          listingDiv.className = "offer";
           listingDiv.innerHTML = `<h3>Listado ID: ${listingId}</h3>`;
-          listingOffers.forEach(offer => {
+          offersMapping[listingId].forEach(offer => {
             const offerDiv = document.createElement("div");
             offerDiv.innerHTML = `<p>Comprador: ${offer.buyer} - Oferta: ${offer.offerAmount}</p>`;
             listingDiv.appendChild(offerDiv);
@@ -124,42 +149,42 @@
         }
       } catch (error) {
         console.error("Error al cargar las ofertas", error);
+        offersDiv.innerHTML = "Error al cargar ofertas.";
       }
     }
-    
-    // Función para cargar y mostrar las ventas (consultando eventos ListingPurchased y OfferAccepted)
+
+    // Cargar y mostrar las ventas (consultando eventos ListingPurchased y OfferAccepted)
     async function loadSales() {
       const salesDiv = document.getElementById("sales");
       salesDiv.innerHTML = "Cargando ventas...";
       try {
         const purchasedFilter = contract.filters.ListingPurchased();
         const acceptedFilter = contract.filters.OfferAccepted();
-        
         const purchasedEvents = await contract.queryFilter(purchasedFilter);
         const acceptedEvents = await contract.queryFilter(acceptedFilter);
-        
         salesDiv.innerHTML = "";
-        
         purchasedEvents.forEach(event => {
           const listingId = event.args.listingId.toString();
           const buyer = event.args.buyer;
           const saleDiv = document.createElement("div");
+          saleDiv.className = "sale";
           saleDiv.innerHTML = `<p>Listado ID: ${listingId} comprado por ${buyer}</p>`;
           salesDiv.appendChild(saleDiv);
         });
-        
         acceptedEvents.forEach(event => {
           const listingId = event.args.listingId.toString();
           const buyer = event.args.buyer;
           const saleDiv = document.createElement("div");
+          saleDiv.className = "sale";
           saleDiv.innerHTML = `<p>Oferta aceptada en Listado ID: ${listingId} por ${buyer}</p>`;
           salesDiv.appendChild(saleDiv);
         });
       } catch (error) {
         console.error("Error al cargar las ventas", error);
+        salesDiv.innerHTML = "Error al cargar ventas.";
       }
     }
-    
+
     document.getElementById("connectWallet").addEventListener("click", init);
   </script>
 </body>
