@@ -278,7 +278,6 @@
           try {
             const listing = await marketplaceContract.listings(i);
             if (listing.seller !== ethers.constants.AddressZero && currentTime <= listing.expirationTime) {
-              // Get token metadata from the NFT collection contract
               const collectionContract = new ethers.Contract(listing.collection, erc1155Abi, provider);
               let tokenURI = await collectionContract.uri(listing.tokenId);
               const metadata = await getMetadata(tokenURI);
@@ -291,7 +290,7 @@
               const pricePerNFT = listing.price.div(listing.quantity);
               const formattedPrice = formatWithCommasAndDecimals(ethers.utils.formatUnits(pricePerNFT, 18));
               
-              // Create a responsive card using a 50/50 layout
+              // Responsive 50/50 layout: on desktop the image and info each take 50%
               const colDiv = document.createElement("div");
               colDiv.className = "col-12 col-md-6 mb-4";
               colDiv.innerHTML = `
@@ -351,24 +350,21 @@
     }
 
     /*****************
-     * Load Offers (with RPC Error Handling)
+     * Load Offers (with Limited Block Range on Desktop)
      *****************/
     async function loadOffers() {
       const offersDiv = document.getElementById("offers");
       offersDiv.innerHTML = "Loading offers...";
       let events = [];
       try {
+        const currentBlock = await provider.getBlockNumber();
+        // Use a limited range on desktop
+        const fromBlock = window.innerWidth > 768 ? currentBlock - 100000 : 0;
         const filter = marketplaceContract.filters.OfferMade();
-        events = await marketplaceContract.queryFilter(filter);
+        events = await marketplaceContract.queryFilter(filter, fromBlock, currentBlock);
       } catch (error) {
-        if (error.code === -32603) {
-          console.warn("No logs returned for offers; treating as empty.");
-          events = [];
-        } else {
-          console.error("Error loading offers", error);
-          offersDiv.innerHTML = "Error loading offers.";
-          return;
-        }
+        console.warn("No logs returned for offers; treating as empty.", error);
+        events = [];
       }
       const offersMapping = {};
       events.forEach(event => {
@@ -386,63 +382,68 @@
         offerCard.className = "mb-3";
         offerCard.innerHTML = `<h5>Listing ID: ${listingId}</h5>`;
         offersMapping[listingId].forEach(offer => {
-          offerCard.innerHTML += `<p>Buyer: ${offer.buyer} - Offer: ${offer.offerAmount}</p>`;
+          offerCard.innerHTML += `<p>Buyer: ${truncateAddress(offer.buyer)} - Offer: ${formatWithCommasAndDecimals(ethers.utils.formatUnits(offer.offerAmount,18))} $ADRIAN</p>`;
         });
         offersDiv.appendChild(offerCard);
       }
     }
 
     /*****************
-     * Load Sales (with RPC Error Handling)
+     * Load Sales (with Limited Block Range on Desktop and Enhanced Display)
      *****************/
     async function loadSales() {
       const salesDiv = document.getElementById("sales");
       salesDiv.innerHTML = "Loading sales...";
       let purchasedEvents = [];
       let acceptedEvents = [];
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = window.innerWidth > 768 ? currentBlock - 100000 : 0;
       try {
         const purchasedFilter = marketplaceContract.filters.ListingPurchased();
-        purchasedEvents = await marketplaceContract.queryFilter(purchasedFilter);
+        purchasedEvents = await marketplaceContract.queryFilter(purchasedFilter, fromBlock, currentBlock);
       } catch (error) {
-        if (error.code === -32603) {
-          console.warn("No logs returned for purchased events; treating as empty.");
-          purchasedEvents = [];
-        } else {
-          console.error("Error loading purchased events", error);
-          salesDiv.innerHTML = "Error loading sales.";
-          return;
-        }
+        console.warn("No logs returned for purchased events; treating as empty.", error);
+        purchasedEvents = [];
       }
       try {
         const acceptedFilter = marketplaceContract.filters.OfferAccepted();
-        acceptedEvents = await marketplaceContract.queryFilter(acceptedFilter);
+        acceptedEvents = await marketplaceContract.queryFilter(acceptedFilter, fromBlock, currentBlock);
       } catch (error) {
-        if (error.code === -32603) {
-          console.warn("No logs returned for accepted events; treating as empty.");
-          acceptedEvents = [];
-        } else {
-          console.error("Error loading accepted events", error);
-          salesDiv.innerHTML = "Error loading sales.";
-          return;
+        console.warn("No logs returned for accepted events; treating as empty.", error);
+        acceptedEvents = [];
+      }
+      // Combine both event types into a single array
+      const saleEvents = [...purchasedEvents, ...acceptedEvents];
+      salesDiv.innerHTML = "";
+      for (const event of saleEvents) {
+        const listingId = event.args.listingId.toString();
+        // Get corresponding ListingCreated event to extract original sale info
+        let createdEvent;
+        try {
+          const createdFilter = marketplaceContract.filters.ListingCreated(listingId);
+          const createdEvents = await marketplaceContract.queryFilter(createdFilter);
+          if (createdEvents.length > 0) {
+            createdEvent = createdEvents[0];
+          }
+        } catch (err) {
+          console.error("Error fetching ListingCreated event for listing", listingId, err);
+        }
+        if (createdEvent) {
+          // Get token metadata
+          const collectionContract = new ethers.Contract(createdEvent.args.collection, erc1155Abi, provider);
+          let tokenURI = await collectionContract.uri(createdEvent.args.tokenId);
+          const metadata = await getMetadata(tokenURI);
+          const tokenName = metadata.name || "Unnamed Token";
+          const sellerTruncated = truncateAddress(createdEvent.args.seller);
+          const totalPrice = createdEvent.args.price;
+          const formattedPrice = formatWithCommasAndDecimals(ethers.utils.formatUnits(totalPrice, 18));
+          // Display sale: token name, seller, and price paid
+          const saleDiv = document.createElement("div");
+          saleDiv.className = "mb-2";
+          saleDiv.innerHTML = `<p>Token: ${tokenName} | Seller: ${sellerTruncated} | Price: ${formattedPrice} $ADRIAN</p>`;
+          salesDiv.appendChild(saleDiv);
         }
       }
-      salesDiv.innerHTML = "";
-      purchasedEvents.forEach(event => {
-        const listingId = event.args.listingId.toString();
-        const buyer = event.args.buyer;
-        const saleDiv = document.createElement("div");
-        saleDiv.className = "mb-2";
-        saleDiv.innerHTML = `<p>Listing ID: ${listingId} purchased by ${buyer}</p>`;
-        salesDiv.appendChild(saleDiv);
-      });
-      acceptedEvents.forEach(event => {
-        const listingId = event.args.listingId.toString();
-        const buyer = event.args.buyer;
-        const saleDiv = document.createElement("div");
-        saleDiv.className = "mb-2";
-        saleDiv.innerHTML = `<p>Offer accepted for Listing ID: ${listingId} by ${buyer}</p>`;
-        salesDiv.appendChild(saleDiv);
-      });
     }
   </script>
 
