@@ -247,9 +247,9 @@
       }
     }
 
-    // Función para comprimir la dirección del wallet (ej: 0x1234...abcd)
+    // Función para comprimir la dirección del wallet (ej: 0x4943...81C6 -> 0x...81C6)
     function compressAddress(address) {
-      return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+      return address.substring(0, 2) + "..." + address.substring(address.length - 4);
     }
 
     // Variables de conexión y contratos
@@ -573,7 +573,7 @@
       try {
         const counter = await marketplaceContract.listingIdCounter();
         const listingsDiv = document.getElementById("marketplaceListings");
-        listingsDiv.innerHTML = "<p>Loading listings...</p>";
+        listingsDiv.innerHTML = "<h5>Active Listings:</h5><ul>";
         let listingsFound = [];
         for (let i = 1; i <= counter.toNumber(); i++) {
           try {
@@ -590,18 +590,16 @@
           }
         }
         if (listingsFound.length === 0) {
-          listingsDiv.innerHTML = "<p>No listings for this token.</p>";
+          listingsDiv.innerHTML += "<p>No listings for this token.</p>";
         } else {
-          let listingsHtml = "<ul>";
           listingsFound.forEach(listing => {
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
-            listingsHtml += `<li>
-                Price per NFT: ${formatWithCommasAndDecimals(pricePerNFT)} $ADRIAN | Quantity: ${listing.quantity.toString()}
+            listingsDiv.innerHTML += `<li>
+                Price per NFT: ${formatWithCommasAndDecimals(pricePerNFT)} $ADRIAN
                 <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
               </li>`;
           });
-          listingsHtml += "</ul>";
-          listingsDiv.innerHTML = listingsHtml;
+          listingsDiv.innerHTML += "</ul>";
         }
       } catch (error) {
         console.error("Error loading listings for token:", error);
@@ -617,7 +615,7 @@
       try {
         const counter = await offersContract.offerCounter();
         const offersDiv = document.getElementById("marketplaceOffers");
-        offersDiv.innerHTML = "<p>Loading offers...</p>";
+        offersDiv.innerHTML = "<h5>Active Offers:</h5><ul>";
         let offersFound = [];
         for (let i = 1; i <= counter.toNumber(); i++) {
           try {
@@ -630,18 +628,16 @@
           }
         }
         if (offersFound.length === 0) {
-          offersDiv.innerHTML = "<p>No active offers for this token.</p>";
+          offersDiv.innerHTML += "<p>No active offers for this token.</p>";
         } else {
-          let offersHtml = "<h5>Active Offers:</h5><ul>";
           offersFound.forEach(offer => {
             let formattedOfferAmount = ethers.utils.formatUnits(offer.offerAmount, 18);
-            offersHtml += `<li>
-                Buyer: ${compressAddress(offer.buyer)} | Offer: ${formatWithCommasAndDecimals(formattedOfferAmount)} $ADRIAN | Quantity: ${offer.quantity.toString()}
+            offersDiv.innerHTML += `<li>
+                Buyer: ${compressAddress(offer.buyer)} | Offer: ${formatWithCommasAndDecimals(formattedOfferAmount)} $ADRIAN
                 <button class="btn btn-sm btn-success" onclick="acceptOffer(${offer.id.toString()}, ${tokenId})">Accept Offer</button>
               </li>`;
           });
-          offersHtml += "</ul>";
-          offersDiv.innerHTML = offersHtml;
+          offersDiv.innerHTML += "</ul>";
         }
       } catch (error) {
         console.error("Error loading offers for token:", error);
