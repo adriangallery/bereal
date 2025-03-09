@@ -500,13 +500,16 @@
       const quantity = document.getElementById("offerQuantity").value;
       const offerAmount = document.getElementById("offerAmount").value;
       const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
+      // Calcular la comisión del 1%
+      const commissionWei = offerAmountWei.div(100);
+      const totalApprovalWei = offerAmountWei.add(commissionWei);
       try {
-        // Verificar y aprobar ADRIAN tokens si es necesario para la oferta
+        // Verificar y aprobar tokens si es necesario (para oferta + comisión)
         const allowance = await tokenContract.allowance(userAccount, offersContractAddress);
-        if (allowance.lt(offerAmountWei)) {
-          const txApprove = await tokenContract.approve(offersContractAddress, offerAmountWei);
+        if (allowance.lt(totalApprovalWei)) {
+          const txApprove = await tokenContract.approve(offersContractAddress, totalApprovalWei);
           await txApprove.wait();
-          alert("Approved " + offerAmount + " ADRIAN for making an offer.");
+          alert("Approved " + ethers.utils.formatUnits(totalApprovalWei, 18) + " ADRIAN (offer + 1% commission).");
         }
         const tx = await offersContract.makeOffer(tokenId, quantity, offerAmountWei);
         await tx.wait();
@@ -658,13 +661,13 @@
         console.log("Buyer allowance:", buyerAllowance.toString());
         console.log("Buyer balance:", buyerBalance.toString());
         
-        // Verificamos que la allowance sea suficiente
+        // Verificamos que la allowance sea suficiente (nota: el comprador debe haber aprobado oferta + comisión)
         if (buyerAllowance.lt(offer.offerAmount)) {
           alert("Buyer has not approved enough tokens. Buyer allowance: " +
                 ethers.utils.formatUnits(buyerAllowance, 18) +
                 " ADRIAN. Offer amount: " +
                 ethers.utils.formatUnits(offer.offerAmount, 18) +
-                " ADRIAN. Please ask the buyer to re-approve the full amount.");
+                " ADRIAN. Please ask the buyer to re-approve the full amount (offer + 1% commission).");
           return;
         }
         
