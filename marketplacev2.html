@@ -118,6 +118,52 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
+    /* ========== MARKETPLACE CARD STYLES ========== */
+    .marketplace-card {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.2s ease-in-out;
+      margin-bottom: 20px;
+    }
+    .marketplace-card:hover {
+      transform: scale(1.01);
+    }
+    .card-row {
+      display: flex;
+      flex-wrap: nowrap;
+    }
+    .card-img-col, .card-info-col {
+      flex: 1;
+    }
+    .card-img-col img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card-info-col {
+      padding: 1rem;
+    }
+    .card-title {
+      color: #eee;
+      margin-bottom: 0.5rem;
+    }
+    .card-text {
+      color: #ccc;
+      margin-bottom: 0.5rem;
+    }
+    .buy-button, .accept-button {
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .buy-button:hover, .accept-button:hover {
+      background-color: #218838;
+    }
     /* ========== HEADER AND FOOTER PLACEHOLDERS ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
@@ -167,13 +213,7 @@
     </div>
   </section>
 
-  <!-- Sección de botones debajo del Hero -->
-  <section class="text-center my-4">
-    <div class="container">
-      <a href="/marketplace.html" class="btn btn-primary mx-2">Marketplace</a>
-      <a href="/listings.html" class="btn btn-primary mx-2">Listings</a>
-    </div>
-  </section>
+  <!-- NOTA: Se han quitado los botones de redirección a marketplace.html y listings.html -->
 
   <!-- MAIN CONTENT WRAPPER -->
   <div class="section-wrapper">
@@ -190,6 +230,18 @@
         </div>
       </div>
       <div id="nftGallery" class="row"></div>
+    </section>
+
+    <!-- Marketplace Listings Section -->
+    <section class="mt-5">
+      <h2 class="text-center mb-4">Marketplace Listings</h2>
+      <div id="marketplaceListings" class="row"></div>
+    </section>
+
+    <!-- Offers Section -->
+    <section class="mt-5">
+      <h2 class="text-center mb-4">Offers</h2>
+      <div id="offers" class="row"></div>
     </section>
   </div>
 
@@ -217,12 +269,13 @@
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
 
-  <!-- Scripts and logic -->
+  <!-- Scripts and Logic -->
   <script>
-    // Cache duration en milisegundos (2 días)
-    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
+    /*****************
+     * Helper Functions
+     *****************/
+    const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000; // 2 días
 
-    // Función para obtener metadata utilizando localStorage como caché
     async function getMetadata(tokenURI) {
       const cached = localStorage.getItem(tokenURI);
       if (cached) {
@@ -236,10 +289,12 @@
         }
       }
       try {
+        if (tokenURI.startsWith("ipfs://")) {
+          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        }
         const response = await fetch(tokenURI);
         const metadata = await response.json();
-        const toStore = { timestamp: Date.now(), data: metadata };
-        localStorage.setItem(tokenURI, JSON.stringify(toStore));
+        localStorage.setItem(tokenURI, JSON.stringify({ timestamp: Date.now(), data: metadata }));
         return metadata;
       } catch (error) {
         console.error("Error fetching metadata from", tokenURI, error);
@@ -252,7 +307,9 @@
       return address.substring(0, 2) + "..." + address.substring(address.length - 4);
     }
 
-    // Variables de conexión y contratos
+    /*****************
+     * Global Variables and Contract Config
+     *****************/
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
@@ -287,7 +344,6 @@
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address account, address operator) external view returns (bool)"
     ];
-
     // ABI para ADRIANoffers (contrato de ofertas)
     const offersContractAddress = "0xD982506aF474aAc90008968548E9FC7686a38ede";
     const offersContractAbi = [
@@ -299,9 +355,9 @@
 
     let tokenContract, nftContract, marketplaceContract, offersContract;
 
-    //
-    // FORMATEADORES
-    //
+    /*****************
+     * Formateadores
+     *****************/
     function formatBalance(balance) {
       const num = parseFloat(balance);
       if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
@@ -313,6 +369,9 @@
       return numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    /*****************
+     * Conexión del Wallet (desde el menú)
+     *****************/
     window.onMenuWalletConnected = async function() {
       provider = window.menuProvider;
       signer = window.menuSigner;
@@ -320,7 +379,6 @@
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
       marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
-      // Inicializar el contrato ADRIANoffers
       offersContract = new ethers.Contract(offersContractAddress, offersContractAbi, signer);
       updateTokenBalance();
       loadNFTs();
@@ -504,7 +562,6 @@
       const commissionWei = offerAmountWei.div(100);
       const totalApprovalWei = offerAmountWei.add(commissionWei);
       try {
-        // Verificar y aprobar tokens si es necesario (para oferta + comisión)
         const allowance = await tokenContract.allowance(userAccount, offersContractAddress);
         if (allowance.lt(totalApprovalWei)) {
           const txApprove = await tokenContract.approve(offersContractAddress, totalApprovalWei);
@@ -647,7 +704,6 @@
 
     async function acceptOffer(offerId, tokenId) {
       try {
-        // Primero, verificar y aprobar (setApprovalForAll) la colección NFT si aún no lo está
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc1155Abi, signer);
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, offersContractAddress);
         if (!approved) {
@@ -655,17 +711,12 @@
           await txApprove.wait();
           alert("NFT Collection approved for offer acceptance.");
         }
-        // Obtenemos los detalles de la oferta
         const offer = await offersContract.offers(offerId);
-        
-        // Obtenemos la allowance y el balance del comprador
         const buyerAllowance = await tokenContract.allowance(offer.buyer, offersContractAddress);
         const buyerBalance = await tokenContract.balanceOf(offer.buyer);
         console.log("Offer amount:", offer.offerAmount.toString());
         console.log("Buyer allowance:", buyerAllowance.toString());
         console.log("Buyer balance:", buyerBalance.toString());
-        
-        // Verificamos que la allowance sea suficiente (nota: el comprador debe haber aprobado oferta + comisión)
         if (buyerAllowance.lt(offer.offerAmount)) {
           alert("Buyer has not approved enough tokens. Buyer allowance: " +
                 ethers.utils.formatUnits(buyerAllowance, 18) +
@@ -674,15 +725,11 @@
                 " ADRIAN. Please ask the buyer to re-approve the full amount (offer + 1% commission).");
           return;
         }
-        
-        // Verificamos que el vendedor (usuario conectado) tenga suficiente NFT
         const sellerNFTBalance = await nftContract.balanceOf(userAccount, tokenId);
         if (sellerNFTBalance.lt(offer.quantity)) {
           alert("You do not own enough of this NFT.");
           return;
         }
-        
-        // Llamamos a la función acceptOffer del contrato con un gasLimit manual
         const tx = await offersContract.acceptOffer(offerId, { gasLimit: 1000000 });
         await tx.wait();
         alert("Offer accepted successfully!");
