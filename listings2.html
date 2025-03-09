@@ -3,7 +3,7 @@
 <head>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN Listings & Offers</title>
+  <title>$ADRIAN Listings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -76,7 +76,7 @@
       color: #ccc;
       margin-bottom: 0.5rem;
     }
-    .buy-button {
+    .buy-button, .accept-button {
       background-color: #28a745;
       color: #fff;
       border: none;
@@ -84,7 +84,7 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    .buy-button:hover {
+    .buy-button:hover, .accept-button:hover {
       background-color: #218838;
     }
     /* ========== HEADER AND FOOTER PLACEHOLDERS ========== */
@@ -147,30 +147,10 @@
       <div id="marketplaceListings" class="row"></div>
     </section>
 
-    <!-- Make Offer Section -->
-    <section>
-      <h2 class="text-center mb-4">Make Offer</h2>
-      <div class="container">
-        <div class="mb-3">
-          <label for="offerTokenSelector" class="form-label">Select NFT:</label>
-          <select id="offerTokenSelector" class="form-select"></select>
-        </div>
-        <div class="mb-3">
-          <label for="offerQuantity" class="form-label">Quantity:</label>
-          <input type="number" id="offerQuantity" class="form-control" value="1" min="1">
-        </div>
-        <div class="mb-3">
-          <label for="offerAmount" class="form-label">Offer Amount ($ADRIAN):</label>
-          <input type="number" id="offerAmount" class="form-control" placeholder="1000.00" step="any">
-        </div>
-        <button id="makeOfferButton" class="btn btn-primary">Make Offer</button>
-      </div>
-    </section>
-
     <!-- Offers Section -->
     <section>
       <h2 class="text-center mb-4">Offers</h2>
-      <div id="offers" class="container"></div>
+      <div id="offers" class="row"></div>
     </section>
 
     <!-- Sales Section -->
@@ -232,8 +212,9 @@
       const numeric = Number(amount);
       return numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+    // Se truncan todas las direcciones a "0x...XXXX" (últimos 4 caracteres)
     function truncateAddress(address) {
-      return address.substring(0, 6) + "..." + address.substring(address.length - 3);
+      return address.substring(0, 2) + "..." + address.substring(address.length - 4);
     }
 
     /*****************
@@ -241,21 +222,9 @@
      *****************/
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // $ADRIAN token
-    const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // ADRIAN GALLERY NFT
+    const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429"; // NFT collection contract
     const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244"; // Marketplace contract
-
-    // NEW: ADRIANoffers contract config
-    const offersAddress = "0xd982506af474aac90008968548e9fc7686a38ede";
-    const offersAbi = [
-      "function makeOffer(uint256 tokenId, uint256 quantity, uint256 offerAmount) external",
-      "function withdrawOffer(uint256 offerId) external",
-      "function acceptOffer(uint256 offerId) external",
-      "function offers(uint256) external view returns (uint256 id, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
-      "function offerCounter() external view returns (uint256)",
-      "event OfferCreated(uint256 indexed offerId, address indexed buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount)",
-      "event OfferWithdrawn(uint256 indexed offerId, address indexed buyer)",
-      "event OfferAccepted(uint256 indexed offerId, address indexed buyer, address indexed seller)"
-    ];
+    const offersContractAddress = "0xD982506aF474aAc90008968548E9FC7686a38ede"; // Contrato de ofertas
 
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -267,13 +236,17 @@
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
       "function buyListing(uint256 listingId) external",
       "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
-      "event OfferMade(uint256 indexed listingId, address indexed buyer, uint256 offerAmount)",
-      "event OfferAccepted(uint256 indexed listingId, address indexed buyer)",
       "event ListingPurchased(uint256 indexed listingId, address indexed buyer)"
     ];
     const erc1155Abi = [
       "function uri(uint256 tokenId) view returns (string)",
-      "function balanceOf(address account, uint256 id) view returns (uint256)"
+      "function setApprovalForAll(address operator, bool approved) external",
+      "function isApprovedForAll(address account, address operator) external view returns (bool)"
+    ];
+    const offersContractAbi = [
+      "function offerCounter() view returns (uint256)",
+      "function offers(uint256) view returns (uint256 id, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
+      "function acceptOffer(uint256 offerId) external"
     ];
 
     let tokenContract, marketplaceContract, offersContract;
@@ -287,166 +260,14 @@
       userAccount = window.menuUserAccount;
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
-      offersContract = new ethers.Contract(offersAddress, offersAbi, signer);
+      offersContract = new ethers.Contract(offersContractAddress, offersContractAbi, signer);
       updateTokenBalance();
       document.getElementById("accountDisplay").innerText = "Wallet: " + truncateAddress(userAccount);
       loadMarketplaceListings();
       loadOffers();
       loadSales();
-      loadOfferNFTDropdown();
     };
 
-    /*****************
-     * New: Load NFT Dropdown for Making Offers
-     *****************/
-    async function loadOfferNFTDropdown() {
-      const dropdown = document.getElementById("offerTokenSelector");
-      dropdown.innerHTML = "";
-      // For demo, assume token IDs 1 to 10 in the collection
-      for (let tokenId = 1; tokenId <= 10; tokenId++) {
-        try {
-          let tokenName = "Token #" + tokenId;
-          const collectionContract = new ethers.Contract(nftCollectionAddress, erc1155Abi, provider);
-          let tokenUri = await collectionContract.uri(tokenId);
-          tokenUri = tokenUri.replace("{id}", tokenId.toString());
-          const metadata = await getMetadata(tokenUri);
-          if (metadata.name) {
-            tokenName = metadata.name;
-          }
-          const option = document.createElement("option");
-          option.value = tokenId;
-          option.text = tokenName;
-          dropdown.appendChild(option);
-        } catch (err) {
-          console.error("Error loading token", tokenId, err);
-        }
-      }
-    }
-
-    /*****************
-     * Make Offer
-     *****************/
-    document.getElementById("makeOfferButton").addEventListener("click", async () => {
-      try {
-        if (!offersContract) {
-          alert("Please connect your wallet first.");
-          return;
-        }
-        const tokenId = document.getElementById("offerTokenSelector").value;
-        const quantity = document.getElementById("offerQuantity").value;
-        const offerInput = document.getElementById("offerAmount").value;
-        if (!offerInput || isNaN(offerInput)) {
-          alert("Enter a valid offer amount.");
-          return;
-        }
-        const offerAmount = ethers.utils.parseUnits(offerInput.toString(), 18);
-        const tx = await offersContract.makeOffer(tokenId, quantity, offerAmount);
-        await tx.wait();
-        alert("Offer made successfully!");
-        loadOffers();
-      } catch (err) {
-        console.error(err);
-        alert("Error making offer: " + err.message);
-      }
-    });
-
-    /*****************
-     * Load Offers from ADRIANoffers
-     *****************/
-    async function loadOffers() {
-      const offersDiv = document.getElementById("offers");
-      offersDiv.innerHTML = "Loading offers...";
-      try {
-        const counter = await offersContract.offerCounter();
-        let html = "<table class='table table-dark table-striped'><tr><th>Offer ID</th><th>Token</th><th>Quantity</th><th>Offer Amount ($ADRIAN)</th><th>Buyer</th><th>Actions</th></tr>";
-        for (let i = 1; i <= counter.toNumber(); i++) {
-          try {
-            const offer = await offersContract.offers(i);
-            if (offer.exists) {
-              let tokenName = "Token #" + offer.tokenId;
-              try {
-                const collectionContract = new ethers.Contract(nftCollectionAddress, erc1155Abi, provider);
-                let tokenUri = await collectionContract.uri(offer.tokenId);
-                tokenUri = tokenUri.replace("{id}", offer.tokenId.toString());
-                const metadata = await getMetadata(tokenUri);
-                if (metadata.name) {
-                  tokenName = metadata.name;
-                }
-              } catch (err) {
-                console.log("Error fetching metadata for token", offer.tokenId, err);
-              }
-              let actions = "";
-              // If connected user is the buyer, show "Withdraw Offer"
-              if (offer.buyer.toLowerCase() === userAccount.toLowerCase()) {
-                actions += `<button class="btn btn-warning btn-sm" onclick="withdrawOffer(${offer.id})">Withdraw</button>`;
-              }
-              // If connected user owns enough of the NFT, show "Accept Offer"
-              const sellerBalance = await (new ethers.Contract(nftCollectionAddress, erc1155Abi, provider)).balanceOf(userAccount, offer.tokenId);
-              if (sellerBalance.gte(offer.quantity)) {
-                actions += `<button class="btn btn-success btn-sm ms-2" onclick="acceptOffer(${offer.id})">Accept</button>`;
-              }
-              html += `<tr>
-                        <td>${offer.id}</td>
-                        <td>${tokenName} (ID: ${offer.tokenId})</td>
-                        <td>${offer.quantity}</td>
-                        <td>${formatWithCommasAndDecimals(ethers.utils.formatUnits(offer.offerAmount, 18))}</td>
-                        <td>${truncateAddress(offer.buyer)}</td>
-                        <td>${actions}</td>
-                       </tr>`;
-            }
-          } catch (err) {
-            console.error("Error fetching offer", i, err);
-          }
-        }
-        html += "</table>";
-        offersDiv.innerHTML = html;
-      } catch (err) {
-        console.error(err);
-        offersDiv.innerHTML = "Error loading offers: " + err.message;
-      }
-    }
-
-    /*****************
-     * Withdraw Offer
-     *****************/
-    async function withdrawOffer(offerId) {
-      try {
-        if (!offersContract) {
-          alert("Please connect your wallet first.");
-          return;
-        }
-        const tx = await offersContract.withdrawOffer(offerId);
-        await tx.wait();
-        alert("Offer withdrawn successfully!");
-        loadOffers();
-      } catch (err) {
-        console.error(err);
-        alert("Error withdrawing offer: " + err.message);
-      }
-    }
-
-    /*****************
-     * Accept Offer
-     *****************/
-    async function acceptOffer(offerId) {
-      try {
-        if (!offersContract) {
-          alert("Please connect your wallet first.");
-          return;
-        }
-        const tx = await offersContract.acceptOffer(offerId);
-        await tx.wait();
-        alert("Offer accepted successfully!");
-        loadOffers();
-      } catch (err) {
-        console.error(err);
-        alert("Error accepting offer: " + err.message);
-      }
-    }
-
-    /*****************
-     * Existing Functions: Update Token Balance, Load Listings, Load Sales
-     *****************/
     async function updateTokenBalance() {
       try {
         const balanceRaw = await tokenContract.balanceOf(userAccount);
@@ -458,6 +279,9 @@
       }
     }
 
+    /*****************
+     * Marketplace Listings
+     *****************/
     async function loadMarketplaceListings() {
       const listingsDiv = document.getElementById("marketplaceListings");
       listingsDiv.innerHTML = "Loading listings...";
@@ -482,6 +306,7 @@
               const pricePerNFT = listing.price.div(listing.quantity);
               const formattedPrice = formatWithCommasAndDecimals(ethers.utils.formatUnits(pricePerNFT, 18));
               
+              // Responsive 50/50 layout
               const colDiv = document.createElement("div");
               colDiv.className = "col-12 col-md-6 mb-4";
               colDiv.innerHTML = `
@@ -493,7 +318,6 @@
                     <div class="col-6 card-info-col">
                       <h5 class="card-title">${tokenName}</h5>
                       <p class="card-text">Price: ${formattedPrice} $ADRIAN</p>
-                      <p class="card-text">Quantity: ${listing.quantity.toString()}</p>
                       <p class="card-text">Seller: ${truncateAddress(listing.seller)}</p>
                       <button class="buy-button" onclick="buyListing(${listing.id.toString()})">Buy Now</button>
                     </div>
@@ -512,6 +336,9 @@
       }
     }
 
+    /*****************
+     * Buy Listing with Approval
+     *****************/
     async function buyListing(listingId) {
       try {
         const listing = await marketplaceContract.listings(listingId);
@@ -537,27 +364,117 @@
       }
     }
 
+    /*****************
+     * Offers: Load and Display as Cards with Accept Option
+     *****************/
+    async function loadOffers() {
+      const offersDiv = document.getElementById("offers");
+      offersDiv.innerHTML = "Loading offers...";
+      try {
+        const offerCounter = await offersContract.offerCounter();
+        offersDiv.innerHTML = "";
+        // Iterar desde 1 hasta el contador de ofertas
+        for (let i = 1; i <= offerCounter.toNumber(); i++) {
+          try {
+            const offer = await offersContract.offers(i);
+            if (offer.exists) {
+              // Obtener metadata del NFT ofertado
+              const collectionContract = new ethers.Contract(nftCollectionAddress, erc1155Abi, provider);
+              let tokenURI = await collectionContract.uri(offer.tokenId);
+              const metadata = await getMetadata(tokenURI);
+              const image = metadata.image 
+                ? (metadata.image.startsWith("ipfs://") 
+                    ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") 
+                    : metadata.image)
+                : "https://via.placeholder.com/300?text=No+Image";
+              const tokenName = metadata.name || "Unnamed Token";
+              const formattedOffer = formatWithCommasAndDecimals(ethers.utils.formatUnits(offer.offerAmount, 18));
+              
+              // Crear card para la oferta
+              const colDiv = document.createElement("div");
+              colDiv.className = "col-12 col-md-6 mb-4";
+              colDiv.innerHTML = `
+                <div class="marketplace-card">
+                  <div class="row card-row">
+                    <div class="col-6 card-img-col">
+                      <img src="${image}" alt="${tokenName}">
+                    </div>
+                    <div class="col-6 card-info-col">
+                      <h5 class="card-title">${tokenName}</h5>
+                      <p class="card-text">Buyer: ${truncateAddress(offer.buyer)}</p>
+                      <p class="card-text">Offer: ${formattedOffer} $ADRIAN</p>
+                      <button class="accept-button" onclick="acceptOffer(${offer.id}, ${offer.tokenId})">Accept Offer</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              offersDiv.appendChild(colDiv);
+            }
+          } catch (err) {
+            console.error("Error loading offer", i, err);
+          }
+        }
+        if (offersDiv.innerHTML === "") {
+          offersDiv.innerHTML = "<p>No active offers.</p>";
+        }
+      } catch (error) {
+        console.error("Error fetching offers:", error);
+        offersDiv.innerHTML = "Error loading offers.";
+      }
+    }
+
+    /*****************
+     * Accept Offer with Auto Approval for NFT Transfer
+     *****************/
+    async function acceptOffer(offerId, tokenId) {
+      try {
+        // Primero, verificar y aprobar la colección NFT para el contrato de ofertas
+        const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc1155Abi, signer);
+        const approved = await nftContractForApproval.isApprovedForAll(userAccount, offersContractAddress);
+        if (!approved) {
+          const txApprove = await nftContractForApproval.setApprovalForAll(offersContractAddress, true);
+          await txApprove.wait();
+          alert("NFT Collection approved for offer acceptance.");
+        }
+        // Obtener detalles de la oferta
+        const offer = await offersContract.offers(offerId);
+        // Verificar que el vendedor (usuario conectado) tenga suficientes NFT
+        const sellerNFTBalance = await (new ethers.Contract(nftCollectionAddress, erc1155Abi, provider)).balanceOf(userAccount, tokenId);
+        if (sellerNFTBalance.lt(offer.quantity)) {
+          alert("You do not own enough of this NFT.");
+          return;
+        }
+        // Llamar a la función acceptOffer del contrato de ofertas
+        const tx = await offersContract.acceptOffer(offerId, { gasLimit: 1000000 });
+        await tx.wait();
+        alert("Offer accepted successfully!");
+        loadOffers();
+        loadMarketplaceListings();
+      } catch (error) {
+        console.error("Error accepting offer:", error);
+        alert("Error accepting offer: " + error.message);
+      }
+    }
+
+    /*****************
+     * Load Sales (Combined from ListingPurchased and OfferAccepted events)
+     *****************/
     async function loadSales() {
       const salesDiv = document.getElementById("sales");
       salesDiv.innerHTML = "Loading sales...";
       let purchasedEvents = [];
       let acceptedEvents = [];
-      const currentBlock = await provider.getBlockNumber();
-      const fromBlock = window.innerWidth > 768 ? currentBlock - 100000 : 0;
       try {
+        const currentBlock = await provider.getBlockNumber();
+        const fromBlock = window.innerWidth > 768 ? currentBlock - 100000 : 0;
         const purchasedFilter = marketplaceContract.filters.ListingPurchased();
         purchasedEvents = await marketplaceContract.queryFilter(purchasedFilter, fromBlock, currentBlock);
-      } catch (error) {
-        console.warn("No logs returned for purchased events; treating as empty.", error);
-        purchasedEvents = [];
-      }
-      try {
         const acceptedFilter = marketplaceContract.filters.OfferAccepted();
         acceptedEvents = await marketplaceContract.queryFilter(acceptedFilter, fromBlock, currentBlock);
       } catch (error) {
-        console.warn("No logs returned for accepted events; treating as empty.", error);
-        acceptedEvents = [];
+        console.warn("No logs returned for sales events.", error);
       }
+      // Combinar y ordenar eventos descendientemente
       const saleEvents = [...purchasedEvents, ...acceptedEvents].sort((a, b) => b.blockNumber - a.blockNumber);
       salesDiv.innerHTML = "";
       for (const event of saleEvents) {
