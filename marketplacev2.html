@@ -247,6 +247,11 @@
       }
     }
 
+    // Función para comprimir la dirección del wallet (ej: 0x1234...abcd)
+    function compressAddress(address) {
+      return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+    }
+
     // Variables de conexión y contratos
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
@@ -494,8 +499,16 @@
     async function makeOfferForToken(tokenId) {
       const quantity = document.getElementById("offerQuantity").value;
       const offerAmount = document.getElementById("offerAmount").value;
+      const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
       try {
-        const tx = await offersContract.makeOffer(tokenId, quantity, offerAmount);
+        // Verificar y aprobar ADRIAN tokens si es necesario para la oferta
+        const allowance = await tokenContract.allowance(userAccount, offersContractAddress);
+        if (allowance.lt(offerAmountWei)) {
+          const txApprove = await tokenContract.approve(offersContractAddress, offerAmountWei);
+          await txApprove.wait();
+          alert("Approved " + offerAmount + " ADRIAN for making an offer.");
+        }
+        const tx = await offersContract.makeOffer(tokenId, quantity, offerAmountWei);
         await tx.wait();
         alert("Offer created successfully!");
         document.getElementById("offerForm").style.display = "none";
@@ -620,7 +633,7 @@
           offersFound.forEach(offer => {
             let formattedOfferAmount = ethers.utils.formatUnits(offer.offerAmount, 18);
             offersHtml += `<li>
-                Buyer: ${offer.buyer} | Offer: ${formatWithCommasAndDecimals(formattedOfferAmount)} $ADRIAN | Quantity: ${offer.quantity.toString()}
+                Buyer: ${compressAddress(offer.buyer)} | Offer: ${formatWithCommasAndDecimals(formattedOfferAmount)} $ADRIAN | Quantity: ${offer.quantity.toString()}
                 <button class="btn btn-sm btn-success" onclick="acceptOffer(${offer.id.toString()}, ${tokenId})">Accept Offer</button>
               </li>`;
           });
@@ -635,11 +648,14 @@
 
     async function acceptOffer(offerId, tokenId) {
       try {
+        // Verificar que el vendedor posea el NFT
         const balance = await nftContract.balanceOf(userAccount, tokenId);
         if (balance.toNumber() <= 0) {
           alert("You do not own this NFT.");
           return;
         }
+        // NOTA: La función acceptOffer extraerá tokens del comprador.
+        // Si fuera necesario, se podría verificar la allowance del comprador, pero solo el comprador puede aprobar.
         const tx = await offersContract.acceptOffer(offerId);
         await tx.wait();
         alert("Offer accepted successfully!");
