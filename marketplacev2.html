@@ -142,7 +142,8 @@
       margin-right: 10px;
       margin-bottom: 10px;
     }
-    #createListingForm label {
+    #createListingForm label,
+    #offerForm label {
       display: block;
       margin: 5px 0;
     }
@@ -282,10 +283,13 @@
       "function isApprovedForAll(address account, address operator) external view returns (bool)"
     ];
 
-    // ABI para ADRIANoffers (nuevo contrato)
-    const offersContractAddress = "0xD982506aF474aAc90008968548E9FC7686a38ede"; // Reemplaza con la dirección real del contrato ADRIANoffers
+    // ABI para ADRIANoffers (contrato de ofertas)
+    const offersContractAddress = "0xD982506aF474aAc90008968548E9FC7686a38ede";
     const offersContractAbi = [
-      "function makeOffer(uint256 tokenId, uint256 quantity, uint256 offerAmount) external"
+      "function makeOffer(uint256 tokenId, uint256 quantity, uint256 offerAmount) external",
+      "function offerCounter() view returns (uint256)",
+      "function offers(uint256) view returns (uint256 id, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
+      "function acceptOffer(uint256 offerId) external"
     ];
 
     let tokenContract, nftContract, marketplaceContract, offersContract;
@@ -421,8 +425,10 @@
                    <button class="btn btn-secondary" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
                    <button class="btn btn-secondary" onclick="openMakeOfferForm(${tokenId})">Make an Offer</button>
                  </div>
+                 <div id="createListingForm" style="display:none;"></div>
                  <div id="marketplaceListings" class="mt-3"></div>
-                 <div id="offerForm" style="display:none;"></div>`;
+                 <div id="offerForm" style="display:none;"></div>
+                 <div id="marketplaceOffers" class="mt-3"></div>`;
         html += `<hr>
                  <p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>
                  <p><strong>Description:</strong> ${metadata.description || 'No description provided'}</p>`;
@@ -439,6 +445,7 @@
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
         loadListingsForToken(tokenId);
+        loadOffersForToken(tokenId);
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
         alert("Error fetching metadata");
@@ -492,6 +499,7 @@
         await tx.wait();
         alert("Offer created successfully!");
         document.getElementById("offerForm").style.display = "none";
+        loadOffersForToken(tokenId);
       } catch (error) {
         console.error("Error creating offer:", error);
         alert("Error creating offer: " + error.message);
@@ -582,6 +590,64 @@
       } catch (error) {
         console.error("Error loading listings for token:", error);
         document.getElementById("marketplaceListings").innerHTML = "<p>Error loading listings.</p>";
+      }
+    }
+
+    async function loadOffersForToken(tokenId) {
+      if (!offersContract) {
+        console.error("Offers contract not initialized.");
+        return;
+      }
+      try {
+        const counter = await offersContract.offerCounter();
+        const offersDiv = document.getElementById("marketplaceOffers");
+        offersDiv.innerHTML = "<p>Loading offers...</p>";
+        let offersFound = [];
+        for (let i = 1; i <= counter.toNumber(); i++) {
+          try {
+            let offer = await offersContract.offers(i);
+            if (offer.exists && offer.tokenId.toString() === tokenId.toString()) {
+              offersFound.push(offer);
+            }
+          } catch (e) {
+            console.error("Error fetching offer", i, e);
+          }
+        }
+        if (offersFound.length === 0) {
+          offersDiv.innerHTML = "<p>No active offers for this token.</p>";
+        } else {
+          let offersHtml = "<h5>Active Offers:</h5><ul>";
+          offersFound.forEach(offer => {
+            let formattedOfferAmount = ethers.utils.formatUnits(offer.offerAmount, 18);
+            offersHtml += `<li>
+                Buyer: ${offer.buyer} | Offer: ${formatWithCommasAndDecimals(formattedOfferAmount)} $ADRIAN | Quantity: ${offer.quantity.toString()}
+                <button class="btn btn-sm btn-success" onclick="acceptOffer(${offer.id.toString()}, ${tokenId})">Accept Offer</button>
+              </li>`;
+          });
+          offersHtml += "</ul>";
+          offersDiv.innerHTML = offersHtml;
+        }
+      } catch (error) {
+        console.error("Error loading offers for token:", error);
+        document.getElementById("marketplaceOffers").innerHTML = "<p>Error loading offers.</p>";
+      }
+    }
+
+    async function acceptOffer(offerId, tokenId) {
+      try {
+        const balance = await nftContract.balanceOf(userAccount, tokenId);
+        if (balance.toNumber() <= 0) {
+          alert("You do not own this NFT.");
+          return;
+        }
+        const tx = await offersContract.acceptOffer(offerId);
+        await tx.wait();
+        alert("Offer accepted successfully!");
+        loadOffersForToken(tokenId);
+        loadListingsForToken(tokenId);
+      } catch (error) {
+        console.error("Error accepting offer:", error);
+        alert("Error accepting offer: " + error.message);
       }
     }
 
