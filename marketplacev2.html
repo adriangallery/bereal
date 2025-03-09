@@ -351,9 +351,17 @@
       }
     }
 
-    // El vendedor acepta la oferta (no puede hacer approve de tokens del comprador)
+    // La función acceptOffer es llamada por el vendedor (propietario del NFT)
     async function acceptOffer(offerId, tokenId) {
       try {
+        // Conecta el contrato NFT con el signer para aprobar transferencias
+        const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc1155Abi, signer);
+        const approved = await nftContractForApproval.isApprovedForAll(userAccount, offersContractAddress);
+        if (!approved) {
+          const txApprove = await nftContractForApproval.setApprovalForAll(offersContractAddress, true);
+          await txApprove.wait();
+          alert("NFT Collection approved for offer acceptance.");
+        }
         const offer = await offersContract.offers(offerId);
         const buyerAllowance = await tokenContract.allowance(offer.buyer, offersContractAddress);
         console.log("Offer amount:", offer.offerAmount.toString());
@@ -544,33 +552,6 @@
       } catch (error) {
         console.error("Error loading offers for token:", error);
         document.getElementById("marketplaceOffers").innerHTML = "<p>Error loading offers.</p>";
-      }
-    }
-
-    // La función acceptOffer es llamada por el vendedor (propietario del NFT)
-    async function acceptOffer(offerId, tokenId) {
-      try {
-        const offer = await offersContract.offers(offerId);
-        const buyerAllowance = await tokenContract.allowance(offer.buyer, offersContractAddress);
-        console.log("Offer amount:", offer.offerAmount.toString());
-        console.log("Buyer allowance:", buyerAllowance.toString());
-        if (buyerAllowance.lt(offer.offerAmount)) {
-          alert("Buyer has not approved enough tokens. Please ask the buyer to approve the full amount (offer + 1% commission).");
-          return;
-        }
-        const sellerNFTBalance = await nftContract.balanceOf(userAccount, tokenId);
-        if (sellerNFTBalance.lt(offer.quantity)) {
-          alert("You do not own enough of this NFT.");
-          return;
-        }
-        const tx = await offersContract.acceptOffer(offerId, { gasLimit: 1000000 });
-        await tx.wait();
-        alert("Offer accepted successfully!");
-        loadOffersForToken(tokenId);
-        loadListingsForToken(tokenId);
-      } catch (error) {
-        console.error("Error accepting offer:", error);
-        alert("Error accepting offer: " + error.message);
       }
     }
 
