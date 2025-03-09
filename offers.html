@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>NFT Marketplace Offers</title>
-    <!-- Favicon para evitar errores 404 -->
+    <!-- Favicon básico para evitar errores 404 -->
     <link rel="icon" href="data:,">
-    <!-- Carga ethers.js desde un CDN confiable -->
+    <!-- Cargar ethers.js desde CDN confiable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
       body { font-family: Arial, sans-serif; margin: 20px; }
@@ -21,47 +21,11 @@
     <p id="walletStatus">Wallet not connected</p>
     <hr />
 
-    <!-- Sección: Crear Listado -->
-    <h2>Create Listing</h2>
-    <div>
-      <label for="nftCollection">NFT Collection Address:</label>
-      <!-- Dirección de Adriangallery -->
-      <input type="text" id="nftCollection" value="0xa92a8F5A47efC77da796dfD0827D07872E7D0429" size="42" />
-      <button id="loadUserNFTsButton">Load My NFTs</button>
-    </div>
-    <div>
-      <label for="nftTokenSelector">Select NFT (by name):</label>
-      <select id="nftTokenSelector">
-        <!-- Se llenará dinámicamente con los NFTs que posee el usuario -->
-      </select>
-    </div>
-    <div>
-      <label for="quantity">Quantity:</label>
-      <input type="number" id="quantity" value="1" min="1" />
-    </div>
-    <div>
-      <label for="listingPrice">Price ($ADRIAN):</label>
-      <!-- Campo numérico: el usuario ingresa un número normal -->
-      <input type="number" id="listingPrice" placeholder="1000.00" step="any" />
-    </div>
-    <div>
-      <label for="duration">Duration:</label>
-      <select id="duration">
-        <option value="3600">1 Hour</option>
-        <option value="86400">1 Day</option>
-        <option value="604800">7 Days</option>
-        <option value="2592000">1 Month</option>
-        <option value="15552000">6 Months</option>
-      </select>
-    </div>
-    <button id="createListingButton">Create Listing</button>
-    <hr />
-
     <!-- Sección: Hacer Oferta -->
     <h2>Make Offer</h2>
     <div>
       <label for="offerListingSelector">Select Listing:</label>
-      <!-- Se cargará dinámicamente con listados activos mostrando el nombre del NFT -->
+      <!-- Se cargará automáticamente con los listados activos de Adriangallery -->
       <select id="offerListingSelector">
         <!-- Opciones llenadas dinámicamente -->
       </select>
@@ -77,23 +41,22 @@
     <h2>All Offers</h2>
     <button id="loadAllOffersButton">Load All Offers</button>
     <div id="offersList">
-      <!-- Aquí se mostrará la tabla con todas las ofertas -->
+      <!-- Se mostrará la tabla con todas las ofertas -->
     </div>
 
     <script>
-      // Dirección real del contrato NFTMarketplace
+      // Dirección del contrato NFTMarketplace y token $ADRIAN
       const marketplaceAddress = "0x424A2456cC04724508f2bDb11B572d79dA1fA244";
-      // Dirección del token $ADRIAN
       const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      // La colección (Adriangallery) es fija
+      const collectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
 
       // ABIs mínimos para las interacciones
       const marketplaceAbi = [
-        "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
         "function makeOffer(uint256 listingId, uint256 offerAmount) external",
         "function acceptOffer(uint256 listingId, address buyer) external",
         "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
         "function listingIdCounter() external view returns (uint256)",
-        "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
         "event OfferMade(uint256 indexed listingId, address indexed buyer, uint256 offerAmount)"
       ];
       const erc20Abi = [
@@ -101,15 +64,11 @@
         "function approve(address spender, uint256 amount) external returns (bool)"
       ];
       const erc1155Abi = [
-        "function isApprovedForAll(address account, address operator) external view returns (bool)",
-        "function setApprovalForAll(address operator, bool approved) external",
-        "function balanceOf(address account, uint256 id) external view returns (uint256)",
         "function uri(uint256 tokenId) external view returns (string)"
       ];
 
       let provider, signer, signerAddress;
       let marketplaceContract, tokenContract;
-      let userNFTContract; // Para la colección NFT
 
       // Conectar Wallet
       document.getElementById("connectButton").addEventListener("click", async () => {
@@ -140,82 +99,7 @@
         return parseFloat(ethers.utils.formatUnits(amount, 18)).toFixed(2);
       }
 
-      // Cargar NFTs del usuario para "Create Listing"
-      document.getElementById("loadUserNFTsButton").addEventListener("click", async () => {
-        const collectionAddress = document.getElementById("nftCollection").value;
-        if (!signer) {
-          alert("Please connect your wallet first.");
-          return;
-        }
-        userNFTContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
-        const nftSelector = document.getElementById("nftTokenSelector");
-        nftSelector.innerHTML = "";
-        // Ejemplo: revisa token IDs del 1 al 10
-        for (let tokenId = 1; tokenId <= 10; tokenId++) {
-          try {
-            const balance = await userNFTContract.balanceOf(signerAddress, tokenId);
-            if (balance.gt(0)) {
-              let tokenName = "Token #" + tokenId;
-              try {
-                let tokenUri = await userNFTContract.uri(tokenId);
-                tokenUri = tokenUri.replace("{id}", tokenId.toString());
-                const response = await fetch(tokenUri);
-                const metadata = await response.json();
-                if (metadata.name) {
-                  tokenName = metadata.name;
-                }
-              } catch (e) {
-                console.log("Error fetching metadata for token", tokenId, e);
-              }
-              const option = document.createElement("option");
-              option.value = tokenId;
-              option.text = tokenName;
-              nftSelector.appendChild(option);
-            }
-          } catch (err) {
-            console.error("Error checking token", tokenId, err);
-          }
-        }
-        if (nftSelector.options.length === 0) {
-          nftSelector.innerHTML = "<option>No NFTs found</option>";
-        }
-      });
-
-      // Crear Listado
-      document.getElementById("createListingButton").addEventListener("click", async () => {
-        try {
-          if (!signer) {
-            alert("Please connect your wallet first.");
-            return;
-          }
-          const collectionAddress = document.getElementById("nftCollection").value;
-          const tokenId = document.getElementById("nftTokenSelector").value;
-          const quantity = document.getElementById("quantity").value;
-          const priceInput = document.getElementById("listingPrice").value;
-          const duration = document.getElementById("duration").value;
-          if (!priceInput || isNaN(priceInput)) {
-            alert("Enter a valid price.");
-            return;
-          }
-          const price = toWei(priceInput);
-          const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
-          const isApproved = await nftContract.isApprovedForAll(signerAddress, marketplaceAddress);
-          if (!isApproved) {
-            const approvalTx = await nftContract.setApprovalForAll(marketplaceAddress, true);
-            await approvalTx.wait();
-            console.log("NFT collection approved for marketplace.");
-          }
-          const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, price, duration);
-          await tx.wait();
-          alert("Listing created successfully!");
-          loadActiveListings();
-        } catch (err) {
-          console.error(err);
-          alert("Error creating listing: " + err.message);
-        }
-      });
-
-      // Cargar listados activos para el selector en "Make Offer"
+      // Cargar listados activos del marketplace
       async function loadActiveListings() {
         if (!marketplaceContract) {
           console.warn("Marketplace contract not defined. Connect wallet first.");
@@ -232,9 +116,10 @@
                 listing.seller !== ethers.constants.AddressZero &&
                 (Date.now() / 1000) <= listing.expirationTime.toNumber()
               ) {
+                // Obtener el nombre del token desde la colección Adriangallery
                 let tokenName = "Token #" + listing.tokenId;
-                const nftContract = new ethers.Contract(listing.collection, erc1155Abi, provider);
                 try {
+                  const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, provider);
                   let tokenUri = await nftContract.uri(listing.tokenId);
                   tokenUri = tokenUri.replace("{id}", listing.tokenId.toString());
                   const response = await fetch(tokenUri);
@@ -276,6 +161,7 @@
             return;
           }
           const offerAmount = toWei(offerInput);
+          // Verificar allowance del token ERC20
           const allowance = await tokenContract.allowance(signerAddress, marketplaceAddress);
           if (allowance.lt(offerAmount)) {
             const approveTx = await tokenContract.approve(marketplaceAddress, offerAmount);
@@ -292,7 +178,7 @@
         }
       });
 
-      // Cargar y mostrar TODAS las ofertas
+      // Cargar y mostrar TODAS las ofertas de todos los listados
       document.getElementById("loadAllOffersButton").addEventListener("click", async () => {
         if (!marketplaceContract) {
           alert("Please connect your wallet first.");
@@ -316,8 +202,8 @@
             let tokenName = "Token #" + listingId;
             try {
               const listing = await marketplaceContract.listings(listingId);
-              const nftContract = new ethers.Contract(listing.collection, erc1155Abi, provider);
               try {
+                const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, provider);
                 let tokenUri = await nftContract.uri(listing.tokenId);
                 tokenUri = tokenUri.replace("{id}", listing.tokenId.toString());
                 const response = await fetch(tokenUri);
@@ -354,8 +240,8 @@
             alert("Please connect your wallet first.");
             return;
           }
+          // El vendedor debe aprobar el NFT si aún no está aprobado
           const listing = await marketplaceContract.listings(listingId);
-          const collectionAddress = listing.collection;
           const nftContract = new ethers.Contract(collectionAddress, erc1155Abi, signer);
           const isApproved = await nftContract.isApprovedForAll(signerAddress, marketplaceAddress);
           if (!isApproved) {
