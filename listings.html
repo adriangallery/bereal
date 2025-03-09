@@ -39,7 +39,7 @@
     .section-wrapper {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 2rem 1rem;
+      padding: 0.5rem 1rem;
     }
     /* ========== MARKETPLACE CARD STYLES ========== */
     .marketplace-card {
@@ -126,46 +126,51 @@
     </div>
   </section>
 
- <!-- Sección de botones debajo del Hero sin margen superior -->
-<section class="mt-0 mb-4">
-  <div class="container-fluid px-0">
-    <div class="row g-0">
-      <div class="col-6">
-        <a href="/marketplace.html" class="btn btn-primary w-100" style="border-radius: 0;">Marketplace</a>
-      </div>
-      <div class="col-6">
-        <a href="/listings.html" class="btn w-100" style="background-color: #d9534f; color: #fff; border-radius: 0;">Offers and listings</a>
+  <!-- Sección de botones debajo del Hero sin margen superior -->
+  <section class="mt-0 mb-4">
+    <div class="container-fluid px-0">
+      <div class="row g-0">
+        <div class="col-6">
+          <a href="/marketplace.html" class="btn btn-primary w-100" style="border-radius: 0;">Marketplace</a>
+        </div>
+        <div class="col-6">
+          <a href="/listings.html" class="btn w-100" style="background-color: #d9534f; color: #fff; border-radius: 0;">Offers and listings</a>
+        </div>
       </div>
     </div>
+  </section>
+
+  <!-- MAIN CONTENT WRAPPER -->
+  <div class="section-wrapper">
+    <header class="text-center" style="margin: 0;">
+      <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
+      <p id="accountDisplay" class="mt-2"></p>
+    </header>
   </div>
-</section>
 
-<!-- MAIN CONTENT WRAPPER -->
-<div class="section-wrapper" style="padding: 0.5rem 1rem;">
-  <header class="text-center" style="margin: 0;">
-    <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
-    <p id="accountDisplay" class="mt-2"></p>
-  </header>
-</div>
-
-    <!-- Marketplace Listings Section -->
-    <section>
+  <!-- Marketplace Listings Section -->
+  <section>
+    <div class="container">
       <h2 class="text-center mb-4">Marketplace Listings</h2>
-      <div id="marketplaceListings" class="row"></div>
-    </section>
+      <div id="marketplaceListings" class="row gx-3"></div>
+    </div>
+  </section>
 
-    <!-- Offers Section -->
-    <section>
+  <!-- Offers Section -->
+  <section>
+    <div class="container">
       <h2 class="text-center mb-4">Offers</h2>
-      <div id="offers" class="row"></div>
-    </section>
+      <div id="offers" class="row gx-3"></div>
+    </div>
+  </section>
 
-    <!-- Sales Section -->
-    <section>
+  <!-- Sales Section -->
+  <section>
+    <div class="container">
       <h2 class="text-center mb-4">Sales</h2>
-      <div id="sales" class="container"></div>
-    </section>
-  </div>
+      <div id="sales" class="row gx-3"></div>
+    </div>
+  </section>
 
   <!-- Footer -->
   <div id="footer-placeholder"></div>
@@ -359,7 +364,7 @@
           const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
           await txApprove.wait();
           const approvedAmountStr = formatWithCommasAndDecimals(ethers.utils.formatUnits(requiredAmount, 18));
-          alert("Approved " + approvedAmountStr + " ADRIAN for purchase.");
+          alert("Approved " + approvedAmountStr + " $ADRIAN for purchase.");
         }
         const tx = await marketplaceContract.buyListing(listingId);
         await tx.wait();
