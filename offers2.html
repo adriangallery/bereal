@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ADRIANoffers Frontend</title>
+    <!-- Favicon básico para evitar errores 404 -->
+    <link rel="icon" href="data:,">
+    <!-- Cargar ethers.js desde CDN confiable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h1, h2 { color: #333; }
+      input, select, button { margin: 5px 0; padding: 5px; }
+      table { border-collapse: collapse; margin-top: 10px; }
+      table, th, td { border: 1px solid #ccc; padding: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>ADRIANoffers Frontend</h1>
+    <button id="connectButton">Connect Wallet</button>
+    <p id="walletStatus">Wallet not connected</p>
+    <hr />
+
+    <!-- Make Offer Section -->
+    <h2>Make Offer</h2>
+    <div>
+      <label for="offerTokenSelector">Select NFT:</label>
+      <!-- Dropdown loaded from ADRIAN GALLERY (collection is fixed) -->
+      <select id="offerTokenSelector">
+        <!-- Options will be populated automatically -->
+      </select>
+    </div>
+    <div>
+      <label for="offerQuantity">Quantity:</label>
+      <input type="number" id="offerQuantity" value="1" min="1" />
+    </div>
+    <div>
+      <label for="offerAmount">Offer Amount ($ADRIAN):</label>
+      <input type="number" id="offerAmount" placeholder="1000.00" step="any" />
+    </div>
+    <button id="makeOfferButton">Make Offer</button>
+    <hr />
+
+    <!-- All Offers Section -->
+    <h2>All Offers</h2>
+    <button id="loadAllOffersButton">Load All Offers</button>
+    <div id="offersList">
+      <!-- The table of offers will appear here -->
+    </div>
+
+    <script>
+      // Contract addresses
+      const ADRIANoffersAddress = "0xd982506af474aac90008968548e9fc7686a38ede";
+      const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // ADRIAN token
+      const nftAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";   // ADRIAN GALLERY NFT (ERC1155)
+
+      // ABIs
+      const ADRIANoffersAbi = [
+        "function makeOffer(uint256 tokenId, uint256 quantity, uint256 offerAmount) external",
+        "function withdrawOffer(uint256 offerId) external",
+        "function acceptOffer(uint256 offerId) external",
+        "function offers(uint256) external view returns (uint256 id, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
+        "function offerCounter() external view returns (uint256)",
+        "event OfferCreated(uint256 indexed offerId, address indexed buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount)",
+        "event OfferWithdrawn(uint256 indexed offerId, address indexed buyer)",
+        "event OfferAccepted(uint256 indexed offerId, address indexed buyer, address indexed seller)"
+      ];
+      const erc1155Abi = [
+        "function uri(uint256 tokenId) external view returns (string)",
+        "function balanceOf(address account, uint256 id) external view returns (uint256)",
+        "function isApprovedForAll(address account, address operator) external view returns (bool)",
+        "function setApprovalForAll(address operator, bool approved) external"
+      ];
+      
+      let provider, signer, signerAddress;
+      let offersContract, nftContract;
+
+      // Connect wallet
+      document.getElementById("connectButton").addEventListener("click", async () => {
+        if (window.ethereum) {
+          try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+            signer = provider.getSigner();
+            signerAddress = await signer.getAddress();
+            document.getElementById("walletStatus").innerText = "Wallet connected: " + signerAddress;
+            offersContract = new ethers.Contract(ADRIANoffersAddress, ADRIANoffersAbi, signer);
+            nftContract = new ethers.Contract(nftAddress, erc1155Abi, provider);
+            loadNFTDropdown();
+            loadAllOffers();
+          } catch (err) {
+            console.error(err);
+            alert("Error connecting wallet: " + err.message);
+          }
+        } else {
+          alert("Please install MetaMask");
+        }
+      });
+
+      // Helpers: conversion functions (assuming 18 decimals)
+      function toWei(amount) {
+        return ethers.utils.parseUnits(amount.toString(), 18);
+      }
+      function fromWei(amount) {
+        return parseFloat(ethers.utils.formatUnits(amount, 18)).toFixed(2);
+      }
+
+      // Load NFT dropdown from ADRIAN GALLERY (for demo, assume token IDs 1 to 10)
+      async function loadNFTDropdown() {
+        const dropdown = document.getElementById("offerTokenSelector");
+        dropdown.innerHTML = "";
+        for (let tokenId = 1; tokenId <= 10; tokenId++) {
+          try {
+            let tokenName = "Token #" + tokenId;
+            let tokenUri = await nftContract.uri(tokenId);
+            tokenUri = tokenUri.replace("{id}", tokenId.toString());
+            const response = await fetch(tokenUri);
+            const metadata = await response.json();
+            if (metadata.name) {
+              tokenName = metadata.name;
+            }
+            const option = document.createElement("option");
+            option.value = tokenId;
+            option.text = tokenName;
+            dropdown.appendChild(option);
+          } catch (err) {
+            console.error("Error loading token", tokenId, err);
+          }
+        }
+      }
+
+      // Make Offer: call makeOffer on ADRIANoffers contract
+      document.getElementById("makeOfferButton").addEventListener("click", async () => {
+        try {
+          if (!offersContract) {
+            alert("Please connect your wallet first.");
+            return;
+          }
+          const tokenId = document.getElementById("offerTokenSelector").value;
+          const quantity = document.getElementById("offerQuantity").value;
+          const offerInput = document.getElementById("offerAmount").value;
+          if (!offerInput || isNaN(offerInput)) {
+            alert("Enter a valid offer amount.");
+            return;
+          }
+          const offerAmount = toWei(offerInput);
+          const tx = await offersContract.makeOffer(tokenId, quantity, offerAmount);
+          await tx.wait();
+          alert("Offer made successfully!");
+          loadAllOffers();
+        } catch (err) {
+          console.error(err);
+          alert("Error making offer: " + err.message);
+        }
+      });
+
+      // Load all active offers by iterating from 1 to offerCounter
+      async function loadAllOffers() {
+        if (!offersContract) {
+          alert("Please connect your wallet first.");
+          return;
+        }
+        const offersListDiv = document.getElementById("offersList");
+        offersListDiv.innerHTML = "Loading offers...";
+        try {
+          const counter = await offersContract.offerCounter();
+          let html = "<table><tr><th>Offer ID</th><th>Token</th><th>Quantity</th><th>Offer Amount ($ADRIAN)</th><th>Buyer</th><th>Actions</th></tr>";
+          for (let i = 1; i <= counter; i++) {
+            try {
+              const offer = await offersContract.offers(i);
+              if (offer.exists) {
+                let tokenName = "Token #" + offer.tokenId;
+                try {
+                  let tokenUri = await nftContract.uri(offer.tokenId);
+                  tokenUri = tokenUri.replace("{id}", offer.tokenId.toString());
+                  const response = await fetch(tokenUri);
+                  const metadata = await response.json();
+                  if (metadata.name) {
+                    tokenName = metadata.name;
+                  }
+                } catch (err) {
+                  console.log("Error fetching metadata for token", offer.tokenId, err);
+                }
+                let actions = "";
+                // Si el usuario conectado es el comprador, se muestra el botón "Withdraw Offer"
+                if (offer.buyer.toLowerCase() === signerAddress.toLowerCase()) {
+                  actions += `<button onclick="withdrawOffer(${offer.id})">Withdraw Offer</button>`;
+                }
+                // Si el usuario posee suficientes NFT, se muestra el botón "Accept Offer"
+                const sellerBalance = await nftContract.balanceOf(signerAddress, offer.tokenId);
+                if (sellerBalance.gte(offer.quantity)) {
+                  actions += `<button onclick="acceptOffer(${offer.id})">Accept Offer</button>`;
+                }
+                html += `<tr>
+                            <td>${offer.id}</td>
+                            <td>${tokenName} (ID: ${offer.tokenId})</td>
+                            <td>${offer.quantity}</td>
+                            <td>${fromWei(offer.offerAmount)}</td>
+                            <td>${offer.buyer}</td>
+                            <td>${actions}</td>
+                         </tr>`;
+              }
+            } catch (err) {
+              console.error("Error fetching offer", i, err);
+            }
+          }
+          html += "</table>";
+          offersListDiv.innerHTML = html;
+        } catch (err) {
+          console.error(err);
+          offersListDiv.innerHTML = "Error loading offers: " + err.message;
+        }
+      }
+
+      // Accept Offer function with automatic approval
+      async function acceptOffer(offerId) {
+        try {
+          if (!offersContract) {
+            alert("Please connect your wallet first.");
+            return;
+          }
+          // Conecta el contrato NFT con el signer
+          const nftContractWithSigner = nftContract.connect(signer);
+          // Verifica si el usuario ya aprobó el contrato ADRIANoffers para mover sus NFT
+          const isApproved = await nftContractWithSigner.isApprovedForAll(signerAddress, ADRIANoffersAddress);
+          if (!isApproved) {
+            const approveTx = await nftContractWithSigner.setApprovalForAll(ADRIANoffersAddress, true);
+            await approveTx.wait();
+            alert("Approval granted. Now proceeding to accept the offer.");
+          }
+          // Procede a aceptar la oferta
+          const tx = await offersContract.acceptOffer(offerId);
+          await tx.wait();
+          alert("Offer accepted successfully!");
+          loadAllOffers();
+        } catch (err) {
+          console.error(err);
+          alert("Error accepting offer: " + err.message);
+        }
+      }
+
+      // Withdraw Offer function
+      async function withdrawOffer(offerId) {
+        try {
+          if (!offersContract) {
+            alert("Please connect your wallet first.");
+            return;
+          }
+          const tx = await offersContract.withdrawOffer(offerId);
+          await tx.wait();
+          alert("Offer withdrawn successfully!");
+          loadAllOffers();
+        } catch (err) {
+          console.error(err);
+          alert("Error withdrawing offer: " + err.message);
+        }
+      }
+    </script>
+  </body>
+</html>
