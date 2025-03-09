@@ -660,8 +660,11 @@
         
         // Verificamos que la allowance sea suficiente
         if (buyerAllowance.lt(offer.offerAmount)) {
-          alert("Buyer has not approved enough tokens. They must approve at least the full offer amount (" +
-                ethers.utils.formatUnits(offer.offerAmount, 18) + " ADRIAN) for the contract.");
+          alert("Buyer has not approved enough tokens. Buyer allowance: " +
+                ethers.utils.formatUnits(buyerAllowance, 18) +
+                " ADRIAN. Offer amount: " +
+                ethers.utils.formatUnits(offer.offerAmount, 18) +
+                " ADRIAN. Please ask the buyer to re-approve the full amount.");
           return;
         }
         
@@ -672,8 +675,8 @@
           return;
         }
         
-        // Llamamos a la función acceptOffer del contrato
-        const tx = await offersContract.acceptOffer(offerId);
+        // Llamamos a la función acceptOffer del contrato con un gasLimit manual
+        const tx = await offersContract.acceptOffer(offerId, { gasLimit: 1000000 });
         await tx.wait();
         alert("Offer accepted successfully!");
         loadOffersForToken(tokenId);
