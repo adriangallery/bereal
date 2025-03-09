@@ -250,8 +250,10 @@
       "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
       "event ListingPurchased(uint256 indexed listingId, address indexed buyer)"
     ];
+    // ABI actualizado con balanceOf para ERC1155
     const erc1155Abi = [
       "function uri(uint256 tokenId) view returns (string)",
+      "function balanceOf(address account, uint256 id) view returns (uint256)",
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address account, address operator) external view returns (bool)"
     ];
