@@ -25,7 +25,8 @@
     <h2>Create Listing</h2>
     <div>
       <label for="nftCollection">NFT Collection Address:</label>
-      <input type="text" id="nftCollection" value="0xYourNFTCollectionAddress" size="42" />
+      <!-- Se asigna por defecto la dirección de Adriangallery -->
+      <input type="text" id="nftCollection" value="0xa92a8F5A47efC77da796dfD0827D07872E7D0429" size="42" />
       <button id="loadUserNFTsButton">Load My NFTs</button>
     </div>
     <div>
@@ -158,7 +159,6 @@
               let tokenName = "Token #" + tokenId;
               try {
                 let tokenUri = await userNFTContract.uri(tokenId);
-                // Reemplaza el placeholder {id} si existe
                 tokenUri = tokenUri.replace("{id}", tokenId.toString());
                 const response = await fetch(tokenUri);
                 const metadata = await response.json();
