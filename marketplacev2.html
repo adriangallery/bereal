@@ -648,14 +648,20 @@
 
     async function acceptOffer(offerId, tokenId) {
       try {
-        // Verificar que el vendedor posea el NFT
-        const balance = await nftContract.balanceOf(userAccount, tokenId);
-        if (balance.toNumber() <= 0) {
-          alert("You do not own this NFT.");
+        // Primero obtenemos los detalles de la oferta
+        const offer = await offersContract.offers(offerId);
+        // Verificamos que el comprador tenga la allowance necesaria
+        const allowance = await tokenContract.allowance(offer.buyer, offersContractAddress);
+        if (allowance.lt(offer.offerAmount)) {
+          alert("Buyer has not approved enough tokens. Please ask the buyer to approve the necessary amount.");
           return;
         }
-        // NOTA: La función acceptOffer extraerá tokens del comprador.
-        // Si fuera necesario, se podría verificar la allowance del comprador, pero solo el comprador puede aprobar.
+        // Verificamos que el vendedor tenga el NFT
+        const balance = await nftContract.balanceOf(userAccount, tokenId);
+        if (balance.toNumber() < offer.quantity) {
+          alert("You do not own enough of this NFT.");
+          return;
+        }
         const tx = await offersContract.acceptOffer(offerId);
         await tx.wait();
         alert("Offer accepted successfully!");
