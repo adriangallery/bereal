@@ -500,7 +500,7 @@
       const quantity = document.getElementById("offerQuantity").value;
       const offerAmount = document.getElementById("offerAmount").value;
       const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
-      // Calcular la comisión del 1%
+      // Calculamos la comisión del 1%
       const commissionWei = offerAmountWei.div(100);
       const totalApprovalWei = offerAmountWei.add(commissionWei);
       try {
