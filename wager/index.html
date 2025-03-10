@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Adrian Gallery Mini-Game</title>
   <style>
-    /* Basic styles for our game */
+    /* Basic styles */
     body, html {
       margin: 0;
       padding: 0;
@@ -31,7 +31,7 @@
       80% { transform: translate(2px,2px); }
       100% { transform: translate(0,0); }
     }
-    /* Modales (overlays) */
+    /* Modal styles */
     .modal {
       display: none;
       position: absolute;
@@ -85,7 +85,7 @@
   </style>
 </head>
 <body>
-  <!-- Wallet Connect Modal (initial menu) -->
+  <!-- Wallet Connect Modal -->
   <div id="menu" class="modal" style="display: flex;">
     <div class="modal-content">
       <h1>Adrian Gallery Mini-Game</h1>
@@ -112,7 +112,7 @@
     </div>
   </div>
   
-  <!-- Message Modal (para mostrar mensajes no bloqueantes) -->
+  <!-- Message Modal -->
   <div id="messageModal" class="modal">
     <div class="modal-content">
       <p id="messageText"></p>
@@ -134,9 +134,9 @@
   
   <canvas id="gameCanvas" width="320" height="240"></canvas>
   
-  <!-- Load ethers.js from CDN -->
+  <!-- Load ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
-  <!-- Link to our game script -->
+  <!-- Game script -->
   <script src="game.js"></script>
 </body>
 </html>
