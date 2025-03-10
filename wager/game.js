@@ -5,6 +5,9 @@ const ctx = canvas.getContext('2d');
 // Track time for smooth animations
 let lastTime = 0;
 
+// State variable for wallet connection
+let walletConnected = false;
+
 // Define the square (player) object with initial position, size, and speed
 const square = {
     x: 50,
@@ -22,18 +25,26 @@ const token = {
     height: 24
 };
 
+// Define the hazard object (risk element)
+const hazard = {
+    x: Math.random() * (canvas.width - 24),
+    y: Math.random() * (canvas.height - 24),
+    width: 24,
+    height: 24,
+    dx: (Math.random() < 0.5 ? -1 : 1) * 80,
+    dy: (Math.random() < 0.5 ? -1 : 1) * 80
+};
+
 // Player's score
 let score = 0;
 
 // Object to track pressed keys
 const keys = {};
 
-// Listen for keydown events
+// Keyboard event listeners
 document.addEventListener('keydown', (event) => {
     keys[event.key] = true;
 });
-
-// Listen for keyup events
 document.addEventListener('keyup', (event) => {
     keys[event.key] = false;
 });
@@ -41,17 +52,15 @@ document.addEventListener('keyup', (event) => {
 // Touch control variable to store the target position
 let touchTarget = null;
 
-// Add touch event listeners on the canvas
+// Touch event listeners
 canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
   const touch = e.touches[0];
   const rect = canvas.getBoundingClientRect();
   const touchX = touch.clientX - rect.left;
   const touchY = touch.clientY - rect.top;
-  // Set target so the square centers on the touch point
   touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
 });
-
 canvas.addEventListener('touchmove', function(e) {
   e.preventDefault();
   const touch = e.touches[0];
@@ -60,28 +69,35 @@ canvas.addEventListener('touchmove', function(e) {
   const touchY = touch.clientY - rect.top;
   touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
 });
-
 canvas.addEventListener('touchend', function(e) {
   e.preventDefault();
   touchTarget = null;
 });
 
-// The main game loop
+// Wallet connection event listener (simulate wallet connection)
+document.getElementById('connectWallet').addEventListener('click', function() {
+    walletConnected = true;
+    document.getElementById('menu').style.display = 'none';
+    console.log("Wallet Connected!");
+});
+
+// Main game loop
 function gameLoop(timestamp) {
-    // Calculate delta time in seconds
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     
-    update(deltaTime);
+    // Only update game state if wallet is connected
+    if (walletConnected) {
+      update(deltaTime);
+    }
     draw();
     
-    // Request the next animation frame
     requestAnimationFrame(gameLoop);
 }
 
-// Update the game state (move the square based on input)
+// Update game state
 function update(deltaTime) {
-    // Keyboard controls: move left/right/up/down
+    // Keyboard controls
     if (keys['ArrowLeft']) {
         square.x -= square.speed * deltaTime;
     }
@@ -95,7 +111,7 @@ function update(deltaTime) {
         square.y += square.speed * deltaTime;
     }
     
-    // Touch controls: move square toward the touch target
+    // Touch controls
     if (touchTarget) {
       let dx = touchTarget.x - square.x;
       let dy = touchTarget.y - square.y;
@@ -108,43 +124,76 @@ function update(deltaTime) {
       }
     }
     
-    // Keep the square within the canvas bounds
+    // Keep the square within canvas bounds
     square.x = Math.max(0, Math.min(canvas.width - square.width, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.height, square.y));
     
-    // Check collision between the square and the token
+    // Update hazard position
+    hazard.x += hazard.dx * deltaTime;
+    hazard.y += hazard.dy * deltaTime;
+    
+    // Bounce hazard off canvas edges
+    if (hazard.x <= 0 || hazard.x >= canvas.width - hazard.width) {
+        hazard.dx *= -1;
+    }
+    if (hazard.y <= 0 || hazard.y >= canvas.height - hazard.height) {
+        hazard.dy *= -1;
+    }
+    
+    // Collision detection for token
     if (square.x < token.x + token.width &&
         square.x + square.width > token.x &&
         square.y < token.y + token.height &&
         square.y + square.height > token.y) {
-        
-        // Increase score and reposition token
         score += 10;
         repositionToken();
     }
+    
+    // Collision detection for hazard
+    if (square.x < hazard.x + hazard.width &&
+        square.x + square.width > hazard.x &&
+        square.y < hazard.y + hazard.height &&
+        square.y + square.height > hazard.y) {
+        alert("Game Over!");
+        resetGame();
+    }
 }
 
-// Function to reposition the token randomly within the canvas
+// Reposition token randomly
 function repositionToken() {
     token.x = Math.random() * (canvas.width - token.width);
     token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Draw the current game frame
+// Reset game state after game over
+function resetGame() {
+    square.x = 50;
+    square.y = 50;
+    score = 0;
+    repositionToken();
+    hazard.x = Math.random() * (canvas.width - hazard.width);
+    hazard.y = Math.random() * (canvas.height - hazard.height);
+}
+
+// Draw game frame
 function draw() {
-    // Clear the canvas with a dark background
+    // Clear canvas
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw the collectible token as a red square
+    // Draw token
     ctx.fillStyle = '#f00';
     ctx.fillRect(token.x, token.y, token.width, token.height);
     
-    // Draw the player square
+    // Draw hazard
+    ctx.fillStyle = '#a0f';
+    ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
+    
+    // Draw player
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
-    // Display the score in the top left corner
+    // Display score
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
