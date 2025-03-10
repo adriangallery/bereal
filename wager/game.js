@@ -87,12 +87,10 @@ document.getElementById('connectWallet').addEventListener('click', async functio
        document.getElementById('menu').style.display = 'none';
        console.log("Wallet Connected!");
        
-       // Preguntar si posee NFT (no se elimina el pixel enemigo)
        let hasNFT = prompt("Do you hold an Adrian Gallery NFT? (yes/no)", "no");
        nftMultiplier = (hasNFT && hasNFT.toLowerCase() === "yes") ? 2 : 1;
        console.log("NFT multiplier set to " + nftMultiplier + "x.");
        
-       // Bono diario
        let today = new Date().toISOString().slice(0,10);
        if (localStorage.getItem("dailyBonusDate") !== today) {
           let bonus = parseInt(prompt("Claim your daily bonus tokens? Enter amount (e.g., 5)", "5"), 10);
@@ -136,6 +134,12 @@ document.getElementById('claimRewards').addEventListener('click', async function
    }
 });
 
+// Event listener for the Restart Game button on the Game Over overlay
+document.getElementById('restartButton').addEventListener('click', function() {
+    document.getElementById('gameOverOverlay').style.display = 'none';
+    restartGame();
+});
+
 // Main game loop
 function gameLoop(timestamp) {
     const deltaTime = (timestamp - lastTime) / 1000;
@@ -167,13 +171,11 @@ function update(deltaTime) {
     square.x = Math.max(0, Math.min(canvas.width - square.width, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.height, square.y));
     
-    // Actualizar hazard siempre
     hazard.x += hazard.dx * deltaTime;
     hazard.y += hazard.dy * deltaTime;
     if (hazard.x <= 0 || hazard.x >= canvas.width - hazard.width) hazard.dx *= -1;
     if (hazard.y <= 0 || hazard.y >= canvas.height - hazard.height) hazard.dy *= -1;
     
-    // Colisión con token
     if (square.x < token.x + token.width &&
         square.x + square.width > token.x &&
         square.y < token.y + token.height &&
@@ -185,13 +187,12 @@ function update(deltaTime) {
         hazard.dy *= 1.02;
     }
     
-    // Colisión con hazard
     if (square.x < hazard.x + hazard.width &&
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
         square.y + square.height > hazard.y) {
         gameOverSound.play();
-        resetGame();
+        showGameOver();
     }
 }
 
@@ -217,8 +218,26 @@ function repositionToken() {
     token.y = Math.random() * (canvas.height - token.height);
 }
 
+// Show custom Game Over overlay instead of alert
+function showGameOver() {
+    // Actualiza el mensaje con la puntuación final
+    document.getElementById('finalScore').innerText = "Your final score: " + score;
+    // Muestra el overlay
+    document.getElementById('gameOverOverlay').style.display = 'block';
+    // Actualiza leaderboard y calcula recompensas
+    resetGameState();
+}
+
+// Reinicia el juego cuando se presiona Restart
+function restartGame() {
+    // Reinicia la posición del jugador y del hazard, y oculta mensajes si es necesario
+    square.x = 50;
+    square.y = 50;
+    // Reinicia el juego (ya se reseteó la puntuación en resetGameState)
+}
+
 // Reset game state, update leaderboard, etc.
-function resetGame() {
+function resetGameState() {
     let finalScore = score;
     if (finalScore > highScore) { 
         highScore = finalScore; 
@@ -226,14 +245,13 @@ function resetGame() {
     }
     if (finalScore >= 50) {
          tokensEarned = Math.floor(finalScore / 50) * nftMultiplier;
-         alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
+         alert("You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
          document.getElementById('rewardSection').style.display = 'block';
     } else { 
          alert("Game Over!"); 
     }
     updateLeaderboard(finalScore);
-    square.x = 50; 
-    square.y = 50; 
+    // Reinicia la puntuación
     score = 0;
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
