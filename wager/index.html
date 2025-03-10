@@ -16,42 +16,51 @@
       overflow: hidden;
       position: relative;
     }
-    /* Center and style the canvas */
     #gameCanvas {
       display: block;
       margin: 20px auto;
       background: #111;
       border: 2px solid #333;
-      /* Glitch animation */
       animation: glitch 1s infinite;
     }
-    /* Glitch keyframes: subtle movement to mimic a glitch effect */
     @keyframes glitch {
       0% { transform: translate(0,0); }
-      20% { transform: translate(-2px, 2px); }
-      40% { transform: translate(2px, -2px); }
-      60% { transform: translate(-2px, -2px); }
-      80% { transform: translate(2px, 2px); }
+      20% { transform: translate(-2px,2px); }
+      40% { transform: translate(2px,-2px); }
+      60% { transform: translate(-2px,-2px); }
+      80% { transform: translate(2px,2px); }
       100% { transform: translate(0,0); }
     }
-    /* Fullscreen overlay for the wallet connect menu */
-    #menu {
+    /* Modales (overlays) */
+    .modal {
+      display: none;
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100%;
       height: 100%;
       background: rgba(0,0,0,0.8);
+      z-index: 30;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 10;
     }
-    #menu button {
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border: 2px solid #444;
+      text-align: center;
+      max-width: 90%;
+    }
+    .modal button {
       padding: 10px 20px;
-      font-size: 18px;
+      margin: 10px;
+      font-size: 16px;
       cursor: pointer;
+    }
+    .modal input {
+      padding: 5px;
+      font-size: 16px;
+      margin: 10px 0;
     }
     /* Reward Section */
     #rewardSection {
@@ -59,26 +68,73 @@
       margin-top: 10px;
       display: none;
     }
+    /* Game Over Overlay */
+    #gameOverOverlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      text-align: center;
+      z-index: 20;
+      padding-top: 100px;
+    }
   </style>
 </head>
 <body>
-  <div id="menu">
-    <h1>Adrian Gallery Mini-Game</h1>
-    <button id="connectWallet">Connect Wallet</button>
+  <!-- Wallet Connect Modal (initial menu) -->
+  <div id="menu" class="modal" style="display: flex;">
+    <div class="modal-content">
+      <h1>Adrian Gallery Mini-Game</h1>
+      <button id="connectWallet">Connect Wallet</button>
+    </div>
   </div>
-  <!-- Our game will be rendered in this canvas -->
-  <canvas id="gameCanvas" width="320" height="240"></canvas>
-  <!-- Claim Rewards Section (hidden by default) -->
+  
+  <!-- NFT Modal -->
+  <div id="nftModal" class="modal">
+    <div class="modal-content">
+      <h2>Do you hold an Adrian Gallery NFT?</h2>
+      <button id="nftYes">Yes</button>
+      <button id="nftNo">No</button>
+    </div>
+  </div>
+  
+  <!-- Daily Bonus Modal -->
+  <div id="dailyBonusModal" class="modal">
+    <div class="modal-content">
+      <h2>Claim your daily bonus tokens</h2>
+      <input type="number" id="dailyBonusInput" placeholder="Enter bonus amount" />
+      <br/>
+      <button id="dailyBonusConfirm">Confirm</button>
+    </div>
+  </div>
+  
+  <!-- Message Modal (para mostrar mensajes no bloqueantes) -->
+  <div id="messageModal" class="modal">
+    <div class="modal-content">
+      <p id="messageText"></p>
+      <button id="messageOk">OK</button>
+    </div>
+  </div>
+  
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay">
+    <h1>Game Over</h1>
+    <p id="finalScore"></p>
+    <button id="restartButton">Restart Game</button>
+  </div>
+  
+  <!-- Reward Section -->
   <div id="rewardSection">
     <button id="claimRewards">Claim Rewards</button>
   </div>
-  <!-- Game Over Overlay -->
-  <div id="gameOverOverlay" style="display: none; position: absolute; top: 0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: #fff; text-align: center; z-index: 20; padding-top: 100px;">
-    <h1>Game Over</h1>
-    <p id="finalScore"></p>
-    <button id="restartButton" style="padding: 10px 20px; font-size: 18px; cursor: pointer;">Restart Game</button>
-  </div>
-  <!-- Cargamos ethers.js desde CDN -->
+  
+  <canvas id="gameCanvas" width="320" height="240"></canvas>
+  
+  <!-- Load ethers.js from CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <!-- Link to our game script -->
   <script src="game.js"></script>
