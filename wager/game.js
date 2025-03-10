@@ -1,6 +1,7 @@
 // Sound effects
 const collectSound = new Audio('collect.wav');
 const gameOverSound = new Audio('gameover.wav');
+
 // Get the canvas and its context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -149,6 +150,7 @@ function update(deltaTime) {
         square.y < token.y + token.height &&
         square.y + square.height > token.y) {
         score += 10;
+        collectSound.play(); // Reproducir sonido al recoger el token
         repositionToken();
     }
     
@@ -157,6 +159,7 @@ function update(deltaTime) {
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
         square.y + square.height > hazard.y) {
+        gameOverSound.play(); // Reproducir sonido de Game Over
         alert("Game Over!");
         resetGame();
     }
