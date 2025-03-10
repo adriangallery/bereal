@@ -12,6 +12,9 @@ let lastTime = 0;
 // State variable for wallet connection
 let walletConnected = false;
 
+// New variable to track the paused state
+let paused = false;
+
 // Define the square (player) object with initial position, size, and speed
 const square = {
     x: 50,
@@ -48,7 +51,17 @@ const keys = {};
 
 // Keyboard event listeners
 document.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase() === 'w') {
+    // Toggle pause if "P" is pressed
+    if (event.key.toLowerCase() === 'p') {
+        paused = !paused;
+        if (paused) {
+            console.log("Game paused");
+        } else {
+            console.log("Game resumed");
+            // Reset lastTime to avoid jump in deltaTime
+            lastTime = performance.now();
+        }
+    } else if (event.key.toLowerCase() === 'w') {
         wager();
     } else {
         keys[event.key] = true;
@@ -95,8 +108,8 @@ function gameLoop(timestamp) {
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     
-    // Only update game state if wallet is connected
-    if (walletConnected) {
+    // Only update game state if wallet is connected and game is not paused
+    if (walletConnected && !paused) {
       update(deltaTime);
     }
     draw();
@@ -157,6 +170,9 @@ function update(deltaTime) {
         score += 10;
         collectSound.play(); // Play sound when token is collected
         repositionToken();
+        // Increase hazard speed slightly for more difficulty
+        hazard.dx *= 1.02;
+        hazard.dy *= 1.02;
     }
     
     // Collision detection for hazard
@@ -205,6 +221,9 @@ function resetGame() {
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
     hazard.y = Math.random() * (canvas.height - hazard.height);
+    // Reset hazard speed to base value
+    hazard.dx = (Math.random() < 0.5 ? -1 : 1) * 80;
+    hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
 
 // Draw game frame
@@ -231,6 +250,17 @@ function draw() {
     ctx.fillText('Score: ' + score, 10, 20);
     ctx.fillText('High Score: ' + highScore, 10, 40);
     ctx.fillText("Press 'W' to wager", 10, 60);
+    
+    // If game is paused, overlay a semi-transparent message
+    if (paused) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px Arial';
+        ctx.fillText('PAUSED', canvas.width / 2 - 50, canvas.height / 2);
+        ctx.font = '16px Arial';
+        ctx.fillText("Press 'P' to resume", canvas.width / 2 - 70, canvas.height / 2 + 30);
+    }
 }
 
 // Start the game loop
