@@ -16,13 +16,24 @@
       overflow: hidden;
     }
     /* Center and style the canvas */
-    canvas {
+    #gameCanvas {
       display: block;
       margin: 20px auto;
       background: #111;
       border: 2px solid #333;
+      /* Glitch animation */
+      animation: glitch 1s infinite;
     }
-    /* Fullscreen overlay for the menu */
+    /* Glitch keyframes: subtle movement to mimic a glitch effect */
+    @keyframes glitch {
+      0% { transform: translate(0,0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(2px, -2px); }
+      60% { transform: translate(-2px, -2px); }
+      80% { transform: translate(2px, 2px); }
+      100% { transform: translate(0,0); }
+    }
+    /* Fullscreen overlay for the wallet connect menu */
     #menu {
       position: absolute;
       top: 0;
