@@ -6,42 +6,35 @@ const gameOverSound = new Audio('gameover.wav');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Track time for smooth animations
+// Time tracking
 let lastTime = 0;
 
 // State variables
 let walletConnected = false;
 let paused = false;
 
-// Global variables for rewards, levels, NFT bonus, etc.
+// Global game variables
 let tokensEarned = 0;
 let nftMultiplier = 1;
 let level = 1;
 
-// Variables for camera shake
+// Camera shake variables
 let shakeTime = 0;
 
-// Particles array (for token pickup effect)
+// Particle array
 let particles = [];
 
-// Player's score and high score
+// Scores and leaderboard
 let score = 0;
 let highScore = Number(localStorage.getItem('highScore')) || 0;
-
-// Leaderboard (top 5 scores)
 let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
 
-// Object to track pressed keys
+// Key tracking
 const keys = {};
-
-// Keyboard event listeners
 document.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'p') {
     paused = !paused;
-    if (paused) {
-      console.log("Game paused");
-    } else {
-      console.log("Game resumed");
+    if (!paused) {
       lastTime = performance.now();
     }
   } else if (event.key.toLowerCase() === 'w') {
@@ -79,7 +72,7 @@ canvas.addEventListener('touchend', function(e) {
   touchTarget = null;
 });
 
-// Define game objects
+// Game objects
 const square = { x: 50, y: 50, width: 24, height: 24, speed: 100 };
 const token = { 
   x: Math.random() * (canvas.width - 24), 
@@ -112,26 +105,22 @@ function showMessage(msg, callback) {
   };
 }
 
-// Wallet connection & subsequent modals
+// Wallet connection & modals
 document.getElementById('connectWallet').addEventListener('click', async function() {
   if (window.ethereum) {
     await window.ethereum.request({ method: "eth_requestAccounts" });
     walletConnected = true;
     hideModal('menu');
     console.log("Wallet Connected!");
-    // En lugar de usar prompt, mostramos el modal NFT
     showModal('nftModal');
   } else {
     showMessage("No Ethereum provider found. Please install MetaMask.");
   }
 });
-
-// NFT Modal events
 document.getElementById('nftYes').addEventListener('click', function() {
   nftMultiplier = 2;
   console.log("NFT multiplier set to 2x.");
   hideModal('nftModal');
-  // Luego de NFT, comprobamos el bono diario
   checkDailyBonus();
 });
 document.getElementById('nftNo').addEventListener('click', function() {
@@ -146,8 +135,6 @@ function checkDailyBonus() {
     showModal('dailyBonusModal');
   }
 }
-
-// Daily Bonus Modal event
 document.getElementById('dailyBonusConfirm').addEventListener('click', function() {
   let bonus = parseInt(document.getElementById('dailyBonusInput').value, 10);
   if (bonus > 0) {
@@ -158,7 +145,7 @@ document.getElementById('dailyBonusConfirm').addEventListener('click', function(
   hideModal('dailyBonusModal');
 });
 
-// Listener for "Claim Rewards" button using ethers.js
+// Claim Rewards using ethers.js
 document.getElementById('claimRewards').addEventListener('click', async function() {
   if (tokensEarned > 0) {
     try {
@@ -192,7 +179,7 @@ document.getElementById('restartButton').addEventListener('click', function() {
   restartGame();
 });
 
-// Particle effect when token is collected
+// Particle effect on token pickup
 function spawnParticles(x, y, count) {
   for (let i = 0; i < count; i++) {
     let angle = Math.random() * 2 * Math.PI;
@@ -270,7 +257,7 @@ function update(deltaTime) {
       square.y < hazard.y + hazard.height &&
       square.y + square.height > hazard.y) {
     gameOverSound.play();
-    shakeTime = 0.5; // Activa efecto de shake
+    shakeTime = 0.5; // Activate camera shake
     showGameOver();
   }
   
@@ -280,8 +267,10 @@ function update(deltaTime) {
     p.x += p.vx * deltaTime;
     p.y += p.vy * deltaTime;
     p.lifetime -= deltaTime;
-    p.alpha = p.lifetime; // Fade out simple
-    if (p.lifetime <= 0) particles.splice(i, 1);
+    p.alpha = p.lifetime;
+    if (p.lifetime <= 0) {
+      particles.splice(i, 1);
+    }
   }
 }
 
@@ -289,15 +278,15 @@ function update(deltaTime) {
 function wager() {
   if (score > 0) {
     let outcome = Math.random();
-    if (outcome < 0.5) { 
-      showMessage("Wager failed! You lost your score."); 
-      score = 0; 
-    } else { 
-      score *= 2; 
-      showMessage("Wager succeeded! Your score doubled."); 
+    if (outcome < 0.5) {
+      showMessage("Wager failed! You lost your score.");
+      score = 0;
+    } else {
+      score *= 2;
+      showMessage("Wager succeeded! Your score doubled.");
     }
-  } else { 
-    showMessage("No score to wager!"); 
+  } else {
+    showMessage("No score to wager!");
   }
 }
 
@@ -307,21 +296,20 @@ function repositionToken() {
   token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Show custom Game Over overlay and update state
+// Show Game Over overlay and reset game state
 function showGameOver() {
   document.getElementById('finalScore').innerText = "Your final score: " + score;
   showModal('gameOverOverlay');
   resetGameState();
 }
 
-// Restart game (called from Game Over overlay)
+// Restart game (triggered by Game Over overlay)
 function restartGame() {
   square.x = 50;
   square.y = 50;
-  // The game state (score) is already reset in resetGameState()
 }
 
-// Reset game state, update leaderboard, and calculate rewards
+// Reset game state, update leaderboard and rewards
 function resetGameState() {
   let finalScore = score;
   if (finalScore > highScore) {
@@ -352,9 +340,8 @@ function updateLeaderboard(finalScore) {
   localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
 }
 
-// Draw frame with dynamic background, UI, shake effect and particles
+// Draw frame with dynamic background, UI, camera shake and particles
 function draw() {
-  // Efecto shake
   let offsetX = 0, offsetY = 0;
   if (shakeTime > 0) {
     let shakeIntensity = shakeTime * 10;
@@ -364,7 +351,6 @@ function draw() {
     ctx.translate(offsetX, offsetY);
   }
   
-  // Dynamic background according to level
   level = Math.floor(score / 50) + 1;
   let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
   grad.addColorStop(0, level % 2 === 0 ? '#111' : '#222');
@@ -372,7 +358,6 @@ function draw() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Draw token, hazard and player
   ctx.fillStyle = '#f00';
   ctx.fillRect(token.x, token.y, token.width, token.height);
   
@@ -382,13 +367,11 @@ function draw() {
   ctx.fillStyle = '#0f0';
   ctx.fillRect(square.x, square.y, square.width, square.height);
   
-  // Draw particles
   for (let p of particles) {
     ctx.fillStyle = "rgba(255,255,255," + p.alpha + ")";
     ctx.fillRect(p.x, p.y, 2, 2);
   }
   
-  // UI text
   ctx.fillStyle = '#fff';
   ctx.font = '16px Arial';
   ctx.fillText('Score: ' + score, 10, 20);
@@ -396,14 +379,13 @@ function draw() {
   ctx.fillText("Level: " + level, 10, 60);
   ctx.fillText("Press 'W' to wager", 10, 80);
   
-  // Leaderboard display (top-right)
   ctx.fillText("Leaderboard:", canvas.width - 150, 20);
   for (let i = 0; i < leaderboard.length; i++) {
     ctx.fillText((i+1) + ". " + leaderboard[i], canvas.width - 150, 40 + i * 20);
   }
   
   if (paused) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#fff';
     ctx.font = '24px Arial';
