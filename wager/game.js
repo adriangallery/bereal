@@ -21,7 +21,7 @@ let level = 1;
 // Camera shake variables
 let shakeTime = 0;
 
-// Particle array
+// Particle array (for token pickup effect)
 let particles = [];
 
 // Scores and leaderboard
@@ -47,8 +47,7 @@ document.addEventListener('keyup', (event) => {
   keys[event.key] = false;
 });
 
-// Touch control
-let touchTarget = null;
+// Touch event listeners (agregando {passive: false})
 canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
   const touch = e.touches[0];
@@ -57,7 +56,8 @@ canvas.addEventListener('touchstart', function(e) {
     x: touch.clientX - rect.left - square.width / 2, 
     y: touch.clientY - rect.top - square.height / 2 
   };
-});
+}, { passive: false });
+
 canvas.addEventListener('touchmove', function(e) {
   e.preventDefault();
   const touch = e.touches[0];
@@ -66,11 +66,15 @@ canvas.addEventListener('touchmove', function(e) {
     x: touch.clientX - rect.left - square.width / 2, 
     y: touch.clientY - rect.top - square.height / 2 
   };
-});
+}, { passive: false });
+
 canvas.addEventListener('touchend', function(e) {
   e.preventDefault();
   touchTarget = null;
-});
+}, { passive: false });
+
+// Touch target variable
+let touchTarget = null;
 
 // Game objects
 const square = { x: 50, y: 50, width: 24, height: 24, speed: 100 };
@@ -173,13 +177,13 @@ document.getElementById('claimRewards').addEventListener('click', async function
   }
 });
 
-// Restart Game (Game Over overlay)
+// Restart Game button on Game Over overlay
 document.getElementById('restartButton').addEventListener('click', function() {
   hideModal('gameOverOverlay');
   restartGame();
 });
 
-// Particle effect on token pickup
+// Particle effect for token pickup
 function spawnParticles(x, y, count) {
   for (let i = 0; i < count; i++) {
     let angle = Math.random() * 2 * Math.PI;
@@ -257,7 +261,7 @@ function update(deltaTime) {
       square.y < hazard.y + hazard.height &&
       square.y + square.height > hazard.y) {
     gameOverSound.play();
-    shakeTime = 0.5; // Activate camera shake
+    shakeTime = 0.5;
     showGameOver();
   }
   
@@ -340,7 +344,7 @@ function updateLeaderboard(finalScore) {
   localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
 }
 
-// Draw frame with dynamic background, UI, camera shake and particles
+// Draw frame with dynamic background, UI, shake and particles
 function draw() {
   let offsetX = 0, offsetY = 0;
   if (shakeTime > 0) {
