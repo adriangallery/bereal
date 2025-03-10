@@ -39,8 +39,9 @@ const hazard = {
     dy: (Math.random() < 0.5 ? -1 : 1) * 80
 };
 
-// Player's score
+// Player's score and high score (using localStorage)
 let score = 0;
+let highScore = Number(localStorage.getItem('highScore')) || 0;
 
 // Object to track pressed keys
 const keys = {};
@@ -173,6 +174,11 @@ function repositionToken() {
 
 // Reset game state after game over
 function resetGame() {
+    // Actualizar highScore si es necesario
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('highScore', highScore);
+    }
     square.x = 50;
     square.y = 50;
     score = 0;
@@ -199,10 +205,11 @@ function draw() {
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
-    // Display score
+    // Display score and high score
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
+    ctx.fillText('High Score: ' + highScore, 10, 40);
 }
 
 // Start the game loop
