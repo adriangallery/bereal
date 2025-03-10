@@ -12,7 +12,7 @@ let lastTime = 0;
 // State variable for wallet connection
 let walletConnected = false;
 
-// New variable to track the paused state
+// Variable to track if the game is paused
 let paused = false;
 
 // Define the square (player) object with initial position, size, and speed
@@ -51,14 +51,14 @@ const keys = {};
 
 // Keyboard event listeners
 document.addEventListener('keydown', (event) => {
-    // Toggle pause if "P" is pressed
+    // Toggle pause with "P"
     if (event.key.toLowerCase() === 'p') {
         paused = !paused;
         if (paused) {
             console.log("Game paused");
         } else {
             console.log("Game resumed");
-            // Reset lastTime to avoid jump in deltaTime
+            // Reinicia lastTime para evitar saltos en deltaTime
             lastTime = performance.now();
         }
     } else if (event.key.toLowerCase() === 'w') {
@@ -168,9 +168,9 @@ function update(deltaTime) {
         square.y < token.y + token.height &&
         square.y + square.height > token.y) {
         score += 10;
-        collectSound.play(); // Play sound when token is collected
+        collectSound.play(); // Reproduce sonido al recoger el token
         repositionToken();
-        // Increase hazard speed slightly for more difficulty
+        // Incrementa la velocidad del hazard para aumentar la dificultad
         hazard.dx *= 1.02;
         hazard.dy *= 1.02;
     }
@@ -180,8 +180,7 @@ function update(deltaTime) {
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
         square.y + square.height > hazard.y) {
-        gameOverSound.play(); // Play Game Over sound
-        alert("Game Over!");
+        gameOverSound.play(); // Reproduce sonido de Game Over
         resetGame();
     }
 }
@@ -208,20 +207,33 @@ function repositionToken() {
     token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Reset game state after game over
+// Reset game state after game over and simulate token reward
 function resetGame() {
-    // Update high score if necessary
-    if (score > highScore) {
-        highScore = score;
+    // Guarda la puntuación final antes de resetear
+    let finalScore = score;
+    
+    // Actualiza high score si es necesario
+    if (finalScore > highScore) {
+        highScore = finalScore;
         localStorage.setItem('highScore', highScore);
     }
+    
+    // Simula la recompensa en tokens si se supera el umbral (por ejemplo, 50 puntos)
+    if (finalScore >= 50) {
+         let tokensEarned = Math.floor(finalScore / 50); // 1 token por cada 50 puntos
+         alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens!");
+    } else {
+         alert("Game Over!");
+    }
+    
+    // Resetear estado del juego
     square.x = 50;
     square.y = 50;
     score = 0;
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
     hazard.y = Math.random() * (canvas.height - hazard.height);
-    // Reset hazard speed to base value
+    // Reinicia la velocidad base del hazard
     hazard.dx = (Math.random() < 0.5 ? -1 : 1) * 80;
     hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
