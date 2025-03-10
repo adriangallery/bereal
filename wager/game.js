@@ -48,7 +48,11 @@ const keys = {};
 
 // Keyboard event listeners
 document.addEventListener('keydown', (event) => {
-    keys[event.key] = true;
+    if (event.key.toLowerCase() === 'w') {
+        wager();
+    } else {
+        keys[event.key] = true;
+    }
 });
 document.addEventListener('keyup', (event) => {
     keys[event.key] = false;
@@ -151,7 +155,7 @@ function update(deltaTime) {
         square.y < token.y + token.height &&
         square.y + square.height > token.y) {
         score += 10;
-        collectSound.play(); // Reproducir sonido al recoger el token
+        collectSound.play(); // Play sound when token is collected
         repositionToken();
     }
     
@@ -160,9 +164,25 @@ function update(deltaTime) {
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
         square.y + square.height > hazard.y) {
-        gameOverSound.play(); // Reproducir sonido de Game Over
+        gameOverSound.play(); // Play Game Over sound
         alert("Game Over!");
         resetGame();
+    }
+}
+
+// Function to simulate a wager: coin toss to double score or lose it all
+function wager() {
+    if (score > 0) {
+        let outcome = Math.random();
+        if (outcome < 0.5) {
+            alert("Wager failed! You lost your score.");
+            score = 0;
+        } else {
+            score *= 2;
+            alert("Wager succeeded! Your score doubled.");
+        }
+    } else {
+        alert("No score to wager!");
     }
 }
 
@@ -174,7 +194,7 @@ function repositionToken() {
 
 // Reset game state after game over
 function resetGame() {
-    // Actualizar highScore si es necesario
+    // Update high score if necessary
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('highScore', highScore);
@@ -205,11 +225,12 @@ function draw() {
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
-    // Display score and high score
+    // Display score, high score, and wager instructions
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
     ctx.fillText('High Score: ' + highScore, 10, 40);
+    ctx.fillText("Press 'W' to wager", 10, 60);
 }
 
 // Start the game loop
