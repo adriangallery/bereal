@@ -106,12 +106,37 @@ document.getElementById('connectWallet').addEventListener('click', function() {
     console.log("Wallet Connected!");
 });
 
-// Event listener for the "Claim Rewards" button
-document.getElementById('claimRewards').addEventListener('click', function() {
+// Event listener for the "Claim Rewards" button using ethers.js
+document.getElementById('claimRewards').addEventListener('click', async function() {
    if (tokensEarned > 0) {
-      alert("Rewards claimed: " + tokensEarned + " $ADRIAN tokens! Check your wallet.");
-      tokensEarned = 0;
-      document.getElementById('rewardSection').style.display = 'none';
+      try {
+         // Verifica que el navegador tenga inyectado window.ethereum (MetaMask)
+         if (!window.ethereum) {
+            alert("No Ethereum provider found. Please install MetaMask.");
+            return;
+         }
+         // Solicita la conexión a la cuenta
+         await window.ethereum.request({ method: "eth_requestAccounts" });
+         const provider = new ethers.providers.Web3Provider(window.ethereum);
+         const signer = provider.getSigner();
+
+         // Dirección y ABI dummy del contrato (actualízalos cuando tengas el contrato real)
+         const contractAddress = "0xYourDummyContractAddress";
+         const abi = [
+            "function claimReward(uint256 amount) public"
+         ];
+
+         const contract = new ethers.Contract(contractAddress, abi, signer);
+         // Llama a la función claimReward del contrato
+         let tx = await contract.claimReward(tokensEarned);
+         await tx.wait();
+         alert("Rewards claimed on-chain: " + tokensEarned + " $ADRIAN tokens!");
+         tokensEarned = 0;
+         document.getElementById('rewardSection').style.display = 'none';
+      } catch (error) {
+         console.error(error);
+         alert("Error claiming tokens on-chain.");
+      }
    } else {
       alert("No rewards to claim.");
    }
