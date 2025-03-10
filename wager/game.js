@@ -9,44 +9,14 @@ const ctx = canvas.getContext('2d');
 // Track time for smooth animations
 let lastTime = 0;
 
-// State variable for wallet connection
+// State variables
 let walletConnected = false;
-
-// Variable to track if the game is paused
 let paused = false;
 
-// Global variable for tokens earned in the current game over
+// Global variables for rewards and niveles
 let tokensEarned = 0;
-
-// Variable for NFT bonus multiplier (default 1; will be set to 2 if the user holds an NFT)
-let nftMultiplier = 1;
-
-// Define the square (player) object with initial position, size, and speed
-const square = {
-    x: 50,
-    y: 50,
-    width: 24,
-    height: 24,
-    speed: 100 // pixels per second
-};
-
-// Define the collectible token object
-const token = {
-    x: Math.random() * (canvas.width - 24),
-    y: Math.random() * (canvas.height - 24),
-    width: 24,
-    height: 24
-};
-
-// Define the hazard object (risk element)
-const hazard = {
-    x: Math.random() * (canvas.width - 24),
-    y: Math.random() * (canvas.height - 24),
-    width: 24,
-    height: 24,
-    dx: (Math.random() < 0.5 ? -1 : 1) * 80,
-    dy: (Math.random() < 0.5 ? -1 : 1) * 80
-};
+let nftMultiplier = 1;  // NFT bonus multiplier (1x por defecto)
+let level = 1;          // Nivel actual, calculado según el score
 
 // Player's score and high score (using localStorage)
 let score = 0;
@@ -57,14 +27,12 @@ const keys = {};
 
 // Keyboard event listeners
 document.addEventListener('keydown', (event) => {
-    // Toggle pause with "P"
     if (event.key.toLowerCase() === 'p') {
         paused = !paused;
         if (paused) {
             console.log("Game paused");
         } else {
             console.log("Game resumed");
-            // Reset lastTime to avoid jump in deltaTime
             lastTime = performance.now();
         }
     } else if (event.key.toLowerCase() === 'w') {
@@ -77,10 +45,8 @@ document.addEventListener('keyup', (event) => {
     keys[event.key] = false;
 });
 
-// Touch control variable to store the target position
+// Touch control variable
 let touchTarget = null;
-
-// Touch event listeners
 canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
   const touch = e.touches[0];
@@ -102,16 +68,38 @@ canvas.addEventListener('touchend', function(e) {
   touchTarget = null;
 });
 
-// Wallet connection event listener (simulate wallet connection)
+// Define game objects
+const square = {
+    x: 50,
+    y: 50,
+    width: 24,
+    height: 24,
+    speed: 100
+};
+const token = {
+    x: Math.random() * (canvas.width - 24),
+    y: Math.random() * (canvas.height - 24),
+    width: 24,
+    height: 24
+};
+const hazard = {
+    x: Math.random() * (canvas.width - 24),
+    y: Math.random() * (canvas.height - 24),
+    width: 24,
+    height: 24,
+    dx: (Math.random() < 0.5 ? -1 : 1) * 80,
+    dy: (Math.random() < 0.5 ? -1 : 1) * 80
+};
+
+// Wallet connection and bono diario
 document.getElementById('connectWallet').addEventListener('click', async function() {
-    // Conectar la wallet
     if (window.ethereum) {
        await window.ethereum.request({ method: "eth_requestAccounts" });
        walletConnected = true;
        document.getElementById('menu').style.display = 'none';
        console.log("Wallet Connected!");
        
-       // Preguntar al usuario si posee un NFT de Adrian Gallery (simulado)
+       // Preguntar por NFT
        let hasNFT = prompt("Do you hold an Adrian Gallery NFT? (yes/no)", "no");
        if (hasNFT && hasNFT.toLowerCase() === "yes") {
           nftMultiplier = 2;
@@ -120,12 +108,24 @@ document.getElementById('connectWallet').addEventListener('click', async functio
           nftMultiplier = 1;
           console.log("No NFT bonus. Multiplier remains 1x.");
        }
+       
+       // Bono diario: se revisa si ya se reclamó hoy
+       let today = new Date().toISOString().slice(0,10);
+       if (localStorage.getItem("dailyBonusDate") !== today) {
+          let bonus = parseInt(prompt("Claim your daily bonus tokens? Enter amount (e.g., 5)", "5"), 10);
+          if (bonus > 0) {
+             tokensEarned += bonus;
+             alert("Daily bonus claimed: " + bonus + " tokens!");
+             localStorage.setItem("dailyBonusDate", today);
+          }
+       }
+       
     } else {
        alert("No Ethereum provider found. Please install MetaMask.");
     }
 });
 
-// Event listener for the "Claim Rewards" button using ethers.js
+// Listener for "Claim Rewards" button using ethers.js
 document.getElementById('claimRewards').addEventListener('click', async function() {
    if (tokensEarned > 0) {
       try {
@@ -137,11 +137,9 @@ document.getElementById('claimRewards').addEventListener('click', async function
          const provider = new ethers.providers.Web3Provider(window.ethereum);
          const signer = provider.getSigner();
 
-         // Dirección y ABI dummy del contrato (actualízalos con los reales)
+         // Dirección y ABI dummy del contrato
          const contractAddress = "0xYourDummyContractAddress";
-         const abi = [
-            "function claimReward(uint256 amount) public"
-         ];
+         const abi = [ "function claimReward(uint256 amount) public" ];
 
          const contract = new ethers.Contract(contractAddress, abi, signer);
          let tx = await contract.claimReward(tokensEarned);
@@ -163,7 +161,6 @@ function gameLoop(timestamp) {
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     
-    // Only update game state if wallet is connected and game is not paused
     if (walletConnected && !paused) {
       update(deltaTime);
     }
@@ -174,21 +171,11 @@ function gameLoop(timestamp) {
 
 // Update game state
 function update(deltaTime) {
-    // Keyboard controls
-    if (keys['ArrowLeft']) {
-        square.x -= square.speed * deltaTime;
-    }
-    if (keys['ArrowRight']) {
-        square.x += square.speed * deltaTime;
-    }
-    if (keys['ArrowUp']) {
-        square.y -= square.speed * deltaTime;
-    }
-    if (keys['ArrowDown']) {
-        square.y += square.speed * deltaTime;
-    }
+    if (keys['ArrowLeft']) square.x -= square.speed * deltaTime;
+    if (keys['ArrowRight']) square.x += square.speed * deltaTime;
+    if (keys['ArrowUp']) square.y -= square.speed * deltaTime;
+    if (keys['ArrowDown']) square.y += square.speed * deltaTime;
     
-    // Touch controls
     if (touchTarget) {
       let dx = touchTarget.x - square.x;
       let dy = touchTarget.y - square.y;
@@ -201,23 +188,14 @@ function update(deltaTime) {
       }
     }
     
-    // Keep the square within canvas bounds
     square.x = Math.max(0, Math.min(canvas.width - square.width, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.height, square.y));
     
-    // Update hazard position
     hazard.x += hazard.dx * deltaTime;
     hazard.y += hazard.dy * deltaTime;
+    if (hazard.x <= 0 || hazard.x >= canvas.width - hazard.width) hazard.dx *= -1;
+    if (hazard.y <= 0 || hazard.y >= canvas.height - hazard.height) hazard.dy *= -1;
     
-    // Bounce hazard off canvas edges
-    if (hazard.x <= 0 || hazard.x >= canvas.width - hazard.width) {
-        hazard.dx *= -1;
-    }
-    if (hazard.y <= 0 || hazard.y >= canvas.height - hazard.height) {
-        hazard.dy *= -1;
-    }
-    
-    // Collision detection for token
     if (square.x < token.x + token.width &&
         square.x + square.width > token.x &&
         square.y < token.y + token.height &&
@@ -225,12 +203,10 @@ function update(deltaTime) {
         score += 10;
         collectSound.play();
         repositionToken();
-        // Increase hazard speed slightly for increased difficulty
         hazard.dx *= 1.02;
         hazard.dy *= 1.02;
     }
     
-    // Collision detection for hazard
     if (square.x < hazard.x + hazard.width &&
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
@@ -240,7 +216,7 @@ function update(deltaTime) {
     }
 }
 
-// Function to simulate a wager: coin toss to double score or lose it all
+// Wager function: coin toss to double or lose score
 function wager() {
     if (score > 0) {
         let outcome = Math.random();
@@ -262,14 +238,14 @@ function repositionToken() {
     token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Reset game state after game over and simulate token reward
+// Reset game state, calculate rewards, update level, and show Claim Rewards if applicable
 function resetGame() {
     let finalScore = score;
     if (finalScore > highScore) {
         highScore = finalScore;
         localStorage.setItem('highScore', highScore);
     }
-    // Calculate tokens earned with NFT bonus applied (1 token per 50 points)
+    // Calcular tokens ganados y aplicar NFT bonus
     if (finalScore >= 50) {
          tokensEarned = Math.floor(finalScore / 50) * nftMultiplier;
          alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
@@ -277,6 +253,7 @@ function resetGame() {
     } else {
          alert("Game Over!");
     }
+    // Reiniciar estado
     square.x = 50;
     square.y = 50;
     score = 0;
@@ -287,11 +264,19 @@ function resetGame() {
     hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
 
-// Draw game frame
+// Draw the game frame with dynamic background and UI
 function draw() {
-    ctx.fillStyle = '#111';
+    // Actualizar nivel según el score actual
+    level = Math.floor(score / 50) + 1;
+    
+    // Fondo dinámico según nivel
+    let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, level % 2 === 0 ? '#111' : '#222');
+    grad.addColorStop(1, level % 2 === 0 ? '#333' : '#444');
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Dibujar token, hazard y jugador
     ctx.fillStyle = '#f00';
     ctx.fillRect(token.x, token.y, token.width, token.height);
     
@@ -301,11 +286,13 @@ function draw() {
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
+    // Mostrar puntaje, high score, nivel y otras instrucciones
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
     ctx.fillText('High Score: ' + highScore, 10, 40);
-    ctx.fillText("Press 'W' to wager", 10, 60);
+    ctx.fillText("Level: " + level, 10, 60);
+    ctx.fillText("Press 'W' to wager", 10, 80);
     
     if (paused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
