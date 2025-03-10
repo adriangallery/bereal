@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensures proper scaling on mobile devices -->
+  <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mint with ADRIAN</title>
-  <!-- Load Bootstrap CSS for navbar styling -->
+  <!-- Bootstrap CSS for navbar styling -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Load ethers.js from jsDelivr CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
+  <!-- Load ethers.js (version 5.7.2) from jsDelivr CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
       background-color: #f7f7f7;
@@ -55,13 +55,13 @@
           <li class="nav-item"><a class="nav-link text-white" href="index.html">Index</a></li>
           <li class="nav-item"><a class="nav-link text-white" href="https://www.geckoterminal.com/base/pools/0x95ebfcb1c6b345fda69cf56c51e30421e5a35aec" target="_blank">Buy $ADRIAN</a></li>
           <li class="nav-item"><a class="nav-link text-white" href="marketplace.html">Marketplace</a></li>
-          <!-- Add more nav items as needed -->
+          <!-- Additional nav items as needed -->
           <li class="nav-item"><a class="nav-link text-white" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
           <li class="nav-item"><a class="nav-link text-white" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
           <li class="nav-item"><a class="nav-link text-white" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
         </ul>
       </div>
-      <!-- Connect Wallet Button -->
+      <!-- Connect Wallet Button (as in your working menu) -->
       <button class="btn d-flex align-items-center me-2" id="menuConnectButton" onclick="menuConnectWallet()"
         style="background-color: #f6851b; color: #fff; border: none; font-weight: 600; gap: 0.5rem;">
         🟦🟥 Connect Wallet
@@ -81,14 +81,18 @@
     <div id="status"></div>
   </div>
 
-  <!-- Bootstrap JS (for navbar toggler) -->
+  <!-- Bootstrap JS Bundle (for navbar toggler) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Global variables for provider and signer
-    let provider, signer;
+    // --- GLOBAL WALLET VARIABLES (to be set by the connect function) ---
+    // These variables will be used by our mint logic.
+    // They are defined on window so they can be shared across scripts if needed.
+    window.menuProvider = null;
+    window.menuSigner = null;
+    window.menuUserAccount = null;
 
-    // Function for connecting the wallet (called by the navbar button)
+    // --- CONNECT WALLET FUNCTION (using working logic from your menu code) ---
     async function menuConnectWallet() {
       const statusDiv = document.getElementById("status");
       statusDiv.innerText = "Connecting wallet...";
@@ -97,28 +101,37 @@
         return;
       }
       try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        statusDiv.innerText = "Wallet connected!";
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        window.menuUserAccount = accounts[0];
+        window.menuProvider = new ethers.providers.Web3Provider(window.ethereum);
+        window.menuSigner = window.menuProvider.getSigner();
+        statusDiv.innerText = "Wallet connected: " + window.menuUserAccount;
+        // Enable the mint button once the wallet is connected
         document.getElementById("mintButton").disabled = false;
+        // (If you have a callback for wallet connected, you can call it here)
+        if (window.onMenuWalletConnected) {
+          window.onMenuWalletConnected();
+        }
       } catch (error) {
         console.error("Error connecting wallet:", error);
         statusDiv.innerText = "Error connecting wallet: " + error.message;
       }
     }
 
-    // Mint button event handler
+    // --- MINT BUTTON LOGIC ---
     document.getElementById("mintButton").addEventListener("click", async () => {
       const statusDiv = document.getElementById("status");
-      if (!provider || !signer) {
+      // Ensure wallet is connected (using our global variables)
+      if (!window.menuProvider || !window.menuSigner) {
         statusDiv.innerText = "Wallet not connected!";
         return;
       }
-      // Hardcoded contract parameters
+      // Contract settings (hardcoded)
       const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0"; // Intermediary contract address
       const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";   // ADRIAN token address
-      const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000")); // 2,000,000 tokens (18 decimals)
+      // 2,000,000 ADRIAN tokens (assumes 18 decimals)
+      const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000"));
+      // Required ETH for mint (0.0069 ETH)
       const mintEthAmount = ethers.utils.parseEther("0.0069");
 
       // Minimal ABI for the PIMPSADRIAN contract (depositAdrianForMint function)
@@ -132,13 +145,14 @@
       
       try {
         statusDiv.innerText = "Checking contract ETH pool balance...";
-        const contractBalance = await provider.getBalance(pimpsAdrianAddress);
+        // Check that the PIMPSADRIAN contract holds at least mintEthAmount of ETH
+        const contractBalance = await window.menuProvider.getBalance(pimpsAdrianAddress);
         if (contractBalance.lt(mintEthAmount)) {
           statusDiv.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
           return;
         }
-        // Create an instance of the ADRIAN token contract for approval
-        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
+        // Create an instance of the ADRIAN token contract (for approval)
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, window.menuSigner);
         statusDiv.innerText = "Approving ADRIAN tokens for spending...";
         const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
         statusDiv.innerText = "Approval transaction sent. Waiting for confirmation...";
@@ -146,7 +160,7 @@
         statusDiv.innerText = "Approval confirmed! Proceeding to mint...";
         
         // Create an instance of the PIMPSADRIAN contract
-        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
         statusDiv.innerText = "Sending mint transaction...";
         const mintTx = await pimpsAdrian.depositAdrianForMint();
         statusDiv.innerText = "Mint transaction sent. Waiting for confirmation...";
