@@ -2,55 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensures proper rendering and touch zooming on mobile devices -->
+  <!-- Ensures proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mint with ADRIAN</title>
-  <!-- Load ethers.js from jsDelivr CDN -->
+  <!-- Load ethers.js from a reliable CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      background-color: #f7f7f7;
-      padding: 2rem;
+      background: #f7f7f7;
+      padding: 20px;
       margin: 0;
     }
     .container {
-      background: #fff;
-      padding: 2rem;
-      border-radius: 10px;
-      margin: auto;
       max-width: 500px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     img {
       max-width: 100%;
       border-radius: 10px;
-      margin-bottom: 1rem;
+      margin-bottom: 10px;
     }
     button {
-      padding: 1rem 2rem;
-      font-size: 1rem;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
       border: none;
       border-radius: 5px;
-      background-color: #007bff;
+      background: #007bff;
       color: white;
       cursor: pointer;
-      margin: 0.5rem;
       width: 100%;
       max-width: 300px;
     }
     button:hover {
-      background-color: #0056b3;
+      background: #0056b3;
     }
     button:disabled {
-      background-color: #cccccc;
+      background: #ccc;
       cursor: not-allowed;
     }
     #status {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #333;
+      margin-top: 20px;
+      font-size: 14px;
       word-wrap: break-word;
     }
   </style>
@@ -60,89 +59,95 @@
     <h1>Mint with ADRIAN</h1>
     <!-- Display the provided image -->
     <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/3f50938f5459f1da99ade7fa38a5c8/873f50938f5459f1da99ade7fa38a5c8.png" alt="Mint Image" />
-    <p>To mint, you must approve the contract to spend 2,000,000 ADRIAN tokens on your behalf.</p>
-    <button id="connectButton">Connect Wallet</button>
+    <p>
+      To mint, you must first approve the contract to spend 2,000,000 ADRIAN tokens on your behalf.
+    </p>
+    <button id="connectWallet">Connect Wallet</button>
     <button id="mintButton" disabled>Approve & Mint with ADRIAN</button>
     <div id="status"></div>
   </div>
 
   <script>
-    // Wrap the initialization code inside a load event listener.
-    window.addEventListener("load", async () => {
-      const statusEl = document.getElementById("status");
-      
-      // Hardcoded addresses:
-      const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0";
-      const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-      const requiredAdrian = ethers.BigNumber.from("2000000")
-        .mul(ethers.BigNumber.from("1000000000000000000"));
-      const mintEthAmount = ethers.utils.parseEther("0.0069");
-      
-      // Minimal ABIs:
-      const pimpsAdrianABI = [
-        "function depositAdrianForMint() external"
-      ];
-      const erc20ABI = [
-        "function approve(address spender, uint256 amount) external returns (bool)"
-      ];
+    // Contract and token settings (hardcoded)
+    const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0"; // PIMPSADRIAN contract address
+    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";   // ADRIAN token address
+    // Required ADRIAN: 2,000,000 tokens with 18 decimals
+    const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000"));
+    // Required ETH for mint: 0.0069 ETH
+    const mintEthAmount = ethers.utils.parseEther("0.0069");
 
-      let provider, signer;
-      
-      // Check if window.ethereum is injected
-      if (typeof window.ethereum === "undefined") {
-        statusEl.innerText = "No Ethereum provider found. Please install MetaMask.";
+    // Minimal ABI for the PIMPSADRIAN contract (only the deposit function)
+    const pimpsAdrianABI = [
+      "function depositAdrianForMint() external"
+    ];
+
+    // Minimal ERC20 ABI (only the approve function)
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)"
+    ];
+
+    let provider, signer;
+
+    const connectButton = document.getElementById("connectWallet");
+    const mintButton = document.getElementById("mintButton");
+    const statusDiv = document.getElementById("status");
+
+    // Connect Wallet button event handler
+    connectButton.addEventListener("click", async () => {
+      statusDiv.innerText = "Connecting wallet...";
+      if (!window.ethereum) {
+        statusDiv.innerText = "No Ethereum provider found. Please install MetaMask.";
         return;
-      } else {
-        console.log("Ethereum provider found:", window.ethereum);
       }
-      
-      // Connect Wallet button event
-      document.getElementById("connectButton").addEventListener("click", async () => {
-        try {
-          statusEl.innerText = "Connecting wallet...";
-          await window.ethereum.request({ method: "eth_requestAccounts" });
-          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-          signer = provider.getSigner();
-          statusEl.innerText = "Wallet connected!";
-          document.getElementById("mintButton").disabled = false;
-        } catch (err) {
-          console.error("Error connecting wallet:", err);
-          statusEl.innerText = "Error connecting wallet: " + err.message;
-        }
-      });
-      
-      // Mint button event
-      document.getElementById("mintButton").addEventListener("click", async () => {
-        if (!provider || !signer) {
-          statusEl.innerText = "Wallet not connected!";
+      try {
+        // Request account access from MetaMask
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        statusDiv.innerText = "Wallet connected!";
+        mintButton.disabled = false; // Enable mint button after successful connection
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        statusDiv.innerText = "Error connecting wallet: " + error.message;
+      }
+    });
+
+    // Mint button event handler
+    mintButton.addEventListener("click", async () => {
+      if (!provider || !signer) {
+        statusDiv.innerText = "Wallet not connected!";
+        return;
+      }
+      try {
+        statusDiv.innerText = "Checking contract ETH pool balance...";
+        // Check that the PIMPSADRIAN contract has at least mintEthAmount of ETH
+        const contractBalance = await provider.getBalance(pimpsAdrianAddress);
+        if (contractBalance.lt(mintEthAmount)) {
+          statusDiv.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
           return;
         }
-        try {
-          statusEl.innerText = "Checking ETH pool balance...";
-          const contractBalance = await provider.getBalance(pimpsAdrianAddress);
-          if (contractBalance.lt(mintEthAmount)) {
-            statusEl.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
-            return;
-          }
-          
-          const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
-          statusEl.innerText = "Approving ADRIAN tokens for spending...";
-          const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
-          statusEl.innerText = "Approval transaction sent. Waiting for confirmation...";
-          await approveTx.wait();
-          statusEl.innerText = "Approval confirmed! Proceeding to mint...";
-          
-          const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
-          statusEl.innerText = "Sending mint transaction...";
-          const mintTx = await pimpsAdrian.depositAdrianForMint();
-          statusEl.innerText = "Mint transaction sent. Waiting for confirmation...";
-          await mintTx.wait();
-          statusEl.innerText = "Mint successful! Your NFT should now be in your wallet.";
-        } catch (error) {
-          console.error("Error during mint:", error);
-          statusEl.innerText = "Error: " + (error.data?.message || error.message);
-        }
-      });
+
+        // Create an instance of the ADRIAN token contract (for approval)
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
+        statusDiv.innerText = "Approving ADRIAN tokens for spending...";
+        // Approve the PIMPSADRIAN contract to spend the required ADRIAN tokens on behalf of the user
+        const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
+        statusDiv.innerText = "Approval transaction sent. Waiting for confirmation...";
+        await approveTx.wait();
+        statusDiv.innerText = "Approval confirmed! Proceeding to mint...";
+
+        // Create an instance of the PIMPSADRIAN contract
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
+        statusDiv.innerText = "Sending mint transaction...";
+        // Call depositAdrianForMint() to transfer ADRIAN tokens and trigger the mint
+        const mintTx = await pimpsAdrian.depositAdrianForMint();
+        statusDiv.innerText = "Mint transaction sent. Waiting for confirmation...";
+        await mintTx.wait();
+        statusDiv.innerText = "Mint successful! Your NFT should now be in your wallet.";
+      } catch (error) {
+        console.error("Error during mint:", error);
+        statusDiv.innerText = "Error: " + (error.data?.message || error.message);
+      }
     });
   </script>
 </body>
