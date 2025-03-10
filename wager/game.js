@@ -2,7 +2,7 @@
 const collectSound = new Audio('collect.wav');
 const gameOverSound = new Audio('gameover.wav');
 
-// Get the canvas and its context
+// Get canvas and context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -13,14 +13,17 @@ let lastTime = 0;
 let walletConnected = false;
 let paused = false;
 
-// Global variables for rewards and niveles
+// Global variables for rewards, niveles, NFT bonus, etc.
 let tokensEarned = 0;
-let nftMultiplier = 1;  // NFT bonus multiplier (1x por defecto)
-let level = 1;          // Nivel actual, calculado según el score
+let nftMultiplier = 1;
+let level = 1;
 
-// Player's score and high score (using localStorage)
+// Player's score and high score
 let score = 0;
 let highScore = Number(localStorage.getItem('highScore')) || 0;
+
+// Leaderboard (top 5 scores)
+let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
 
 // Object to track pressed keys
 const keys = {};
@@ -45,71 +48,47 @@ document.addEventListener('keyup', (event) => {
     keys[event.key] = false;
 });
 
-// Touch control variable
+// Touch control
 let touchTarget = null;
 canvas.addEventListener('touchstart', function(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const touchX = touch.clientX - rect.left;
-  const touchY = touch.clientY - rect.top;
-  touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    touchTarget = { x: touch.clientX - rect.left - square.width/2, y: touch.clientY - rect.top - square.height/2 };
 });
 canvas.addEventListener('touchmove', function(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const touchX = touch.clientX - rect.left;
-  const touchY = touch.clientY - rect.top;
-  touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    touchTarget = { x: touch.clientX - rect.left - square.width/2, y: touch.clientY - rect.top - square.height/2 };
 });
 canvas.addEventListener('touchend', function(e) {
-  e.preventDefault();
-  touchTarget = null;
+    e.preventDefault();
+    touchTarget = null;
 });
 
 // Define game objects
-const square = {
-    x: 50,
-    y: 50,
-    width: 24,
-    height: 24,
-    speed: 100
-};
-const token = {
-    x: Math.random() * (canvas.width - 24),
-    y: Math.random() * (canvas.height - 24),
-    width: 24,
-    height: 24
-};
-const hazard = {
-    x: Math.random() * (canvas.width - 24),
-    y: Math.random() * (canvas.height - 24),
-    width: 24,
-    height: 24,
-    dx: (Math.random() < 0.5 ? -1 : 1) * 80,
-    dy: (Math.random() < 0.5 ? -1 : 1) * 80
+const square = { x: 50, y: 50, width: 24, height: 24, speed: 100 };
+const token = { x: Math.random() * (canvas.width - 24), y: Math.random() * (canvas.height - 24), width: 24, height: 24 };
+const hazard = { 
+    x: Math.random() * (canvas.width - 24), 
+    y: Math.random() * (canvas.height - 24), 
+    width: 24, 
+    height: 24, 
+    dx: (Math.random() < 0.5 ? -1 : 1) * 80, 
+    dy: (Math.random() < 0.5 ? -1 : 1) * 80 
 };
 
-// Wallet connection and bono diario
+// Wallet connection, NFT bonus y daily bonus
 document.getElementById('connectWallet').addEventListener('click', async function() {
     if (window.ethereum) {
        await window.ethereum.request({ method: "eth_requestAccounts" });
        walletConnected = true;
        document.getElementById('menu').style.display = 'none';
        console.log("Wallet Connected!");
-       
-       // Preguntar por NFT
        let hasNFT = prompt("Do you hold an Adrian Gallery NFT? (yes/no)", "no");
-       if (hasNFT && hasNFT.toLowerCase() === "yes") {
-          nftMultiplier = 2;
-          console.log("NFT bonus activated! Multiplier set to 2x.");
-       } else {
-          nftMultiplier = 1;
-          console.log("No NFT bonus. Multiplier remains 1x.");
-       }
-       
-       // Bono diario: se revisa si ya se reclamó hoy
+       nftMultiplier = (hasNFT && hasNFT.toLowerCase() === "yes") ? 2 : 1;
+       console.log("NFT multiplier set to " + nftMultiplier + "x.");
        let today = new Date().toISOString().slice(0,10);
        if (localStorage.getItem("dailyBonusDate") !== today) {
           let bonus = parseInt(prompt("Claim your daily bonus tokens? Enter amount (e.g., 5)", "5"), 10);
@@ -119,13 +98,20 @@ document.getElementById('connectWallet').addEventListener('click', async functio
              localStorage.setItem("dailyBonusDate", today);
           }
        }
-       
     } else {
        alert("No Ethereum provider found. Please install MetaMask.");
     }
 });
 
-// Listener for "Claim Rewards" button using ethers.js
+// Leaderboard update function: almacena los 5 mejores puntajes
+function updateLeaderboard(finalScore) {
+    leaderboard.push(finalScore);
+    leaderboard.sort((a, b) => b - a);
+    leaderboard = leaderboard.slice(0, 5);
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+}
+
+// Listener for "Claim Rewards" button (ethers.js integration)
 document.getElementById('claimRewards').addEventListener('click', async function() {
    if (tokensEarned > 0) {
       try {
@@ -136,11 +122,8 @@ document.getElementById('claimRewards').addEventListener('click', async function
          await window.ethereum.request({ method: "eth_requestAccounts" });
          const provider = new ethers.providers.Web3Provider(window.ethereum);
          const signer = provider.getSigner();
-
-         // Dirección y ABI dummy del contrato
          const contractAddress = "0xYourDummyContractAddress";
          const abi = [ "function claimReward(uint256 amount) public" ];
-
          const contract = new ethers.Contract(contractAddress, abi, signer);
          let tx = await contract.claimReward(tokensEarned);
          await tx.wait();
@@ -160,12 +143,8 @@ document.getElementById('claimRewards').addEventListener('click', async function
 function gameLoop(timestamp) {
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
-    
-    if (walletConnected && !paused) {
-      update(deltaTime);
-    }
+    if (walletConnected && !paused) update(deltaTime);
     draw();
-    
     requestAnimationFrame(gameLoop);
 }
 
@@ -181,10 +160,10 @@ function update(deltaTime) {
       let dy = touchTarget.y - square.y;
       let distance = Math.sqrt(dx * dx + dy * dy);
       if (distance > 1) {
-          let move = square.speed * deltaTime;
-          if (move > distance) move = distance;
-          square.x += (dx / distance) * move;
-          square.y += (dy / distance) * move;
+         let move = square.speed * deltaTime;
+         if (move > distance) move = distance;
+         square.x += (dx / distance) * move;
+         square.y += (dy / distance) * move;
       }
     }
     
@@ -216,20 +195,13 @@ function update(deltaTime) {
     }
 }
 
-// Wager function: coin toss to double or lose score
+// Wager: coin toss to double or lose score
 function wager() {
     if (score > 0) {
         let outcome = Math.random();
-        if (outcome < 0.5) {
-            alert("Wager failed! You lost your score.");
-            score = 0;
-        } else {
-            score *= 2;
-            alert("Wager succeeded! Your score doubled.");
-        }
-    } else {
-        alert("No score to wager!");
-    }
+        if (outcome < 0.5) { alert("Wager failed! You lost your score."); score = 0; }
+        else { score *= 2; alert("Wager succeeded! Your score doubled."); }
+    } else { alert("No score to wager!"); }
 }
 
 // Reposition token randomly
@@ -238,25 +210,17 @@ function repositionToken() {
     token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Reset game state, calculate rewards, update level, and show Claim Rewards if applicable
+// Reset game state, calculate rewards, update leaderboard, etc.
 function resetGame() {
     let finalScore = score;
-    if (finalScore > highScore) {
-        highScore = finalScore;
-        localStorage.setItem('highScore', highScore);
-    }
-    // Calcular tokens ganados y aplicar NFT bonus
+    if (finalScore > highScore) { highScore = finalScore; localStorage.setItem('highScore', highScore); }
     if (finalScore >= 50) {
          tokensEarned = Math.floor(finalScore / 50) * nftMultiplier;
          alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
          document.getElementById('rewardSection').style.display = 'block';
-    } else {
-         alert("Game Over!");
-    }
-    // Reiniciar estado
-    square.x = 50;
-    square.y = 50;
-    score = 0;
+    } else { alert("Game Over!"); }
+    updateLeaderboard(finalScore);
+    square.x = 50; square.y = 50; score = 0;
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
     hazard.y = Math.random() * (canvas.height - hazard.height);
@@ -264,19 +228,15 @@ function resetGame() {
     hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
 
-// Draw the game frame with dynamic background and UI
+// Draw the frame with dynamic background, UI and leaderboard
 function draw() {
-    // Actualizar nivel según el score actual
     level = Math.floor(score / 50) + 1;
-    
-    // Fondo dinámico según nivel
     let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     grad.addColorStop(0, level % 2 === 0 ? '#111' : '#222');
     grad.addColorStop(1, level % 2 === 0 ? '#333' : '#444');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Dibujar token, hazard y jugador
     ctx.fillStyle = '#f00';
     ctx.fillRect(token.x, token.y, token.width, token.height);
     
@@ -286,13 +246,18 @@ function draw() {
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
-    // Mostrar puntaje, high score, nivel y otras instrucciones
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
     ctx.fillText('High Score: ' + highScore, 10, 40);
     ctx.fillText("Level: " + level, 10, 60);
     ctx.fillText("Press 'W' to wager", 10, 80);
+    
+    // Display leaderboard in top-right corner
+    ctx.fillText("Leaderboard:", canvas.width - 150, 20);
+    for (let i = 0; i < leaderboard.length; i++) {
+        ctx.fillText((i+1) + ". " + leaderboard[i], canvas.width - 150, 40 + i * 20);
+    }
     
     if (paused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
