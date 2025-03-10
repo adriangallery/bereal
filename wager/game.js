@@ -38,6 +38,34 @@ document.addEventListener('keyup', (event) => {
     keys[event.key] = false;
 });
 
+// Touch control variable to store the target position
+let touchTarget = null;
+
+// Add touch event listeners on the canvas
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const touchX = touch.clientX - rect.left;
+  const touchY = touch.clientY - rect.top;
+  // Set target so the square centers on the touch point
+  touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
+});
+
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const touchX = touch.clientX - rect.left;
+  const touchY = touch.clientY - rect.top;
+  touchTarget = { x: touchX - square.width / 2, y: touchY - square.height / 2 };
+});
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  touchTarget = null;
+});
+
 // The main game loop
 function gameLoop(timestamp) {
     // Calculate delta time in seconds
@@ -53,19 +81,31 @@ function gameLoop(timestamp) {
 
 // Update the game state (move the square based on input)
 function update(deltaTime) {
-    // Move left/right
+    // Keyboard controls: move left/right/up/down
     if (keys['ArrowLeft']) {
         square.x -= square.speed * deltaTime;
     }
     if (keys['ArrowRight']) {
         square.x += square.speed * deltaTime;
     }
-    // Move up/down
     if (keys['ArrowUp']) {
         square.y -= square.speed * deltaTime;
     }
     if (keys['ArrowDown']) {
         square.y += square.speed * deltaTime;
+    }
+    
+    // Touch controls: move square toward the touch target
+    if (touchTarget) {
+      let dx = touchTarget.x - square.x;
+      let dy = touchTarget.y - square.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > 1) {
+          let move = square.speed * deltaTime;
+          if (move > distance) move = distance;
+          square.x += (dx / distance) * move;
+          square.y += (dy / distance) * move;
+      }
     }
     
     // Keep the square within the canvas bounds
