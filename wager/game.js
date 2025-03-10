@@ -18,6 +18,9 @@ let paused = false;
 // Global variable for tokens earned in the current game over
 let tokensEarned = 0;
 
+// Variable for NFT bonus multiplier (default 1; will be set to 2 if the user holds an NFT)
+let nftMultiplier = 1;
+
 // Define the square (player) object with initial position, size, and speed
 const square = {
     x: 50,
@@ -100,34 +103,47 @@ canvas.addEventListener('touchend', function(e) {
 });
 
 // Wallet connection event listener (simulate wallet connection)
-document.getElementById('connectWallet').addEventListener('click', function() {
-    walletConnected = true;
-    document.getElementById('menu').style.display = 'none';
-    console.log("Wallet Connected!");
+document.getElementById('connectWallet').addEventListener('click', async function() {
+    // Conectar la wallet
+    if (window.ethereum) {
+       await window.ethereum.request({ method: "eth_requestAccounts" });
+       walletConnected = true;
+       document.getElementById('menu').style.display = 'none';
+       console.log("Wallet Connected!");
+       
+       // Preguntar al usuario si posee un NFT de Adrian Gallery (simulado)
+       let hasNFT = prompt("Do you hold an Adrian Gallery NFT? (yes/no)", "no");
+       if (hasNFT && hasNFT.toLowerCase() === "yes") {
+          nftMultiplier = 2;
+          console.log("NFT bonus activated! Multiplier set to 2x.");
+       } else {
+          nftMultiplier = 1;
+          console.log("No NFT bonus. Multiplier remains 1x.");
+       }
+    } else {
+       alert("No Ethereum provider found. Please install MetaMask.");
+    }
 });
 
 // Event listener for the "Claim Rewards" button using ethers.js
 document.getElementById('claimRewards').addEventListener('click', async function() {
    if (tokensEarned > 0) {
       try {
-         // Verifica que el navegador tenga inyectado window.ethereum (MetaMask)
          if (!window.ethereum) {
             alert("No Ethereum provider found. Please install MetaMask.");
             return;
          }
-         // Solicita la conexión a la cuenta
          await window.ethereum.request({ method: "eth_requestAccounts" });
          const provider = new ethers.providers.Web3Provider(window.ethereum);
          const signer = provider.getSigner();
 
-         // Dirección y ABI dummy del contrato (actualízalos cuando tengas el contrato real)
+         // Dirección y ABI dummy del contrato (actualízalos con los reales)
          const contractAddress = "0xYourDummyContractAddress";
          const abi = [
             "function claimReward(uint256 amount) public"
          ];
 
          const contract = new ethers.Contract(contractAddress, abi, signer);
-         // Llama a la función claimReward del contrato
          let tx = await contract.claimReward(tokensEarned);
          await tx.wait();
          alert("Rewards claimed on-chain: " + tokensEarned + " $ADRIAN tokens!");
@@ -207,9 +223,9 @@ function update(deltaTime) {
         square.y < token.y + token.height &&
         square.y + square.height > token.y) {
         score += 10;
-        collectSound.play(); // Reproduce sonido al recoger el token
+        collectSound.play();
         repositionToken();
-        // Incrementa la velocidad del hazard para aumentar la dificultad
+        // Increase hazard speed slightly for increased difficulty
         hazard.dx *= 1.02;
         hazard.dy *= 1.02;
     }
@@ -219,7 +235,7 @@ function update(deltaTime) {
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
         square.y + square.height > hazard.y) {
-        gameOverSound.play(); // Reproduce sonido de Game Over
+        gameOverSound.play();
         resetGame();
     }
 }
@@ -248,62 +264,49 @@ function repositionToken() {
 
 // Reset game state after game over and simulate token reward
 function resetGame() {
-    // Guarda la puntuación final antes de resetear
     let finalScore = score;
-    
-    // Actualiza high score si es necesario
     if (finalScore > highScore) {
         highScore = finalScore;
         localStorage.setItem('highScore', highScore);
     }
-    
-    // Simula la recompensa en tokens si se supera el umbral (por ejemplo, 50 puntos)
+    // Calculate tokens earned with NFT bonus applied (1 token per 50 points)
     if (finalScore >= 50) {
-         tokensEarned = Math.floor(finalScore / 50); // 1 token por cada 50 puntos
+         tokensEarned = Math.floor(finalScore / 50) * nftMultiplier;
          alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
          document.getElementById('rewardSection').style.display = 'block';
     } else {
          alert("Game Over!");
     }
-    
-    // Resetear estado del juego
     square.x = 50;
     square.y = 50;
     score = 0;
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
     hazard.y = Math.random() * (canvas.height - hazard.height);
-    // Reinicia la velocidad base del hazard
     hazard.dx = (Math.random() < 0.5 ? -1 : 1) * 80;
     hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
 
 // Draw game frame
 function draw() {
-    // Clear canvas
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw token
     ctx.fillStyle = '#f00';
     ctx.fillRect(token.x, token.y, token.width, token.height);
     
-    // Draw hazard
     ctx.fillStyle = '#a0f';
     ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
     
-    // Draw player
     ctx.fillStyle = '#0f0';
     ctx.fillRect(square.x, square.y, square.width, square.height);
     
-    // Display score, high score, and wager instructions
     ctx.fillStyle = '#fff';
     ctx.font = '16px Arial';
     ctx.fillText('Score: ' + score, 10, 20);
     ctx.fillText('High Score: ' + highScore, 10, 40);
     ctx.fillText("Press 'W' to wager", 10, 60);
     
-    // If game is paused, overlay a semi-transparent message
     if (paused) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -315,5 +318,4 @@ function draw() {
     }
 }
 
-// Start the game loop
 requestAnimationFrame(gameLoop);
