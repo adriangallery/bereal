@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Mint with ADRIAN</title>
-  <!-- Use jsDelivr CDN for ethers.js -->
+  <!-- Load ethers.js from jsDelivr CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -32,9 +32,14 @@
       background-color: #007bff;
       color: white;
       cursor: pointer;
+      margin: 0.5rem;
     }
     button:hover {
       background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
     }
     #status {
       margin-top: 1rem;
@@ -49,7 +54,8 @@
     <!-- Display the provided image -->
     <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/3f50938f5459f1da99ade7fa38a5c8/873f50938f5459f1da99ade7fa38a5c8.png" alt="Mint Image" />
     <p>To mint, you must approve the contract to spend 2,000,000 ADRIAN tokens on your behalf.</p>
-    <button id="mintButton">Approve & Mint with ADRIAN</button>
+    <button id="connectButton">Connect Wallet</button>
+    <button id="mintButton" disabled>Approve & Mint with ADRIAN</button>
     <div id="status"></div>
   </div>
 
@@ -74,43 +80,53 @@
       "function approve(address spender, uint256 amount) external returns (bool)"
     ];
 
-    document.getElementById("mintButton").addEventListener("click", async () => {
+    let provider, signer;
+
+    // Handle Connect Wallet button click
+    document.getElementById("connectButton").addEventListener("click", async () => {
       const statusEl = document.getElementById("status");
       statusEl.innerText = "Connecting wallet...";
-
       if (typeof window.ethereum === "undefined") {
         statusEl.innerText = "Please install MetaMask!";
         return;
       }
-
       try {
-        // Request account access
         await window.ethereum.request({ method: "eth_requestAccounts" });
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        statusEl.innerText = "Wallet connected!";
+        // Enable the mint button
+        document.getElementById("mintButton").disabled = false;
+      } catch (error) {
+        console.error(error);
+        statusEl.innerText = "Error connecting wallet: " + error.message;
+      }
+    });
 
-        // Check the ETH balance of the PIMPSADRIAN contract
+    // Handle Mint button click
+    document.getElementById("mintButton").addEventListener("click", async () => {
+      const statusEl = document.getElementById("status");
+      if (!provider || !signer) {
+        statusEl.innerText = "Wallet not connected!";
+        return;
+      }
+      try {
         statusEl.innerText = "Checking ETH pool balance...";
         const contractBalance = await provider.getBalance(pimpsAdrianAddress);
         if (contractBalance.lt(mintEthAmount)) {
           statusEl.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
           return;
         }
-
         // Create a contract instance for the ADRIAN token (for approval)
         const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
         statusEl.innerText = "Approving ADRIAN tokens for spending...";
-        
-        // Approve the PIMPSADRIAN contract to spend the required amount of ADRIAN tokens
         const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
         statusEl.innerText = "Approval transaction sent. Waiting for confirmation...";
         await approveTx.wait();
         statusEl.innerText = "Approval confirmed! Proceeding to mint...";
-
+        
         // Create a contract instance for the intermediary contract (PIMPSADRIAN)
         const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
-
-        // Call depositAdrianForMint() which transfers ADRIAN tokens and triggers mint
         statusEl.innerText = "Sending mint transaction...";
         const mintTx = await pimpsAdrian.depositAdrianForMint();
         statusEl.innerText = "Mint transaction sent. Waiting for confirmation...";
