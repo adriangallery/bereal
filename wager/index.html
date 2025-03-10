@@ -14,6 +14,7 @@
       font-family: Arial, sans-serif;
       height: 100%;
       overflow: hidden;
+      position: relative;
     }
     /* Center and style the canvas */
     #gameCanvas {
@@ -52,6 +53,12 @@
       font-size: 18px;
       cursor: pointer;
     }
+    /* Reward Section */
+    #rewardSection {
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -62,8 +69,14 @@
   <!-- Our game will be rendered in this canvas -->
   <canvas id="gameCanvas" width="320" height="240"></canvas>
   <!-- Claim Rewards Section (hidden by default) -->
-  <div id="rewardSection" style="text-align: center; margin-top: 10px; display: none;">
+  <div id="rewardSection">
     <button id="claimRewards">Claim Rewards</button>
+  </div>
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay" style="display: none; position: absolute; top: 0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: #fff; text-align: center; z-index: 20; padding-top: 100px;">
+    <h1>Game Over</h1>
+    <p id="finalScore"></p>
+    <button id="restartButton" style="padding: 10px 20px; font-size: 18px; cursor: pointer;">Restart Game</button>
   </div>
   <!-- Cargamos ethers.js desde CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
