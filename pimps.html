@@ -67,82 +67,82 @@
   </div>
 
   <script>
-    // Hardcoded addresses:
-    // PIMPSADRIAN contract address (deployed intermediary)
-    const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0";
-    // ADRIAN token address
-    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    // Required amount of ADRIAN tokens (assumes 18 decimals)
-    const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000"));
-    // Required ETH for one mint (0.0069 ETH)
-    const mintEthAmount = ethers.utils.parseEther("0.0069");
-
-    // Minimal ABI for the intermediary contract (PIMPSADRIAN) including the deposit function.
-    const pimpsAdrianABI = [
-      "function depositAdrianForMint() external"
-    ];
-
-    // Minimal ERC20 ABI for approve
-    const erc20ABI = [
-      "function approve(address spender, uint256 amount) external returns (bool)"
-    ];
-
-    let provider, signer;
-
-    // Handle Connect Wallet button click
-    document.getElementById("connectButton").addEventListener("click", async () => {
+    // Wrap the initialization code inside a load event listener.
+    window.addEventListener("load", async () => {
       const statusEl = document.getElementById("status");
-      statusEl.innerText = "Connecting wallet...";
+      
+      // Hardcoded addresses:
+      const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0";
+      const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      const requiredAdrian = ethers.BigNumber.from("2000000")
+        .mul(ethers.BigNumber.from("1000000000000000000"));
+      const mintEthAmount = ethers.utils.parseEther("0.0069");
+      
+      // Minimal ABIs:
+      const pimpsAdrianABI = [
+        "function depositAdrianForMint() external"
+      ];
+      const erc20ABI = [
+        "function approve(address spender, uint256 amount) external returns (bool)"
+      ];
+
+      let provider, signer;
+      
+      // Check if window.ethereum is injected
       if (typeof window.ethereum === "undefined") {
-        statusEl.innerText = "Please install MetaMask!";
+        statusEl.innerText = "No Ethereum provider found. Please install MetaMask.";
         return;
+      } else {
+        console.log("Ethereum provider found:", window.ethereum);
       }
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        statusEl.innerText = "Wallet connected!";
-        // Enable the mint button once wallet is connected
-        document.getElementById("mintButton").disabled = false;
-      } catch (error) {
-        console.error(error);
-        statusEl.innerText = "Error connecting wallet: " + error.message;
-      }
-    });
-
-    // Handle Mint button click
-    document.getElementById("mintButton").addEventListener("click", async () => {
-      const statusEl = document.getElementById("status");
-      if (!provider || !signer) {
-        statusEl.innerText = "Wallet not connected!";
-        return;
-      }
-      try {
-        statusEl.innerText = "Checking ETH pool balance...";
-        const contractBalance = await provider.getBalance(pimpsAdrianAddress);
-        if (contractBalance.lt(mintEthAmount)) {
-          statusEl.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+      
+      // Connect Wallet button event
+      document.getElementById("connectButton").addEventListener("click", async () => {
+        try {
+          statusEl.innerText = "Connecting wallet...";
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+          signer = provider.getSigner();
+          statusEl.innerText = "Wallet connected!";
+          document.getElementById("mintButton").disabled = false;
+        } catch (err) {
+          console.error("Error connecting wallet:", err);
+          statusEl.innerText = "Error connecting wallet: " + err.message;
+        }
+      });
+      
+      // Mint button event
+      document.getElementById("mintButton").addEventListener("click", async () => {
+        if (!provider || !signer) {
+          statusEl.innerText = "Wallet not connected!";
           return;
         }
-        // Create a contract instance for the ADRIAN token (for approval)
-        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
-        statusEl.innerText = "Approving ADRIAN tokens for spending...";
-        const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
-        statusEl.innerText = "Approval transaction sent. Waiting for confirmation...";
-        await approveTx.wait();
-        statusEl.innerText = "Approval confirmed! Proceeding to mint...";
-        
-        // Create a contract instance for the intermediary contract (PIMPSADRIAN)
-        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
-        statusEl.innerText = "Sending mint transaction...";
-        const mintTx = await pimpsAdrian.depositAdrianForMint();
-        statusEl.innerText = "Mint transaction sent. Waiting for confirmation...";
-        await mintTx.wait();
-        statusEl.innerText = "Mint successful! Your NFT should now be in your wallet.";
-      } catch (error) {
-        console.error(error);
-        statusEl.innerText = "Error: " + (error.data?.message || error.message);
-      }
+        try {
+          statusEl.innerText = "Checking ETH pool balance...";
+          const contractBalance = await provider.getBalance(pimpsAdrianAddress);
+          if (contractBalance.lt(mintEthAmount)) {
+            statusEl.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+            return;
+          }
+          
+          const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
+          statusEl.innerText = "Approving ADRIAN tokens for spending...";
+          const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
+          statusEl.innerText = "Approval transaction sent. Waiting for confirmation...";
+          await approveTx.wait();
+          statusEl.innerText = "Approval confirmed! Proceeding to mint...";
+          
+          const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
+          statusEl.innerText = "Sending mint transaction...";
+          const mintTx = await pimpsAdrian.depositAdrianForMint();
+          statusEl.innerText = "Mint transaction sent. Waiting for confirmation...";
+          await mintTx.wait();
+          statusEl.innerText = "Mint successful! Your NFT should now be in your wallet.";
+        } catch (error) {
+          console.error("Error during mint:", error);
+          statusEl.innerText = "Error: " + (error.data?.message || error.message);
+        }
+      });
     });
   </script>
 </body>
