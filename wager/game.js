@@ -15,6 +15,9 @@ let walletConnected = false;
 // Variable to track if the game is paused
 let paused = false;
 
+// Global variable for tokens earned in the current game over
+let tokensEarned = 0;
+
 // Define the square (player) object with initial position, size, and speed
 const square = {
     x: 50,
@@ -58,7 +61,7 @@ document.addEventListener('keydown', (event) => {
             console.log("Game paused");
         } else {
             console.log("Game resumed");
-            // Reinicia lastTime para evitar saltos en deltaTime
+            // Reset lastTime to avoid jump in deltaTime
             lastTime = performance.now();
         }
     } else if (event.key.toLowerCase() === 'w') {
@@ -101,6 +104,17 @@ document.getElementById('connectWallet').addEventListener('click', function() {
     walletConnected = true;
     document.getElementById('menu').style.display = 'none';
     console.log("Wallet Connected!");
+});
+
+// Event listener for the "Claim Rewards" button
+document.getElementById('claimRewards').addEventListener('click', function() {
+   if (tokensEarned > 0) {
+      alert("Rewards claimed: " + tokensEarned + " $ADRIAN tokens! Check your wallet.");
+      tokensEarned = 0;
+      document.getElementById('rewardSection').style.display = 'none';
+   } else {
+      alert("No rewards to claim.");
+   }
 });
 
 // Main game loop
@@ -220,8 +234,9 @@ function resetGame() {
     
     // Simula la recompensa en tokens si se supera el umbral (por ejemplo, 50 puntos)
     if (finalScore >= 50) {
-         let tokensEarned = Math.floor(finalScore / 50); // 1 token por cada 50 puntos
-         alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens!");
+         tokensEarned = Math.floor(finalScore / 50); // 1 token por cada 50 puntos
+         alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
+         document.getElementById('rewardSection').style.display = 'block';
     } else {
          alert("Game Over!");
     }
