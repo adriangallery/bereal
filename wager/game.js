@@ -13,7 +13,7 @@ let lastTime = 0;
 let walletConnected = false;
 let paused = false;
 
-// Global variables for rewards, niveles, NFT bonus, etc.
+// Global variables for rewards, levels, NFT bonus, etc.
 let tokensEarned = 0;
 let nftMultiplier = 1;
 let level = 1;
@@ -54,13 +54,13 @@ canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    touchTarget = { x: touch.clientX - rect.left - square.width/2, y: touch.clientY - rect.top - square.height/2 };
+    touchTarget = { x: touch.clientX - rect.left - square.width / 2, y: touch.clientY - rect.top - square.height / 2 };
 });
 canvas.addEventListener('touchmove', function(e) {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    touchTarget = { x: touch.clientX - rect.left - square.width/2, y: touch.clientY - rect.top - square.height/2 };
+    touchTarget = { x: touch.clientX - rect.left - square.width / 2, y: touch.clientY - rect.top - square.height / 2 };
 });
 canvas.addEventListener('touchend', function(e) {
     e.preventDefault();
@@ -86,9 +86,13 @@ document.getElementById('connectWallet').addEventListener('click', async functio
        walletConnected = true;
        document.getElementById('menu').style.display = 'none';
        console.log("Wallet Connected!");
+       
+       // Preguntar si posee NFT (no se elimina el pixel enemigo)
        let hasNFT = prompt("Do you hold an Adrian Gallery NFT? (yes/no)", "no");
        nftMultiplier = (hasNFT && hasNFT.toLowerCase() === "yes") ? 2 : 1;
        console.log("NFT multiplier set to " + nftMultiplier + "x.");
+       
+       // Bono diario
        let today = new Date().toISOString().slice(0,10);
        if (localStorage.getItem("dailyBonusDate") !== today) {
           let bonus = parseInt(prompt("Claim your daily bonus tokens? Enter amount (e.g., 5)", "5"), 10);
@@ -98,20 +102,13 @@ document.getElementById('connectWallet').addEventListener('click', async functio
              localStorage.setItem("dailyBonusDate", today);
           }
        }
+       
     } else {
        alert("No Ethereum provider found. Please install MetaMask.");
     }
 });
 
-// Leaderboard update function: almacena los 5 mejores puntajes
-function updateLeaderboard(finalScore) {
-    leaderboard.push(finalScore);
-    leaderboard.sort((a, b) => b - a);
-    leaderboard = leaderboard.slice(0, 5);
-    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-}
-
-// Listener for "Claim Rewards" button (ethers.js integration)
+// Listener for "Claim Rewards" button using ethers.js
 document.getElementById('claimRewards').addEventListener('click', async function() {
    if (tokensEarned > 0) {
       try {
@@ -170,11 +167,13 @@ function update(deltaTime) {
     square.x = Math.max(0, Math.min(canvas.width - square.width, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.height, square.y));
     
+    // Actualizar hazard siempre
     hazard.x += hazard.dx * deltaTime;
     hazard.y += hazard.dy * deltaTime;
     if (hazard.x <= 0 || hazard.x >= canvas.width - hazard.width) hazard.dx *= -1;
     if (hazard.y <= 0 || hazard.y >= canvas.height - hazard.height) hazard.dy *= -1;
     
+    // Colisión con token
     if (square.x < token.x + token.width &&
         square.x + square.width > token.x &&
         square.y < token.y + token.height &&
@@ -186,6 +185,7 @@ function update(deltaTime) {
         hazard.dy *= 1.02;
     }
     
+    // Colisión con hazard
     if (square.x < hazard.x + hazard.width &&
         square.x + square.width > hazard.x &&
         square.y < hazard.y + hazard.height &&
@@ -199,9 +199,16 @@ function update(deltaTime) {
 function wager() {
     if (score > 0) {
         let outcome = Math.random();
-        if (outcome < 0.5) { alert("Wager failed! You lost your score."); score = 0; }
-        else { score *= 2; alert("Wager succeeded! Your score doubled."); }
-    } else { alert("No score to wager!"); }
+        if (outcome < 0.5) { 
+            alert("Wager failed! You lost your score."); 
+            score = 0; 
+        } else { 
+            score *= 2; 
+            alert("Wager succeeded! Your score doubled."); 
+        }
+    } else { 
+        alert("No score to wager!"); 
+    }
 }
 
 // Reposition token randomly
@@ -210,17 +217,24 @@ function repositionToken() {
     token.y = Math.random() * (canvas.height - token.height);
 }
 
-// Reset game state, calculate rewards, update leaderboard, etc.
+// Reset game state, update leaderboard, etc.
 function resetGame() {
     let finalScore = score;
-    if (finalScore > highScore) { highScore = finalScore; localStorage.setItem('highScore', highScore); }
+    if (finalScore > highScore) { 
+        highScore = finalScore; 
+        localStorage.setItem('highScore', highScore); 
+    }
     if (finalScore >= 50) {
          tokensEarned = Math.floor(finalScore / 50) * nftMultiplier;
          alert("Game Over! You earned " + tokensEarned + " $ADRIAN tokens! Click 'Claim Rewards' to claim them.");
          document.getElementById('rewardSection').style.display = 'block';
-    } else { alert("Game Over!"); }
+    } else { 
+         alert("Game Over!"); 
+    }
     updateLeaderboard(finalScore);
-    square.x = 50; square.y = 50; score = 0;
+    square.x = 50; 
+    square.y = 50; 
+    score = 0;
     repositionToken();
     hazard.x = Math.random() * (canvas.width - hazard.width);
     hazard.y = Math.random() * (canvas.height - hazard.height);
@@ -228,7 +242,15 @@ function resetGame() {
     hazard.dy = (Math.random() < 0.5 ? -1 : 1) * 80;
 }
 
-// Draw the frame with dynamic background, UI and leaderboard
+// Leaderboard update
+function updateLeaderboard(finalScore) {
+    leaderboard.push(finalScore);
+    leaderboard.sort((a, b) => b - a);
+    leaderboard = leaderboard.slice(0, 5);
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+}
+
+// Draw frame with dynamic background, UI and leaderboard
 function draw() {
     level = Math.floor(score / 50) + 1;
     let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -253,7 +275,7 @@ function draw() {
     ctx.fillText("Level: " + level, 10, 60);
     ctx.fillText("Press 'W' to wager", 10, 80);
     
-    // Display leaderboard in top-right corner
+    // Leaderboard display
     ctx.fillText("Leaderboard:", canvas.width - 150, 20);
     for (let i = 0; i < leaderboard.length; i++) {
         ctx.fillText((i+1) + ". " + leaderboard[i], canvas.width - 150, 40 + i * 20);
