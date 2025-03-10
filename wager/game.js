@@ -1,3 +1,6 @@
+// Sound effects
+const collectSound = new Audio('collect.wav');
+const gameOverSound = new Audio('gameover.wav');
 // Get the canvas and its context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
