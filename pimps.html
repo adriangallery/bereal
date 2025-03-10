@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>Mint with ADRIAN</title>
-  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+  <!-- Use jsDelivr CDN for ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -84,10 +85,9 @@
 
       try {
         // Request account access
-        await ethereum.request({ method: "eth_requestAccounts" });
+        await window.ethereum.request({ method: "eth_requestAccounts" });
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
-        const userAddress = await signer.getAddress();
 
         // Check the ETH balance of the PIMPSADRIAN contract
         statusEl.innerText = "Checking ETH pool balance...";
