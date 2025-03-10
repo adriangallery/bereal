@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mint with ADRIAN</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f7f7f7;
+      padding: 2rem;
+    }
+    .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    img {
+      max-width: 300px;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mint with ADRIAN</h1>
+    <!-- Display the provided image -->
+    <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/3f50938f5459f1da99ade7fa38a5c8/873f50938f5459f1da99ade7fa38a5c8.png" alt="Mint Image" />
+    <p>To mint, you must approve the contract to spend 2,000,000 ADRIAN tokens on your behalf.</p>
+    <button id="mintButton">Approve & Mint with ADRIAN</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // Hardcoded addresses:
+    // PIMPSADRIAN contract address (deployed intermediary)
+    const pimpsAdrianAddress = "0x3a8a722b3517fb9941d13d80f3dd67d1b17ccad0";
+    // ADRIAN token address
+    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    // Required amount of ADRIAN tokens (assumes 18 decimals)
+    const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000"));
+    // Required ETH for one mint (0.0069 ETH)
+    const mintEthAmount = ethers.utils.parseEther("0.0069");
+
+    // Minimal ABI for the intermediary contract (PIMPSADRIAN) including the deposit function.
+    const pimpsAdrianABI = [
+      "function depositAdrianForMint() external"
+    ];
+
+    // Minimal ERC20 ABI for approve
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)"
+    ];
+
+    document.getElementById("mintButton").addEventListener("click", async () => {
+      const statusEl = document.getElementById("status");
+      statusEl.innerText = "Connecting wallet...";
+
+      if (typeof window.ethereum === "undefined") {
+        statusEl.innerText = "Please install MetaMask!";
+        return;
+      }
+
+      try {
+        // Request account access
+        await ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const userAddress = await signer.getAddress();
+
+        // Check the ETH balance of the PIMPSADRIAN contract
+        statusEl.innerText = "Checking ETH pool balance...";
+        const contractBalance = await provider.getBalance(pimpsAdrianAddress);
+        if (contractBalance.lt(mintEthAmount)) {
+          statusEl.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+          return;
+        }
+
+        // Create a contract instance for the ADRIAN token (for approval)
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
+        statusEl.innerText = "Approving ADRIAN tokens for spending...";
+        
+        // Approve the PIMPSADRIAN contract to spend the required amount of ADRIAN tokens
+        const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
+        statusEl.innerText = "Approval transaction sent. Waiting for confirmation...";
+        await approveTx.wait();
+        statusEl.innerText = "Approval confirmed! Proceeding to mint...";
+
+        // Create a contract instance for the intermediary contract (PIMPSADRIAN)
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
+
+        // Call depositAdrianForMint() which transfers ADRIAN tokens and triggers mint
+        statusEl.innerText = "Sending mint transaction...";
+        const mintTx = await pimpsAdrian.depositAdrianForMint();
+        statusEl.innerText = "Mint transaction sent. Waiting for confirmation...";
+        await mintTx.wait();
+        statusEl.innerText = "Mint successful! Your NFT should now be in your wallet.";
+      } catch (error) {
+        console.error(error);
+        statusEl.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+  </script>
+</body>
+</html>
