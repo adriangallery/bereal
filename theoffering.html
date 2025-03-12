@@ -100,7 +100,7 @@
         <p class="status mt-3" id="statusMessage"></p>
         
         <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
-          <!-- Conditions (e.g., sufficient $ADRIAN token balance) -->
+          <!-- Conditions (e.g., sufficient $ADRIAN token balance and GENESIS holder status) -->
         </div>
       </div>
     </div>
@@ -125,7 +125,7 @@
     const requiredTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const mintEventId = 15;
     
-    // ABI for the mint function, mintEvents getter, and balanceOf function from the ADRIANGALLERY1155 contract
+    // ABI for the mint function, mintEvents getter, and ERC1155 balanceOf from the ADRIANGALLERY1155 contract
     const galleryABI = [
       "function mint(uint256 eventId, uint256 quantity) external",
       "function mintEvents(uint256) view returns (uint8, uint256, uint256, uint256, uint256, uint256, string, address, bool)",
@@ -185,7 +185,7 @@
       }
     }
     
-    // Update conditions (sufficient $ADRIAN token balance)
+    // Update conditions (sufficient $ADRIAN token balance and GENESIS holder status)
     async function updateConditions() {
       const conditionsDiv = document.getElementById("conditions");
       conditionsDiv.innerHTML = "";
@@ -197,8 +197,13 @@
         const quantity = parseInt(document.getElementById("quantity").value);
         const totalCost = price.mul(quantity);
         const userBalance = ethers.BigNumber.from(balanceBN);
-        const conditionMet = userBalance.gte(totalCost);
-        conditionsDiv.innerHTML += `<p>Sufficient $ADRIAN tokens to mint: ${conditionMet ? "Yes" : "No"} (Your balance: ${formatTokenAmount(userBalance)})</p>`;
+        const tokensConditionMet = userBalance.gte(totalCost);
+        conditionsDiv.innerHTML += `<p>Sufficient $ADRIAN tokens to mint: ${tokensConditionMet ? "Yes" : "No"} (Your balance: ${formatTokenAmount(userBalance)})</p>`;
+        
+        // Check if the user is a GENESIS holder (holds token with id 1)
+        const genesisBalance = await galleryContract.balanceOf(userAddress, 1);
+        const isGenesisHolder = genesisBalance.gte(1);
+        conditionsDiv.innerHTML += `<p>GENESIS holder: ${isGenesisHolder ? "Yes" : "No"}</p>`;
       } catch (error) {
         console.error("Error checking conditions:", error);
       }
