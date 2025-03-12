@@ -64,7 +64,7 @@
   <section class="hero text-center">
     <div class="container">
       <h1>Mint your NFT now!</h1>
-      <p class="lead">offer a 33K $ADRIAN tribute to mint your exclusive NFT.</p>
+      <p class="lead">Offer a 33K $ADRIAN tribute to mint your exclusive NFT.</p>
     </div>
   </section>
   
@@ -125,10 +125,11 @@
     const requiredTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const mintEventId = 15;
     
-    // ABI for the mint function and mintEvents getter from the ADRIANGALLERY1155 contract
+    // ABI for the mint function, mintEvents getter, and balanceOf function from the ADRIANGALLERY1155 contract
     const galleryABI = [
       "function mint(uint256 eventId, uint256 quantity) external",
-      "function mintEvents(uint256) view returns (uint8, uint256, uint256, uint256, uint256, uint256, string, address, bool)"
+      "function mintEvents(uint256) view returns (uint8, uint256, uint256, uint256, uint256, uint256, string, address, bool)",
+      "function balanceOf(address account, uint256 id) view returns (uint256)"
     ];
     
     // ERC20 ABI (balanceOf, allowance, approve)
@@ -146,7 +147,7 @@
       return amount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
-    // Load mint event info (price, minted count, and remaining time)
+    // Load mint event info (price, minted count, start time, and remaining time)
     async function loadMintInfo() {
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
@@ -209,6 +210,19 @@
       const quantity = parseInt(document.getElementById("quantity").value);
       if (quantity <= 0) return;
       document.getElementById("statusMessage").innerText = "Processing mint...";
+      
+      // Check if user holds token number 1 (GENESIS token)
+      try {
+        const genesisBalance = await galleryContract.balanceOf(userAddress, 1);
+        if (genesisBalance.lt(1)) {
+          document.getElementById("statusMessage").innerText = "Minting is only available for GENESIS holders.";
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking GENESIS token ownership:", error);
+        document.getElementById("statusMessage").innerText = "Error verifying GENESIS token ownership.";
+        return;
+      }
       
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
