@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Funds Playground</title>
+  <title>PIMPkiller Funds</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Ethers.js -->
@@ -24,12 +24,24 @@
     .balance-box {
       margin-bottom: 20px;
     }
+    .max-btn {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .sample-image {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Sample image from the mint frontend -->
+    <img class="sample-image" src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/6ababf4d5361019ed5fb5c257dea0e/f96ababf4d5361019ed5fb5c257dea0e.png" alt="Mint Image">
+
     <h1>Admin Funds Playground</h1>
-    <p class="text-muted">Time to check your crypto piggy bank!</p>
+    <p class="text-muted">Time to check your crypto piggy bank and make it rain!</p>
     
     <!-- Connect Wallet -->
     <button class="btn btn-primary mb-3" id="connectButton">Connect Wallet</button>
@@ -48,6 +60,7 @@
       <h5>Withdraw ETH</h5>
       <div class="input-group">
         <input type="number" class="form-control" id="ethAmount" placeholder="Amount in ETH" step="0.0001" min="0">
+        <button class="btn btn-info max-btn" id="maxEthButton">MAX</button>
         <button class="btn btn-warning" id="withdrawEthButton">Withdraw ETH</button>
       </div>
     </div>
@@ -57,6 +70,7 @@
       <h5>Withdraw $ADRIAN</h5>
       <div class="input-group">
         <input type="number" class="form-control" id="adrianAmount" placeholder="Amount in ADRIAN" step="any" min="0">
+        <button class="btn btn-info max-btn" id="maxAdrianButton">MAX</button>
         <button class="btn btn-warning" id="withdrawAdrianButton">Withdraw ADRIAN</button>
       </div>
     </div>
@@ -86,6 +100,9 @@
 
     let provider, signer, userAccount;
     let pimpsAdrianContract, adrianTokenContract;
+    // Global variables to store contract balances (as strings in user-friendly format)
+    let globalEthBalance = "0";
+    let globalAdrianBalance = "0";
 
     // Connect Wallet function
     async function connectWallet() {
@@ -120,12 +137,13 @@
       try {
         // Get ETH balance of the contract
         const balanceETH = await provider.getBalance(pimpsAdrianAddress);
-        ethBalanceEl.innerText = ethers.utils.formatEther(balanceETH) + " ETH";
+        globalEthBalance = ethers.utils.formatEther(balanceETH);
+        ethBalanceEl.innerText = globalEthBalance + " ETH";
 
         // Get ADRIAN token balance of the contract
         const rawAdrian = await adrianTokenContract.balanceOf(pimpsAdrianAddress);
-        const adrianFormatted = ethers.utils.formatUnits(rawAdrian, 18);
-        adrianBalanceEl.innerText = adrianFormatted + " $ADRIAN";
+        globalAdrianBalance = ethers.utils.formatUnits(rawAdrian, 18);
+        adrianBalanceEl.innerText = globalAdrianBalance + " $ADRIAN";
       } catch (error) {
         console.error("Error fetching balances:", error);
         ethBalanceEl.innerText = "Error";
@@ -177,9 +195,18 @@
       }
     });
 
-    // Event listener for Connect Wallet button
+    // MAX button for ETH: fill the input with the full contract ETH balance
+    document.getElementById("maxEthButton").addEventListener("click", () => {
+      document.getElementById("ethAmount").value = globalEthBalance;
+    });
+
+    // MAX button for ADRIAN: fill the input with the full contract ADRIAN balance
+    document.getElementById("maxAdrianButton").addEventListener("click", () => {
+      document.getElementById("adrianAmount").value = globalAdrianBalance;
+    });
+
+    // Event listeners for Connect Wallet and Refresh Balances buttons
     document.getElementById("connectButton").addEventListener("click", connectWallet);
-    // Event listener for Refresh Balances button
     document.getElementById("refreshBalances").addEventListener("click", refreshBalances);
   </script>
 </body>
