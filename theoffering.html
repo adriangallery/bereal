@@ -92,6 +92,7 @@
       <!-- Mint Section (visible when connected) -->
       <div id="claimInfo" style="display: none;">
         <p>Cost per NFT: <span id="nftCost">-</span></p>
+        <p>Total tokens required for mint: <span id="totalCostDisplay">-</span></p>
         <p>Minted amount: <span id="userClaimed">-</span></p>
         <div class="mb-3">
           <input type="number" id="quantity" class="form-control" placeholder="Quantity to mint" min="1" value="1">
@@ -147,7 +148,7 @@
       return amount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
-    // Load mint event info (price, minted count, start time, and remaining time)
+    // Load mint event info (price, minted count, and remaining time until mint ends)
     async function loadMintInfo() {
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
@@ -157,35 +158,23 @@
         document.getElementById("nftCost").innerText = formatTokenAmount(price);
         document.getElementById("userClaimed").innerText = minted.toString();
         
-        const startTimeBN = mintData[4];
-        const startTime = startTimeBN.toNumber();
         const currentTime = Math.floor(Date.now() / 1000);
-        
-        if (currentTime < startTime) {
-          // Mint hasn't started yet; show time until mint begins
-          const timeUntilStart = startTime - currentTime;
-          const days = Math.floor(timeUntilStart / 86400);
-          const hours = Math.floor((timeUntilStart % 86400) / 3600);
-          document.getElementById("timeLeftDisplay").innerText = "Mint begins in " + days + " days " + hours + " hours";
+        const endTimeBN = mintData[5];
+        const endTime = endTimeBN.toNumber();
+        if (currentTime < endTime) {
+          const timeLeft = endTime - currentTime;
+          const days = Math.floor(timeLeft / 86400);
+          const hours = Math.floor((timeLeft % 86400) / 3600);
+          document.getElementById("timeLeftDisplay").innerText = days + " days " + hours + " hours left";
         } else {
-          // Mint has started; calculate remaining time until mint ends
-          const endTimeBN = mintData[5];
-          const endTime = endTimeBN.toNumber();
-          if (currentTime < endTime) {
-            const timeLeft = endTime - currentTime;
-            const days = Math.floor(timeLeft / 86400);
-            const hours = Math.floor((timeLeft % 86400) / 3600);
-            document.getElementById("timeLeftDisplay").innerText = days + " days " + hours + " hours left";
-          } else {
-            document.getElementById("timeLeftDisplay").innerText = "Mint event ended";
-          }
+          document.getElementById("timeLeftDisplay").innerText = "Mint event ended";
         }
       } catch (error) {
         console.error("Error loading mint info:", error);
       }
     }
     
-    // Update conditions (sufficient $ADRIAN token balance and GENESIS holder status)
+    // Update conditions (sufficient $ADRIAN token balance and GENESIS holder status) and total tokens required
     async function updateConditions() {
       const conditionsDiv = document.getElementById("conditions");
       conditionsDiv.innerHTML = "";
@@ -196,6 +185,9 @@
         const price = mintData[1];
         const quantity = parseInt(document.getElementById("quantity").value);
         const totalCost = price.mul(quantity);
+        // Actualiza la visualización de la cantidad total de tokens requeridos
+        document.getElementById("totalCostDisplay").innerText = formatTokenAmount(totalCost);
+        
         const userBalance = ethers.BigNumber.from(balanceBN);
         const tokensConditionMet = userBalance.gte(totalCost);
         conditionsDiv.innerHTML += `<p>Sufficient $ADRIAN tokens to mint: ${tokensConditionMet ? "Yes" : "No"} (Your balance: ${formatTokenAmount(userBalance)})</p>`;
