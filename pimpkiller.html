@@ -51,6 +51,16 @@
   </script>
   <script src="components/menu2.js"></script>
 
+  <!-- Definición del callback para habilitar el botón de mint al conectar la wallet -->
+  <script>
+    window.onMenuWalletConnected = function() {
+      // Habilita el botón de mint tras la conexión
+      document.getElementById("mintButton").disabled = false;
+      // También se puede actualizar el status si se desea
+      document.getElementById("status").innerText = "Wallet connected: " + window.menuUserAccount;
+    };
+  </script>
+
   <!-- Mint Section -->
   <div class="mint-container">
     <h1>Mint with ADRIAN</h1>
