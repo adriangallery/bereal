@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mint with ADRIAN</title>
+  <!-- Bootstrap CSS for navbar styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Load ethers.js (version 5.7.2) from jsDelivr CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    /* Mint section styling */
+    .mint-container {
+      max-width: 500px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .mint-container img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333;
+      word-wrap: break-word;
+    }
+    #mintCost {
+      font-weight: bold;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Carga dinámica del menú externo -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => { console.error('Error loading menu:', error); });
+  </script>
+  <script src="components/menu2.js"></script>
+
+  <!-- Función para formatear la cantidad de tokens -->
+  <script>
+    function formatTokenAmount(amountStr) {
+      const num = parseFloat(amountStr);
+      if (num >= 1e6) {
+        return (num / 1e6).toFixed(2) + "M $ADRIAN";
+      } else if (num >= 1e3) {
+        return (num / 1e3).toFixed(0) + "k $ADRIAN";
+      } else {
+        return num + " $ADRIAN";
+      }
+    }
+  </script>
+
+  <!-- Definición del callback para cuando la wallet se conecta -->
+  <script>
+    // Dirección del contrato de minting
+    const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
+    // ABI del contrato con la función depositAdrianForMint y requiredAdrian
+    const pimpsAdrianABI = [
+      "function depositAdrianForMint() external",
+      "function requiredAdrian() external view returns (uint256)"
+    ];
+
+    // Variable global para guardar la cantidad requerida (en BigNumber)
+    window.requiredAdrianValue = null;
+
+    window.onMenuWalletConnected = async function() {
+      // Habilitar el botón de mint tras la conexión
+      document.getElementById("mintButton").disabled = false;
+      document.getElementById("status").innerText = "Wallet connected: " + window.menuUserAccount;
+
+      try {
+        // Instanciar el contrato de mint usando el signer del menú
+        const contract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+        // Llamar a la función requiredAdrian para obtener la cantidad requerida
+        const reqValue = await contract.requiredAdrian();
+        window.requiredAdrianValue = reqValue;
+        // Convertir la cantidad a formato legible (asumiendo 18 decimales)
+        const reqInTokens = ethers.utils.formatUnits(reqValue, 18);
+        document.getElementById("mintCost").innerText = "Cost: " + formatTokenAmount(reqInTokens);
+      } catch (error) {
+        console.error("Error fetching requiredAdrian:", error);
+        document.getElementById("mintCost").innerText = "Cost: Error fetching value";
+      }
+    };
+  </script>
+
+  <!-- Mint Section -->
+  <div class="mint-container">
+    <h1>Mint with ADRIAN</h1>
+    <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/6ababf4d5361019ed5fb5c257dea0e/f96ababf4d5361019ed5fb5c257dea0e.png" alt="Mint Image" />
+    In memorial
+    <p>
+      To mint, you must first approve the contract to spend the required amount of $ADRIAN tokens on your behalf.<br />
+      Your NFT will be minted directly to your wallet.
+    </p>
+    <!-- Mostrar el costo dinámico -->
+    <p id="mintCost">Cost: Loading...</p>
+    <button id="mintButton" class="btn btn-primary" disabled>Approve & Mint with ADRIAN</button>
+    <div id="status"></div>
+  </div>
+
+  <!-- Bootstrap JS Bundle (for navbar toggler) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Lógica para la función de Mint -->
+  <script>
+    document.getElementById("mintButton").addEventListener("click", async () => {
+      const statusDiv = document.getElementById("status");
+      if (!window.menuProvider || !window.menuSigner) {
+        statusDiv.innerText = "Wallet not connected!";
+        return;
+      }
+      // Asegurarse de tener la cantidad requerida previamente leída
+      if (!window.requiredAdrianValue) {
+        statusDiv.innerText = "Fetching required token amount...";
+        try {
+          const contract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+          window.requiredAdrianValue = await contract.requiredAdrian();
+        } catch (error) {
+          console.error("Error fetching requiredAdrian:", error);
+          statusDiv.innerText = "Error fetching required token amount";
+          return;
+        }
+      }
+
+      // Configuración para el mint:
+      const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      // Nota: ya no usamos un valor hard-coded, sino el dinámico obtenido de requiredAdrian()
+      const mintEthAmount = ethers.utils.parseEther("0.0069");
+
+      const erc20ABI = [
+        "function approve(address spender, uint256 amount) external returns (bool)"
+      ];
+      
+      try {
+        statusDiv.innerText = "Checking contract ETH pool balance...";
+        const contractBalance = await window.menuProvider.getBalance(pimpsAdrianAddress);
+        if (contractBalance.lt(mintEthAmount)) {
+          statusDiv.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+          return;
+        }
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, window.menuSigner);
+        statusDiv.innerText = "Approving ADRIAN tokens for spending...";
+        const approveTx = await adrianToken.approve(pimpsAdrianAddress, window.requiredAdrianValue);
+        statusDiv.innerText = "Approval transaction sent. Waiting for confirmation...";
+        await approveTx.wait();
+        statusDiv.innerText = "Approval confirmed! Proceeding to mint...";
+        
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+        statusDiv.innerText = "Sending mint transaction...";
+        const mintTx = await pimpsAdrian.depositAdrianForMint();
+        statusDiv.innerText = "Mint transaction sent. Waiting for confirmation...";
+        await mintTx.wait();
+        statusDiv.innerText = "Mint successful! Your NFT should now be in your wallet.";
+      } catch (error) {
+        console.error("Error during mint:", error);
+        statusDiv.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+  </script>
+</body>
+</html>
