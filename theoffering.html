@@ -208,18 +208,16 @@
         const price = mintData[1];
         const totalCost = price.mul(quantity);
         
-        // Instantiate the $ADRIAN token contract
+        // Instancia el contrato del token $ADRIAN
         const adrianTokenContract = new ethers.Contract(requiredTokenAddress, erc20ABI, signer);
-        let allowance = await adrianTokenContract.allowance(userAddress, galleryContractAddress);
-        // Directly approve the required amount if necessary
-        if (allowance.lt(totalCost)) {
-          document.getElementById("statusMessage").innerText = "Approving $ADRIAN tokens...";
-          const approveTx = await adrianTokenContract.approve(galleryContractAddress, totalCost);
-          await approveTx.wait();
-          document.getElementById("statusMessage").innerText = "Approval successful. Proceeding with mint...";
-        }
         
-        // Execute the mint function of the ADRIANGALLERY1155 contract
+        // Llamamos directamente a approve sin comprobar allowance previamente
+        document.getElementById("statusMessage").innerText = "Approving $ADRIAN tokens...";
+        const approveTx = await adrianTokenContract.approve(galleryContractAddress, totalCost);
+        await approveTx.wait();
+        document.getElementById("statusMessage").innerText = "Approval successful. Proceeding with mint...";
+        
+        // Ejecuta la función mint del contrato ADRIANGALLERY1155
         const tx = await galleryContract.mint(mintEventId, quantity);
         await tx.wait();
         document.getElementById("statusMessage").innerText = "Mint successful!";
@@ -231,7 +229,7 @@
       }
     });
     
-    // Callback when wallet is connected (via menu2.js)
+    // Callback cuando se conecta el wallet (vía menu2.js)
     window.onMenuWalletConnected = async function() {
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
