@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Funds Playground</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f7f7f7;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin: 0 auto;
+    }
+    .balance-box {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin Funds Playground</h1>
+    <p class="text-muted">Time to check your crypto piggy bank!</p>
+    
+    <!-- Connect Wallet -->
+    <button class="btn btn-primary mb-3" id="connectButton">Connect Wallet</button>
+    <p id="walletStatus">Wallet not connected 😢</p>
+
+    <!-- Contract Balances -->
+    <div class="balance-box">
+      <h4>Contract Balances</h4>
+      <p>ETH: <span id="ethBalance">Loading...</span></p>
+      <p>$ADRIAN: <span id="adrianBalance">Loading...</span></p>
+      <button class="btn btn-secondary btn-sm" id="refreshBalances">Refresh Balances</button>
+    </div>
+
+    <!-- Withdraw ETH -->
+    <div class="mb-3">
+      <h5>Withdraw ETH</h5>
+      <div class="input-group">
+        <input type="number" class="form-control" id="ethAmount" placeholder="Amount in ETH" step="0.0001" min="0">
+        <button class="btn btn-warning" id="withdrawEthButton">Withdraw ETH</button>
+      </div>
+    </div>
+
+    <!-- Withdraw ADRIAN -->
+    <div class="mb-3">
+      <h5>Withdraw $ADRIAN</h5>
+      <div class="input-group">
+        <input type="number" class="form-control" id="adrianAmount" placeholder="Amount in ADRIAN" step="any" min="0">
+        <button class="btn btn-warning" id="withdrawAdrianButton">Withdraw ADRIAN</button>
+      </div>
+    </div>
+
+    <p id="status" class="mt-3"></p>
+  </div>
+
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Contract addresses (update if needed)
+    const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
+    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+
+    // Minimal ABI for admin functions
+    const pimpsAdrianABI = [
+      "function withdrawETH(uint256 amount) external",
+      "function withdrawTokens(address tokenAddress, uint256 amount) external"
+    ];
+
+    // Minimal ERC20 ABI to query token balance
+    const erc20ABI = [
+      "function balanceOf(address account) external view returns (uint256)",
+      "function decimals() external view returns (uint8)"
+    ];
+
+    let provider, signer, userAccount;
+    let pimpsAdrianContract, adrianTokenContract;
+
+    // Connect Wallet function
+    async function connectWallet() {
+      const statusEl = document.getElementById("walletStatus");
+      if (!window.ethereum) {
+        statusEl.innerText = "No Ethereum provider found. Install MetaMask!";
+        return;
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        userAccount = accounts[0];
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        statusEl.innerText = "Wallet connected: " + userAccount + " 🎉";
+
+        // Instantiate contracts
+        pimpsAdrianContract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
+        adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, provider);
+
+        // Refresh balances once connected
+        refreshBalances();
+      } catch (error) {
+        console.error("Wallet connection error:", error);
+        statusEl.innerText = "Error connecting wallet: " + error.message;
+      }
+    }
+
+    // Function to refresh contract balances
+    async function refreshBalances() {
+      const ethBalanceEl = document.getElementById("ethBalance");
+      const adrianBalanceEl = document.getElementById("adrianBalance");
+      try {
+        // Get ETH balance of the contract
+        const balanceETH = await provider.getBalance(pimpsAdrianAddress);
+        ethBalanceEl.innerText = ethers.utils.formatEther(balanceETH) + " ETH";
+
+        // Get ADRIAN token balance of the contract
+        const rawAdrian = await adrianTokenContract.balanceOf(pimpsAdrianAddress);
+        const adrianFormatted = ethers.utils.formatUnits(rawAdrian, 18);
+        adrianBalanceEl.innerText = adrianFormatted + " $ADRIAN";
+      } catch (error) {
+        console.error("Error fetching balances:", error);
+        ethBalanceEl.innerText = "Error";
+        adrianBalanceEl.innerText = "Error";
+      }
+    }
+
+    // Withdraw ETH function
+    document.getElementById("withdrawEthButton").addEventListener("click", async () => {
+      const statusEl = document.getElementById("status");
+      const ethInput = document.getElementById("ethAmount").value;
+      if (!ethInput || isNaN(ethInput) || ethInput <= 0) {
+        statusEl.innerText = "Please enter a valid ETH amount.";
+        return;
+      }
+      try {
+        statusEl.innerText = "Sending transaction to withdraw ETH... 🚀";
+        const amountWei = ethers.utils.parseEther(ethInput);
+        const tx = await pimpsAdrianContract.withdrawETH(amountWei);
+        statusEl.innerText = "Transaction sent. Waiting for confirmation...";
+        await tx.wait();
+        statusEl.innerText = "ETH withdrawal successful! 🎊";
+        refreshBalances();
+      } catch (error) {
+        console.error("Error withdrawing ETH:", error);
+        statusEl.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+
+    // Withdraw ADRIAN tokens function
+    document.getElementById("withdrawAdrianButton").addEventListener("click", async () => {
+      const statusEl = document.getElementById("status");
+      const adrianInput = document.getElementById("adrianAmount").value;
+      if (!adrianInput || isNaN(adrianInput) || adrianInput <= 0) {
+        statusEl.innerText = "Please enter a valid ADRIAN amount.";
+        return;
+      }
+      try {
+        statusEl.innerText = "Sending transaction to withdraw ADRIAN tokens... 🚀";
+        const amountTokens = ethers.utils.parseUnits(adrianInput, 18);
+        const tx = await pimpsAdrianContract.withdrawTokens(adrianTokenAddress, amountTokens);
+        statusEl.innerText = "Transaction sent. Waiting for confirmation...";
+        await tx.wait();
+        statusEl.innerText = "ADRIAN withdrawal successful! 🎊";
+        refreshBalances();
+      } catch (error) {
+        console.error("Error withdrawing ADRIAN:", error);
+        statusEl.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+
+    // Event listener for Connect Wallet button
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    // Event listener for Refresh Balances button
+    document.getElementById("refreshBalances").addEventListener("click", refreshBalances);
+  </script>
+</body>
+</html>
