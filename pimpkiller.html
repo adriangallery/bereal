@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensure proper scaling on mobile devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mint with ADRIAN</title>
+  <!-- Bootstrap CSS for navbar styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Load ethers.js (version 5.7.2) from jsDelivr CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    /* Mint section styling */
+    .mint-container {
+      max-width: 500px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .mint-container img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar (using your working connect wallet style) -->
+  <nav class="navbar navbar-expand-lg" style="background-color: #000; border-bottom: 1px solid #333;">
+    <div class="container-fluid">
+      <!-- Hamburger button -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" style="border: none;">
+        <span class="navbar-toggler-icon" style="filter: invert(100%);"></span>
+      </button>
+      <!-- Brand -->
+      <a class="navbar-brand ms-2" href="index.html" style="color: #fff; font-size: 1.3rem;">$ADRIAN</a>
+      <!-- Collapsible menu -->
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-3">
+          <li class="nav-item"><a class="nav-link text-white" href="index.html">Index</a></li>
+          <li class="nav-item"><a class="nav-link text-white" href="https://www.geckoterminal.com/base/pools/0x95ebfcb1c6b345fda69cf56c51e30421e5a35aec" target="_blank">Buy $ADRIAN</a></li>
+          <li class="nav-item"><a class="nav-link text-white" href="marketplace.html">Marketplace</a></li>
+          <!-- Additional nav items as needed -->
+          <li class="nav-item"><a class="nav-link text-white" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
+          <li class="nav-item"><a class="nav-link text-white" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
+          <li class="nav-item"><a class="nav-link text-white" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
+        </ul>
+      </div>
+      <!-- Connect Wallet Button (as in your working menu) -->
+      <button class="btn d-flex align-items-center me-2" id="menuConnectButton" onclick="menuConnectWallet()"
+        style="background-color: #f6851b; color: #fff; border: none; font-weight: 600; gap: 0.5rem;">
+        🟦🟥 Connect Wallet
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mint Section -->
+  <div class="mint-container">
+    <h1>Mint with ADRIAN</h1>
+    <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/6ababf4d5361019ed5fb5c257dea0e/f96ababf4d5361019ed5fb5c257dea0e.png" alt="Mint Image" />
+    In memorial
+    <p>
+      To mint, you must first approve the contract to spend 2,000,000 ADRIAN tokens on your behalf.<br />
+      Your NFT will be minted directly to your wallet.
+    </p>
+    <button id="mintButton" class="btn btn-primary" disabled>Approve & Mint with ADRIAN</button>
+    <div id="status"></div>
+  </div>
+
+  <!-- Bootstrap JS Bundle (for navbar toggler) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // --- GLOBAL WALLET VARIABLES (to be set by the connect function) ---
+    window.menuProvider = null;
+    window.menuSigner = null;
+    window.menuUserAccount = null;
+
+    // --- CONNECT WALLET FUNCTION ---
+    async function menuConnectWallet() {
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerText = "Connecting wallet...";
+      if (!window.ethereum) {
+        statusDiv.innerText = "No Ethereum provider found. Please install MetaMask.";
+        return;
+      }
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        window.menuUserAccount = accounts[0];
+        window.menuProvider = new ethers.providers.Web3Provider(window.ethereum);
+        window.menuSigner = window.menuProvider.getSigner();
+        statusDiv.innerText = "Wallet connected: " + window.menuUserAccount;
+        document.getElementById("mintButton").disabled = false;
+        if (window.onMenuWalletConnected) {
+          window.onMenuWalletConnected();
+        }
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        statusDiv.innerText = "Error connecting wallet: " + error.message;
+      }
+    }
+
+    // --- MINT BUTTON LOGIC ---
+    document.getElementById("mintButton").addEventListener("click", async () => {
+      const statusDiv = document.getElementById("status");
+      if (!window.menuProvider || !window.menuSigner) {
+        statusDiv.innerText = "Wallet not connected!";
+        return;
+      }
+      // Contract settings
+      // Actualiza la dirección del contrato PIMPSADRIAN al nuevo contrato
+      const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
+      const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      const requiredAdrian = ethers.BigNumber.from("2000000").mul(ethers.BigNumber.from("1000000000000000000"));
+      const mintEthAmount = ethers.utils.parseEther("0.0069");
+
+      const pimpsAdrianABI = [
+        "function depositAdrianForMint() external"
+      ];
+      const erc20ABI = [
+        "function approve(address spender, uint256 amount) external returns (bool)"
+      ];
+      
+      try {
+        statusDiv.innerText = "Checking contract ETH pool balance...";
+        const contractBalance = await window.menuProvider.getBalance(pimpsAdrianAddress);
+        if (contractBalance.lt(mintEthAmount)) {
+          statusDiv.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+          return;
+        }
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, window.menuSigner);
+        statusDiv.innerText = "Approving ADRIAN tokens for spending...";
+        const approveTx = await adrianToken.approve(pimpsAdrianAddress, requiredAdrian);
+        statusDiv.innerText = "Approval transaction sent. Waiting for confirmation...";
+        await approveTx.wait();
+        statusDiv.innerText = "Approval confirmed! Proceeding to mint...";
+        
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+        statusDiv.innerText = "Sending mint transaction...";
+        const mintTx = await pimpsAdrian.depositAdrianForMint();
+        statusDiv.innerText = "Mint transaction sent. Waiting for confirmation...";
+        await mintTx.wait();
+        statusDiv.innerText = "Mint successful! Your NFT should now be in your wallet.";
+      } catch (error) {
+        console.error("Error during mint:", error);
+        statusDiv.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+  </script>
+</body>
+</html>
