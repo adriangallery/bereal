@@ -101,7 +101,7 @@
         <p class="status mt-3" id="statusMessage"></p>
         
         <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
-          <!-- Conditions (e.g., sufficient $ADRIAN token balance and GENESIS holder status) -->
+          <!-- Conditions (e.g., sufficient $ADRIAN token balance) -->
         </div>
       </div>
     </div>
@@ -174,7 +174,7 @@
       }
     }
     
-    // Update conditions (sufficient $ADRIAN token balance and GENESIS holder status) and total tokens required
+    // Update conditions (sufficient $ADRIAN token balance) and total tokens required
     async function updateConditions() {
       const conditionsDiv = document.getElementById("conditions");
       conditionsDiv.innerHTML = "";
@@ -185,17 +185,12 @@
         const price = mintData[1];
         const quantity = parseInt(document.getElementById("quantity").value);
         const totalCost = price.mul(quantity);
-        // Actualiza la visualización de la cantidad total de tokens requeridos
+        // Update total tokens required display
         document.getElementById("totalCostDisplay").innerText = formatTokenAmount(totalCost);
         
         const userBalance = ethers.BigNumber.from(balanceBN);
         const tokensConditionMet = userBalance.gte(totalCost);
         conditionsDiv.innerHTML += `<p>Sufficient $ADRIAN tokens to mint: ${tokensConditionMet ? "Yes" : "No"} (Your balance: ${formatTokenAmount(userBalance)})</p>`;
-        
-        // Check if the user is a GENESIS holder (holds token with id 1)
-        const genesisBalance = await galleryContract.balanceOf(userAddress, 1);
-        const isGenesisHolder = genesisBalance.gte(1);
-        conditionsDiv.innerHTML += `<p>GENESIS holder: ${isGenesisHolder ? "Yes" : "No"}</p>`;
       } catch (error) {
         console.error("Error checking conditions:", error);
       }
@@ -207,19 +202,6 @@
       const quantity = parseInt(document.getElementById("quantity").value);
       if (quantity <= 0) return;
       document.getElementById("statusMessage").innerText = "Processing mint...";
-      
-      // Check if user holds token number 1 (GENESIS token)
-      try {
-        const genesisBalance = await galleryContract.balanceOf(userAddress, 1);
-        if (genesisBalance.lt(1)) {
-          document.getElementById("statusMessage").innerText = "Minting is only available for GENESIS holders.";
-          return;
-        }
-      } catch (error) {
-        console.error("Error checking GENESIS token ownership:", error);
-        document.getElementById("statusMessage").innerText = "Error verifying GENESIS token ownership.";
-        return;
-      }
       
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
