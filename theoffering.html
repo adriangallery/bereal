@@ -101,7 +101,7 @@
         <p class="status mt-3" id="statusMessage"></p>
         
         <div id="conditions" class="mt-4 text-start bg-dark p-3 rounded">
-          <!-- Conditions (e.g., sufficient $ADRIAN token balance) -->
+          <!-- Conditions (e.g., sufficient $ADRIAN token balance and GENESIS holder status) -->
         </div>
       </div>
     </div>
@@ -119,7 +119,7 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Mint Script with debug logs -->
+  <!-- Mint Script with debug logs and GENESIS check -->
   <script>
     // Fixed addresses (updated)
     const galleryContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
@@ -208,6 +208,19 @@
       const quantity = parseInt(document.getElementById("quantity").value);
       if (quantity <= 0) return;
       document.getElementById("statusMessage").innerText = "Processing mint...";
+      
+      // Verifica si el usuario posee el NFT GENESIS (token con id 1)
+      try {
+        const genesisBalance = await galleryContract.balanceOf(userAddress, 1);
+        if (genesisBalance.lt(1)) {
+          document.getElementById("statusMessage").innerText = "Minting is only available for GENESIS holders.";
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking GENESIS token ownership:", error);
+        document.getElementById("statusMessage").innerText = "Error verifying GENESIS token ownership.";
+        return;
+      }
       
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
