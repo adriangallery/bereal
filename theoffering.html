@@ -119,21 +119,21 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Mint Script -->
+  <!-- Mint Script with debug logs -->
   <script>
     // Fixed addresses (updated)
     const galleryContractAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
     const requiredTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const mintEventId = 15;
     
-    // ABI for the mint function, mintEvents getter, and ERC1155 balanceOf from the ADRIANGALLERY1155 contract
+    // ABI para la función mint, getter de mintEvents y balanceOf del contrato ADRIANGALLERY1155
     const galleryABI = [
       "function mint(uint256 eventId, uint256 quantity) external",
       "function mintEvents(uint256) view returns (uint8, uint256, uint256, uint256, uint256, uint256, string, address, bool)",
       "function balanceOf(address account, uint256 id) view returns (uint256)"
     ];
     
-    // ERC20 ABI (balanceOf, allowance, approve)
+    // ABI ERC20 (balanceOf, allowance, approve)
     const erc20ABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -142,13 +142,13 @@
     
     let provider, signer, galleryContract, userAddress;
     
-    // Helper function to format token amounts with thousand separators and "$ADRIAN" symbol
+    // Función helper para formatear montos de tokens con separadores y símbolo "$ADRIAN"
     function formatTokenAmount(amountBN) {
       const amount = Number(ethers.utils.formatUnits(amountBN, 18));
       return amount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
-    // Load mint event info (price, minted count, and remaining time until mint ends)
+    // Carga la información del mint (precio, cantidad mintada y tiempo restante) con logs de depuración
     async function loadMintInfo() {
       try {
         const mintData = await galleryContract.mintEvents(mintEventId);
@@ -158,9 +158,15 @@
         document.getElementById("nftCost").innerText = formatTokenAmount(price);
         document.getElementById("userClaimed").innerText = minted.toString();
         
+        const startTime = mintData[4].toNumber();
+        const endTime = mintData[5].toNumber();
         const currentTime = Math.floor(Date.now() / 1000);
-        const endTimeBN = mintData[5];
-        const endTime = endTimeBN.toNumber();
+        
+        // Logs de depuración: mostrar los tiempos en consola
+        console.log("Mint start time:", startTime, "=>", new Date(startTime * 1000));
+        console.log("Mint end time:", endTime, "=>", new Date(endTime * 1000));
+        console.log("Current time:", currentTime, "=>", new Date(currentTime * 1000));
+        
         if (currentTime < endTime) {
           const timeLeft = endTime - currentTime;
           const days = Math.floor(timeLeft / 86400);
@@ -174,7 +180,7 @@
       }
     }
     
-    // Update conditions (sufficient $ADRIAN token balance) and total tokens required
+    // Actualiza las condiciones (saldo suficiente de $ADRIAN) y muestra el total de tokens requeridos
     async function updateConditions() {
       const conditionsDiv = document.getElementById("conditions");
       conditionsDiv.innerHTML = "";
@@ -185,7 +191,7 @@
         const price = mintData[1];
         const quantity = parseInt(document.getElementById("quantity").value);
         const totalCost = price.mul(quantity);
-        // Update total tokens required display
+        // Actualiza la visualización del total de tokens requeridos
         document.getElementById("totalCostDisplay").innerText = formatTokenAmount(totalCost);
         
         const userBalance = ethers.BigNumber.from(balanceBN);
@@ -211,7 +217,7 @@
         // Instancia el contrato del token $ADRIAN
         const adrianTokenContract = new ethers.Contract(requiredTokenAddress, erc20ABI, signer);
         
-        // Llamamos directamente a approve sin comprobar allowance previamente
+        // Llamada directa a approve sin comprobar allowance previamente
         document.getElementById("statusMessage").innerText = "Approving $ADRIAN tokens...";
         const approveTx = await adrianTokenContract.approve(galleryContractAddress, totalCost);
         await approveTx.wait();
@@ -234,7 +240,7 @@
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
       signer = window.menuSigner;
-      console.log("Wallet connected: ", userAddress);
+      console.log("Wallet connected:", userAddress);
       document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
       document.getElementById("claimInfo").style.display = "block";
       galleryContract = new ethers.Contract(galleryContractAddress, galleryABI, signer);
