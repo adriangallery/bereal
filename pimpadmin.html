@@ -85,6 +85,17 @@
       </div>
     </div>
 
+    <!-- Update Required ADRIAN -->
+    <div class="mb-3">
+      <h5>Update Required $ADRIAN for Mint</h5>
+      <p>Current required $ADRIAN: <span id="currentRequiredAdrian">Loading...</span></p>
+      <div class="input-group">
+        <input type="number" class="form-control" id="newRequiredAdrian" placeholder="New required ADRIAN (integer)" min="0">
+        <button class="btn btn-info" id="updateRequiredAdrianButton">Update Required ADRIAN</button>
+      </div>
+      <p id="requiredAdrianStatus" class="mt-2"></p>
+    </div>
+
     <p id="status" class="mt-3"></p>
   </div>
 
@@ -96,10 +107,12 @@
     const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-    // Minimal ABI for admin functions
+    // ABI actualizado del contrato para incluir withdraw, requiredAdrian y setRequiredAdrian
     const pimpsAdrianABI = [
       "function withdrawETH(uint256 amount) external",
-      "function withdrawTokens(address tokenAddress, uint256 amount) external"
+      "function withdrawTokens(address tokenAddress, uint256 amount) external",
+      "function requiredAdrian() external view returns (uint256)",
+      "function setRequiredAdrian(uint256 newRequiredAdrian) external"
     ];
 
     // Minimal ERC20 ABI to query token balance
@@ -132,8 +145,9 @@
         pimpsAdrianContract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
         adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, provider);
 
-        // Refresh balances once connected
+        // Refresh balances and required ADRIAN once connected
         refreshBalances();
+        refreshRequiredAdrian();
       } catch (error) {
         console.error("Wallet connection error:", error);
         statusEl.innerText = "Error connecting wallet: " + error.message;
@@ -158,6 +172,19 @@
         console.error("Error fetching balances:", error);
         ethBalanceEl.innerText = "Error";
         adrianBalanceEl.innerText = "Error";
+      }
+    }
+
+    // Function to refresh the current required ADRIAN value
+    async function refreshRequiredAdrian() {
+      const currentEl = document.getElementById("currentRequiredAdrian");
+      try {
+        const reqValue = await pimpsAdrianContract.requiredAdrian();
+        // Mostrar el valor como entero (sin decimales)
+        currentEl.innerText = reqValue.toString();
+      } catch (error) {
+        console.error("Error fetching required ADRIAN:", error);
+        currentEl.innerText = "Error";
       }
     }
 
@@ -240,9 +267,33 @@
       }
     });
 
+    // Update Required ADRIAN function
+    document.getElementById("updateRequiredAdrianButton").addEventListener("click", async () => {
+      const statusEl = document.getElementById("requiredAdrianStatus");
+      const newValue = document.getElementById("newRequiredAdrian").value;
+      if (!newValue || isNaN(newValue) || newValue < 0) {
+        statusEl.innerText = "Please enter a valid integer value.";
+        return;
+      }
+      try {
+        statusEl.innerText = "Sending transaction to update required ADRIAN... 🚀";
+        const tx = await pimpsAdrianContract.setRequiredAdrian(newValue);
+        statusEl.innerText = "Transaction sent. Waiting for confirmation...";
+        await tx.wait();
+        statusEl.innerText = "Required ADRIAN updated successfully! 🎊";
+        refreshRequiredAdrian();
+      } catch (error) {
+        console.error("Error updating required ADRIAN:", error);
+        statusEl.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+
     // Event listeners for Connect Wallet and Refresh Balances buttons
     document.getElementById("connectButton").addEventListener("click", connectWallet);
-    document.getElementById("refreshBalances").addEventListener("click", refreshBalances);
+    document.getElementById("refreshBalances").addEventListener("click", () => {
+      refreshBalances();
+      refreshRequiredAdrian();
+    });
   </script>
 </body>
 </html>
