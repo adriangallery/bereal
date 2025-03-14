@@ -8,15 +8,15 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
       background: #f4f4f4;
+      padding: 20px;
     }
     .container {
       max-width: 900px;
       margin: 0 auto;
       background: #fff;
-      padding: 20px;
       border-radius: 8px;
+      padding: 20px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h1, h2, h3 {
@@ -26,6 +26,9 @@
       padding: 10px;
       margin: 5px 0;
       font-size: 16px;
+    }
+    button {
+      cursor: pointer;
     }
     table {
       width: 100%;
@@ -46,7 +49,6 @@
       background-color: #4CAF50;
       color: white;
       border: none;
-      cursor: pointer;
     }
     #connectButton:hover {
       background-color: #45a049;
@@ -59,6 +61,7 @@
     <button id="connectButton">Connect Wallet</button>
     <p><strong>Connected Account:</strong> <span id="account"></span></p>
     
+    <!-- Pool Data Section -->
     <div class="data" id="poolData" style="display:none;">
       <h2>Pool Data (ID: <span id="poolId"></span>)</h2>
       <p><strong>Staking Token:</strong> <span id="stakingToken"></span></p>
@@ -75,14 +78,19 @@
       <button id="stakeButton">Stake</button>
     </div>
     
+    <!-- User Positions Section -->
     <div class="data" id="positionData" style="display:none;">
       <h2>Your Positions</h2>
       <div id="positionsTable"></div>
+      <h3>Aggregate Stats</h3>
+      <p><strong>Total Amount Staked:</strong> <span id="totalUserStaked"></span> tokens</p>
+      <p><strong>Total Reward Earned (pending):</strong> <span id="totalUserReward"></span> tokens</p>
+      <p><strong>Number of Positions:</strong> <span id="positionsCount"></span></p>
     </div>
   </div>
 
   <script>
-    // Staking contract ABI (full version provided)
+    // Staking contract ABI (from the provided ABI)
     const contractABI = [
       {
         "inputs": [],
@@ -233,8 +241,8 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"},
-          {"internalType": "uint256", "name": "poolId", "type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "claimRewards",
         "outputs": [],
@@ -474,11 +482,11 @@
         document.getElementById("totalStaked").innerText = ethers.utils.formatEther(pool.totalStaked);
         document.getElementById("rewardPoolBalance").innerText = ethers.utils.formatEther(pool.rewardPoolBalance);
         
-        // Calculate max stake = rewardPoolBalance - totalStaked
+        // Calculate max amount to stake = rewardPoolBalance - totalStaked
         const maxStakeBN = pool.rewardPoolBalance.sub(pool.totalStaked);
         document.getElementById("maxStake").innerText = ethers.utils.formatEther(maxStakeBN);
         
-        // Calculate approximate APY: (rewardRate * secondsInYear / 1e18) * 100
+        // Calculate approximate APY: (rewardRate * secondsInYear / REWARD_RATE_SCALE) * 100
         const apy = (Number(pool.rewardRate) * secondsInYear / 1e18 * 100).toFixed(2);
         document.getElementById("apy").innerText = apy;
       } catch (err) {
@@ -486,16 +494,18 @@
       }
     }
 
-    // Fetch user's positions by querying past "Staked" events and then calling getDepositInfo for each index.
+    // Fetch user positions using the "Staked" event filter
     async function fetchUserPositions() {
       try {
         const user = await signer.getAddress();
-        // Create filter for Staked events for this user and pool
         const filter = contract.filters.Staked(user, poolId);
+        // Query past events for the current pool and user
         const events = await contract.queryFilter(filter);
         let positions = [];
+        let totalStakedUser = ethers.BigNumber.from(0);
+        let totalRewardUser = ethers.BigNumber.from(0);
+        // For each event, assume deposit index equals event order
         for (let i = 0; i < events.length; i++) {
-          // For each event, get deposit info (assume deposit index equals event order)
           const depositInfo = await contract.getDepositInfo(poolId, user, i);
           const earnedReward = await contract.calculateReward(poolId, user, i);
           positions.push({
@@ -506,8 +516,15 @@
             withdrawn: depositInfo.withdrawn,
             reward: earnedReward
           });
+          if (!depositInfo.withdrawn) {
+            totalStakedUser = totalStakedUser.add(depositInfo.amount);
+            totalRewardUser = totalRewardUser.add(earnedReward);
+          }
         }
         renderPositions(positions);
+        document.getElementById("totalUserStaked").innerText = ethers.utils.formatEther(totalStakedUser);
+        document.getElementById("totalUserReward").innerText = ethers.utils.formatEther(totalRewardUser);
+        document.getElementById("positionsCount").innerText = positions.length;
       } catch (err) {
         console.error("Error fetching user positions:", err);
       }
@@ -555,7 +572,7 @@
       }
       try {
         const amount = ethers.utils.parseEther(stakeAmountStr);
-        // Get staking token address from pool data
+        // Get the staking token address from pool data
         const tokenAddress = document.getElementById("stakingToken").innerText;
         // Create an ERC20 contract instance for the staking token
         const erc20Contract = new ethers.Contract(tokenAddress, erc20ABI, signer);
@@ -574,7 +591,7 @@
         fetchUserPositions();
       } catch (err) {
         console.error("Error during stake:", err);
-        alert("Error during stake. Check the console for details.");
+        alert("Error during stake. Check console for details.");
       }
     }
 
