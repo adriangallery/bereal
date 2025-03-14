@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>ADRIAN Staking Dashboard</title>
-  <!-- Cargar ethers.js UMD desde CDN -->
+  <!-- Load ethers.js UMD version -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -12,7 +12,7 @@
       background: #f4f4f4;
     }
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
       background: #fff;
       padding: 20px;
@@ -27,8 +27,20 @@
       margin: 5px 0;
       font-size: 16px;
     }
-    .data p {
-      margin: 8px 0;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
     }
     #connectButton {
       background-color: #4CAF50;
@@ -44,27 +56,33 @@
 <body>
   <div class="container">
     <h1>ADRIAN Staking Dashboard</h1>
-    <button id="connectButton">Conectar Wallet</button>
-    <p><strong>Cuenta conectada:</strong> <span id="account"></span></p>
+    <button id="connectButton">Connect Wallet</button>
+    <p><strong>Connected Account:</strong> <span id="account"></span></p>
+    
     <div class="data" id="poolData" style="display:none;">
-      <h2>Pool ID: <span id="poolId"></span></h2>
-      <p><strong>Token de Staking:</strong> <span id="stakingToken"></span></p>
-      <p><strong>Token de Recompensa:</strong> <span id="rewardToken"></span></p>
+      <h2>Pool Data (ID: <span id="poolId"></span>)</h2>
+      <p><strong>Staking Token:</strong> <span id="stakingToken"></span></p>
+      <p><strong>Reward Token:</strong> <span id="rewardToken"></span></p>
       <p><strong>Reward Rate:</strong> <span id="rewardRate"></span></p>
-      <p><strong>Lock Time:</strong> <span id="lockTime"></span> segundos (~3 meses)</p>
+      <p><strong>Lock Time:</strong> <span id="lockTime"></span> seconds (~3 months)</p>
       <p><strong>Total Staked:</strong> <span id="totalStaked"></span> tokens</p>
-      <p><strong>Balance del Rewards Pool:</strong> <span id="rewardPoolBalance"></span> tokens</p>
-      <p><strong>Máximo a Stakear:</strong> <span id="maxStake"></span> tokens</p>
-      <p><strong>APY (aprox.):</strong> <span id="apy"></span>%</p>
+      <p><strong>Rewards Pool Balance:</strong> <span id="rewardPoolBalance"></span> tokens</p>
+      <p><strong>Max Amount to Stake:</strong> <span id="maxStake"></span> tokens</p>
+      <p><strong>Approximate APY:</strong> <span id="apy"></span>%</p>
       <hr>
-      <h3>Realizar Stake</h3>
-      <input type="text" id="stakeAmount" placeholder="Cantidad a stakear">
+      <h3>Make a Stake</h3>
+      <input type="text" id="stakeAmount" placeholder="Amount to stake">
       <button id="stakeButton">Stake</button>
+    </div>
+    
+    <div class="data" id="positionData" style="display:none;">
+      <h2>Your Positions</h2>
+      <div id="positionsTable"></div>
     </div>
   </div>
 
   <script>
-    // ABI completa del contrato de staking (según lo proporcionado)
+    // Staking contract ABI (full version provided)
     const contractABI = [
       {
         "inputs": [],
@@ -74,10 +92,10 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "address","name": "user","type": "address"},
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "principal","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "principal", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "EmergencyWithdraw",
         "type": "event"
@@ -85,8 +103,8 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "address","name": "previousOwner","type": "address"},
-          {"indexed": true,"internalType": "address","name": "newOwner","type": "address"}
+          {"indexed": true, "internalType": "address", "name": "previousOwner", "type": "address"},
+          {"indexed": true, "internalType": "address", "name": "newOwner", "type": "address"}
         ],
         "name": "OwnershipTransferred",
         "type": "event"
@@ -94,7 +112,7 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": false,"internalType": "address","name": "account","type": "address"}
+          {"indexed": false, "internalType": "address", "name": "account", "type": "address"}
         ],
         "name": "Paused",
         "type": "event"
@@ -102,12 +120,12 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "address","name": "stakingToken","type": "address"},
-          {"indexed": false,"internalType": "address","name": "rewardToken","type": "address"},
-          {"indexed": false,"internalType": "uint256","name": "rewardRate","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "lockTime","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "initialRewardPool","type": "uint256"}
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "address", "name": "stakingToken", "type": "address"},
+          {"indexed": false, "internalType": "address", "name": "rewardToken", "type": "address"},
+          {"indexed": false, "internalType": "uint256", "name": "rewardRate", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "lockTime", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "initialRewardPool", "type": "uint256"}
         ],
         "name": "PoolCreated",
         "type": "event"
@@ -115,8 +133,8 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "bool","name": "isActive","type": "bool"}
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "bool", "name": "isActive", "type": "bool"}
         ],
         "name": "PoolStatusUpdated",
         "type": "event"
@@ -124,9 +142,9 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "newRewardRate","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "newLockTime","type": "uint256"}
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "newRewardRate", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "newLockTime", "type": "uint256"}
         ],
         "name": "PoolUpdated",
         "type": "event"
@@ -134,8 +152,8 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "amount","type": "uint256"}
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
         "name": "RewardDeposited",
         "type": "event"
@@ -143,8 +161,8 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "amount","type": "uint256"}
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
         "name": "RewardWithdrawn",
         "type": "event"
@@ -152,10 +170,10 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "address","name": "user","type": "address"},
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "reward","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "reward", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "RewardsClaimed",
         "type": "event"
@@ -163,10 +181,10 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "address","name": "user","type": "address"},
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "amount","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "timestamp","type": "uint256"}
+          {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256"}
         ],
         "name": "Staked",
         "type": "event"
@@ -174,7 +192,7 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": false,"internalType": "address","name": "account","type": "address"}
+          {"indexed": false, "internalType": "address", "name": "account", "type": "address"}
         ],
         "name": "Unpaused",
         "type": "event"
@@ -182,11 +200,11 @@
       {
         "anonymous": false,
         "inputs": [
-          {"indexed": true,"internalType": "address","name": "user","type": "address"},
-          {"indexed": true,"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "principal","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "reward","type": "uint256"},
-          {"indexed": false,"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+          {"indexed": true, "internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "principal", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "reward", "type": "uint256"},
+          {"indexed": false, "internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "Withdrawn",
         "type": "event"
@@ -195,28 +213,28 @@
         "inputs": [],
         "name": "REWARD_RATE_SCALE",
         "outputs": [
-          {"internalType": "uint256","name": "","type": "uint256"}
+          {"internalType": "uint256", "name": "", "type": "uint256"}
         ],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "address","name": "user","type": "address"},
-          {"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "address", "name": "user", "type": "address"},
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "calculateReward",
         "outputs": [
-          {"internalType": "uint256","name": "","type": "uint256"}
+          {"internalType": "uint256", "name": "", "type": "uint256"}
         ],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "depositIndex","type": "uint256"},
-          {"internalType": "uint256","name": "poolId","type": "uint256"}
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"},
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"}
         ],
         "name": "claimRewards",
         "outputs": [],
@@ -225,11 +243,11 @@
       },
       {
         "inputs": [
-          {"internalType": "contract IERC20","name": "_stakingToken","type": "address"},
-          {"internalType": "contract IERC20","name": "_rewardToken","type": "address"},
-          {"internalType": "uint256","name": "_rewardRate","type": "uint256"},
-          {"internalType": "uint256","name": "_lockTime","type": "uint256"},
-          {"internalType": "uint256","name": "_initialRewardPool","type": "uint256"}
+          {"internalType": "contract IERC20", "name": "_stakingToken", "type": "address"},
+          {"internalType": "contract IERC20", "name": "_rewardToken", "type": "address"},
+          {"internalType": "uint256", "name": "_rewardRate", "type": "uint256"},
+          {"internalType": "uint256", "name": "_lockTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "_initialRewardPool", "type": "uint256"}
         ],
         "name": "createPool",
         "outputs": [],
@@ -238,8 +256,8 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "amount","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
         "name": "depositRewards",
         "outputs": [],
@@ -248,8 +266,8 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "emergencyWithdraw",
         "outputs": [],
@@ -258,16 +276,16 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "address","name": "user","type": "address"},
-          {"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "address", "name": "user", "type": "address"},
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "getDepositInfo",
         "outputs": [
-          {"internalType": "uint256","name": "amount","type": "uint256"},
-          {"internalType": "uint256","name": "startTime","type": "uint256"},
-          {"internalType": "uint256","name": "lastClaimTime","type": "uint256"},
-          {"internalType": "bool","name": "withdrawn","type": "bool"}
+          {"internalType": "uint256", "name": "amount", "type": "uint256"},
+          {"internalType": "uint256", "name": "startTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "lastClaimTime", "type": "uint256"},
+          {"internalType": "bool", "name": "withdrawn", "type": "bool"}
         ],
         "stateMutability": "view",
         "type": "function"
@@ -276,7 +294,7 @@
         "inputs": [],
         "name": "nextPoolId",
         "outputs": [
-          {"internalType": "uint256","name": "","type": "uint256"}
+          {"internalType": "uint256", "name": "", "type": "uint256"}
         ],
         "stateMutability": "view",
         "type": "function"
@@ -285,7 +303,7 @@
         "inputs": [],
         "name": "owner",
         "outputs": [
-          {"internalType": "address","name": "","type": "address"}
+          {"internalType": "address", "name": "", "type": "address"}
         ],
         "stateMutability": "view",
         "type": "function"
@@ -301,33 +319,33 @@
         "inputs": [],
         "name": "paused",
         "outputs": [
-          {"internalType": "bool","name": "","type": "bool"}
+          {"internalType": "bool", "name": "", "type": "bool"}
         ],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "","type": "uint256"}
+          {"internalType": "uint256", "name": "", "type": "uint256"}
         ],
         "name": "pools",
         "outputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "contract IERC20","name": "stakingToken","type": "address"},
-          {"internalType": "contract IERC20","name": "rewardToken","type": "address"},
-          {"internalType": "uint256","name": "rewardRate","type": "uint256"},
-          {"internalType": "uint256","name": "lockTime","type": "uint256"},
-          {"internalType": "uint256","name": "totalStaked","type": "uint256"},
-          {"internalType": "uint256","name": "rewardPoolBalance","type": "uint256"},
-          {"internalType": "bool","name": "isActive","type": "bool"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "contract IERC20", "name": "stakingToken", "type": "address"},
+          {"internalType": "contract IERC20", "name": "rewardToken", "type": "address"},
+          {"internalType": "uint256", "name": "rewardRate", "type": "uint256"},
+          {"internalType": "uint256", "name": "lockTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "totalStaked", "type": "uint256"},
+          {"internalType": "uint256", "name": "rewardPoolBalance", "type": "uint256"},
+          {"internalType": "bool", "name": "isActive", "type": "bool"}
         ],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "bool","name": "_isActive","type": "bool"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "bool", "name": "_isActive", "type": "bool"}
         ],
         "name": "setPoolActive",
         "outputs": [],
@@ -336,8 +354,8 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "amount","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
         "name": "stake",
         "outputs": [],
@@ -346,7 +364,7 @@
       },
       {
         "inputs": [
-          {"internalType": "address","name": "newOwner","type": "address"}
+          {"internalType": "address", "name": "newOwner", "type": "address"}
         ],
         "name": "transferOwnership",
         "outputs": [],
@@ -362,9 +380,9 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "_newRewardRate","type": "uint256"},
-          {"internalType": "uint256","name": "_newLockTime","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "_newRewardRate", "type": "uint256"},
+          {"internalType": "uint256", "name": "_newLockTime", "type": "uint256"}
         ],
         "name": "updatePool",
         "outputs": [],
@@ -373,24 +391,24 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "","type": "uint256"},
-          {"internalType": "address","name": "","type": "address"},
-          {"internalType": "uint256","name": "","type": "uint256"}
+          {"internalType": "uint256", "name": "", "type": "uint256"},
+          {"internalType": "address", "name": "", "type": "address"},
+          {"internalType": "uint256", "name": "", "type": "uint256"}
         ],
         "name": "userDeposits",
         "outputs": [
-          {"internalType": "uint256","name": "amount","type": "uint256"},
-          {"internalType": "uint256","name": "startTime","type": "uint256"},
-          {"internalType": "uint256","name": "lastClaimTime","type": "uint256"},
-          {"internalType": "bool","name": "withdrawn","type": "bool"}
+          {"internalType": "uint256", "name": "amount", "type": "uint256"},
+          {"internalType": "uint256", "name": "startTime", "type": "uint256"},
+          {"internalType": "uint256", "name": "lastClaimTime", "type": "uint256"},
+          {"internalType": "bool", "name": "withdrawn", "type": "bool"}
         ],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "depositIndex","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "depositIndex", "type": "uint256"}
         ],
         "name": "withdraw",
         "outputs": [],
@@ -399,8 +417,8 @@
       },
       {
         "inputs": [
-          {"internalType": "uint256","name": "poolId","type": "uint256"},
-          {"internalType": "uint256","name": "amount","type": "uint256"}
+          {"internalType": "uint256", "name": "poolId", "type": "uint256"},
+          {"internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
         "name": "withdrawExcessRewards",
         "outputs": [],
@@ -409,13 +427,13 @@
       }
     ];
 
-    // ABI mínima para ERC20 (permitirá consultar allowance y aprobar)
+    // Minimal ERC20 ABI for allowance and approve
     const erc20ABI = [
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // Dirección del contrato de staking desplegado
+    // Staking contract address
     const contractAddress = "0x1AD5Bd04E55BC3283CdDC8f00C74f57E7b057915";
     const poolId = 0;
     const secondsInYear = 31536000;
@@ -433,13 +451,15 @@
           document.getElementById("account").innerText = accounts[0];
           document.getElementById("connectButton").style.display = "none";
           document.getElementById("poolData").style.display = "block";
+          document.getElementById("positionData").style.display = "block";
           fetchPoolData();
+          fetchUserPositions();
         } catch (err) {
-          console.error("Error al conectar con Metamask:", err);
-          alert("Error al conectar con Metamask. Revisa la consola.");
+          console.error("Error connecting to MetaMask:", err);
+          alert("Error connecting to MetaMask. See console for details.");
         }
       } else {
-        alert("Por favor, instala Metamask.");
+        alert("Please install MetaMask.");
       }
     }
 
@@ -454,46 +474,107 @@
         document.getElementById("totalStaked").innerText = ethers.utils.formatEther(pool.totalStaked);
         document.getElementById("rewardPoolBalance").innerText = ethers.utils.formatEther(pool.rewardPoolBalance);
         
-        // Máximo a stakear = rewardPoolBalance - totalStaked
+        // Calculate max stake = rewardPoolBalance - totalStaked
         const maxStakeBN = pool.rewardPoolBalance.sub(pool.totalStaked);
         document.getElementById("maxStake").innerText = ethers.utils.formatEther(maxStakeBN);
         
-        // APY aproximado = (rewardRate * secondsInYear / 1e18) * 100
+        // Calculate approximate APY: (rewardRate * secondsInYear / 1e18) * 100
         const apy = (Number(pool.rewardRate) * secondsInYear / 1e18 * 100).toFixed(2);
         document.getElementById("apy").innerText = apy;
       } catch (err) {
-        console.error("Error al obtener datos del pool:", err);
+        console.error("Error fetching pool data:", err);
       }
+    }
+
+    // Fetch user's positions by querying past "Staked" events and then calling getDepositInfo for each index.
+    async function fetchUserPositions() {
+      try {
+        const user = await signer.getAddress();
+        // Create filter for Staked events for this user and pool
+        const filter = contract.filters.Staked(user, poolId);
+        const events = await contract.queryFilter(filter);
+        let positions = [];
+        for (let i = 0; i < events.length; i++) {
+          // For each event, get deposit info (assume deposit index equals event order)
+          const depositInfo = await contract.getDepositInfo(poolId, user, i);
+          const earnedReward = await contract.calculateReward(poolId, user, i);
+          positions.push({
+            index: i,
+            amount: depositInfo.amount,
+            startTime: depositInfo.startTime,
+            lastClaimTime: depositInfo.lastClaimTime,
+            withdrawn: depositInfo.withdrawn,
+            reward: earnedReward
+          });
+        }
+        renderPositions(positions);
+      } catch (err) {
+        console.error("Error fetching user positions:", err);
+      }
+    }
+
+    function renderPositions(positions) {
+      let html = "";
+      if (positions.length === 0) {
+        html = "<p>No positions found.</p>";
+      } else {
+        html += `<table>
+                    <thead>
+                      <tr>
+                        <th>Deposit Index</th>
+                        <th>Amount Staked</th>
+                        <th>Start Time</th>
+                        <th>Reward Earned</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>`;
+        positions.forEach(pos => {
+          const amountFormatted = ethers.utils.formatEther(pos.amount);
+          const rewardFormatted = ethers.utils.formatEther(pos.reward);
+          const startDate = new Date(pos.startTime.toNumber() * 1000).toLocaleString();
+          const status = pos.withdrawn ? "Withdrawn" : "Active";
+          html += `<tr>
+                     <td>${pos.index}</td>
+                     <td>${amountFormatted}</td>
+                     <td>${startDate}</td>
+                     <td>${rewardFormatted}</td>
+                     <td>${status}</td>
+                   </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      document.getElementById("positionsTable").innerHTML = html;
     }
 
     async function handleStake() {
       const stakeAmountStr = document.getElementById("stakeAmount").value;
       if (!stakeAmountStr) {
-        alert("Por favor, ingresa una cantidad para stakear.");
+        alert("Please enter an amount to stake.");
         return;
       }
       try {
         const amount = ethers.utils.parseEther(stakeAmountStr);
-        // Obtiene la dirección del token de staking (ADRIAN) desde los datos del pool
+        // Get staking token address from pool data
         const tokenAddress = document.getElementById("stakingToken").innerText;
-        // Instancia el contrato ERC20 del token
+        // Create an ERC20 contract instance for the staking token
         const erc20Contract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-        const currentAccount = document.getElementById("account").innerText;
-        // Verifica el allowance actual
+        const currentAccount = await signer.getAddress();
         const allowance = await erc20Contract.allowance(currentAccount, contractAddress);
         if (allowance.lt(amount)) {
-          alert("Aprobando tokens, por favor espera...");
+          alert("Approving tokens, please wait...");
           const approveTx = await erc20Contract.approve(contractAddress, amount);
           await approveTx.wait();
-          alert("Tokens aprobados.");
+          alert("Tokens approved.");
         }
         const tx = await contract.stake(poolId, amount);
         await tx.wait();
-        alert("Stake realizado correctamente.");
+        alert("Stake successful.");
         fetchPoolData();
+        fetchUserPositions();
       } catch (err) {
-        console.error("Error al realizar el stake:", err);
-        alert("Error al realizar el stake. Revisa la consola para más detalles.");
+        console.error("Error during stake:", err);
+        alert("Error during stake. Check the console for details.");
       }
     }
 
