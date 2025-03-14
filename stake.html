@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>ADRIAN Staking Dashboard</title>
-  <!-- Cargamos ethers.js desde CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <!-- Cargar ethers.js UMD desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -409,24 +409,19 @@
       }
     ];
 
-    // Dirección del contrato desplegado
     const contractAddress = "0x1AD5Bd04E55BC3283CdDC8f00C74f57E7b057915";
-    const poolId = 0; // Usamos el pool de prueba (ID 0)
+    const poolId = 0;
     const secondsInYear = 31536000;
 
-    let provider;
-    let signer;
-    let contract;
+    let provider, signer, contract;
 
     async function connectWallet() {
       if (window.ethereum) {
         try {
-          // Solicitar conexión a Metamask
           await window.ethereum.request({ method: 'eth_requestAccounts' });
           provider = new ethers.providers.Web3Provider(window.ethereum);
           signer = provider.getSigner();
           contract = new ethers.Contract(contractAddress, contractABI, signer);
-
           const accounts = await provider.listAccounts();
           document.getElementById("account").innerText = accounts[0];
           document.getElementById("connectButton").style.display = "none";
@@ -444,7 +439,6 @@
     async function fetchPoolData() {
       try {
         const pool = await contract.pools(poolId);
-        // pool: [poolId, stakingToken, rewardToken, rewardRate, lockTime, totalStaked, rewardPoolBalance, isActive]
         document.getElementById("poolId").innerText = pool.poolId.toString();
         document.getElementById("stakingToken").innerText = pool.stakingToken;
         document.getElementById("rewardToken").innerText = pool.rewardToken;
