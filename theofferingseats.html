@@ -75,21 +75,24 @@
 
   <!-- Claim Section -->
   <div class="container my-5" id="claimSection">
-    <h2 class="text-center">Claim Distribution</h2>
+    <h2 class="text-center">Claim Your Seat & Distribute Tokens</h2>
     <p id="walletStatus" class="text-center">Wallet not connected.</p>
     <!-- Displayed when the wallet is connected -->
     <div id="claimInfo" style="display: none;">
       <div class="mb-3">
-        <strong>Active Seats:</strong> <span id="activeSeats">Loading...</span>
+        <strong>Total Seats Claimed:</strong> <span id="totalHolders">Loading...</span>
       </div>
       <div class="mb-3">
-        <strong>Total Claimed:</strong> <span id="totalClaimed">Loading...</span>
+        <strong>Active Seats:</strong> <span id="activeSeats">Loading...</span>
       </div>
       <div class="mb-3">
         <strong>Tokens Available:</strong> <span id="tokensAvailable">Loading...</span>
       </div>
-      <button id="claimBtn" class="btn btn-warning">CLAIM</button>
-      <p id="statusMessage" class="mt-3"></p>
+      <div class="mb-3 d-flex justify-content-center gap-2">
+        <button id="claimSeatBtn" class="btn btn-primary">CLAIM SEAT</button>
+        <button id="distributeBtn" class="btn btn-warning">DISTRIBUTE TOKENS</button>
+      </div>
+      <p id="statusMessage" class="mt-3 text-center"></p>
     </div>
   </div>
 
@@ -109,12 +112,12 @@
 
   <!-- Contract Interaction Script -->
   <script>
-    // Contract address updated al nuevo: 0x22135b3f7a028d717c167efce6d6c499ee59642f
-    const claimContractAddress = "0x22135b3f7a028d717c167efce6d6c499ee59642f";
+    // Nuevo contrato: 0x5a0daf767ced36b05788f577e5bf5206f637a5ec
+    const claimContractAddress = "0x5a0daf767ced36b05788f577e5bf5206f637a5ec";
     const claimContractABI = [
-      "function claimDistribution() external",
-      "function getActiveSeatHolders() view returns (address[])",
-      "function getClaimStats() view returns (uint256 totalClaimed, uint256 tokensAvailable)"
+      "function claimSeat() public",
+      "function distributeTokens() public",
+      "function getStats() view returns (uint256 totalHolders, uint256 activeHolders, uint256 tokensAvailable)"
     ];
 
     let provider, signer, claimContract, userAddress;
@@ -136,42 +139,47 @@
 
     async function refreshInfo() {
       try {
-        // Get active seats and display last 5 characters of each wallet address.
-        const activeSeats = await claimContract.getActiveSeatHolders();
-        let seatsDisplay = activeSeats.map(addr => addr.slice(-5)).join(", ");
-        document.getElementById("activeSeats").innerText = seatsDisplay || "None";
-      } catch (error) {
-        console.error("Error loading active seats:", error);
-        document.getElementById("activeSeats").innerText = "Error";
-      }
-
-      try {
         // Get claim statistics.
-        const stats = await claimContract.getClaimStats();
-        // Format values: remove decimals by taking the integer part.
-        document.getElementById("totalClaimed").innerText = ethers.utils.formatEther(stats.totalClaimed).split('.')[0];
+        const stats = await claimContract.getStats();
+        document.getElementById("totalHolders").innerText = stats.totalHolders;
+        document.getElementById("activeSeats").innerText = stats.activeHolders;
         document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats.tokensAvailable).split('.')[0] + " ADRIAN";
       } catch (error) {
-        console.error("Error loading claim stats:", error);
-        document.getElementById("totalClaimed").innerText = "Error";
+        console.error("Error loading stats:", error);
+        document.getElementById("totalHolders").innerText = "Error";
+        document.getElementById("activeSeats").innerText = "Error";
         document.getElementById("tokensAvailable").innerText = "Error";
       }
     }
 
-    async function claimDistribution() {
-      document.getElementById("statusMessage").innerText = "Processing claim...";
+    async function claimSeat() {
+      document.getElementById("statusMessage").innerText = "Processing seat claim...";
       try {
-        const tx = await claimContract.claimDistribution();
+        const tx = await claimContract.claimSeat();
         await tx.wait();
-        document.getElementById("statusMessage").innerText = "Claim successful!";
+        document.getElementById("statusMessage").innerText = "Seat claimed successfully!";
         refreshInfo();
       } catch (error) {
-        console.error("Claim failed:", error);
-        document.getElementById("statusMessage").innerText = "Claim failed: " + (error.data?.message || error.message);
+        console.error("Claim Seat failed:", error);
+        document.getElementById("statusMessage").innerText = "Claim Seat failed: " + (error.data?.message || error.message);
       }
     }
 
-    document.getElementById("claimBtn").addEventListener("click", claimDistribution);
+    async function distributeTokens() {
+      document.getElementById("statusMessage").innerText = "Processing token distribution...";
+      try {
+        const tx = await claimContract.distributeTokens();
+        await tx.wait();
+        document.getElementById("statusMessage").innerText = "Tokens distributed successfully!";
+        refreshInfo();
+      } catch (error) {
+        console.error("Distribution failed:", error);
+        document.getElementById("statusMessage").innerText = "Distribution failed: " + (error.data?.message || error.message);
+      }
+    }
+
+    document.getElementById("claimSeatBtn").addEventListener("click", claimSeat);
+    document.getElementById("distributeBtn").addEventListener("click", distributeTokens);
 
     window.addEventListener("load", initEthers);
   </script>
