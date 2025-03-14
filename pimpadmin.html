@@ -175,13 +175,14 @@
       }
     }
 
-    // Function to refresh the current required ADRIAN value
+    // Function to refresh the current required ADRIAN value in human-friendly format
     async function refreshRequiredAdrian() {
       const currentEl = document.getElementById("currentRequiredAdrian");
       try {
         const reqValue = await pimpsAdrianContract.requiredAdrian();
-        // Mostrar el valor como entero (sin decimales)
-        currentEl.innerText = reqValue.toString();
+        // Convertir el valor a human-friendly (dividiendo por 1e18)
+        const humanValue = ethers.utils.formatUnits(reqValue, 18);
+        currentEl.innerText = humanValue;
       } catch (error) {
         console.error("Error fetching required ADRIAN:", error);
         currentEl.innerText = "Error";
@@ -270,14 +271,16 @@
     // Update Required ADRIAN function
     document.getElementById("updateRequiredAdrianButton").addEventListener("click", async () => {
       const statusEl = document.getElementById("requiredAdrianStatus");
-      const newValue = document.getElementById("newRequiredAdrian").value;
-      if (!newValue || isNaN(newValue) || newValue < 0) {
+      const newValueInput = document.getElementById("newRequiredAdrian").value;
+      if (!newValueInput || isNaN(newValueInput) || newValueInput < 0) {
         statusEl.innerText = "Please enter a valid integer value.";
         return;
       }
       try {
         statusEl.innerText = "Sending transaction to update required ADRIAN... 🚀";
-        const tx = await pimpsAdrianContract.setRequiredAdrian(newValue);
+        // Convertir el valor ingresado (por ejemplo, 1900000) a unidades de 1e18
+        const newRequired = ethers.utils.parseUnits(newValueInput, 18);
+        const tx = await pimpsAdrianContract.setRequiredAdrian(newRequired);
         statusEl.innerText = "Transaction sent. Waiting for confirmation...";
         await tx.wait();
         statusEl.innerText = "Required ADRIAN updated successfully! 🎊";
