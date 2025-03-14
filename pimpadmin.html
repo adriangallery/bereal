@@ -2,212 +2,224 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PIMPkiller Funds</title>
-  <!-- Bootstrap CSS -->
+  <title>Mint with ADRIAN</title>
+  <!-- Bootstrap CSS for navbar styling -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Ethers.js -->
+  <!-- Load ethers.js (version 5.7.2) from jsDelivr CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
       background-color: #f7f7f7;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
     }
-    .container {
-      max-width: 600px;
+    /* Container styling */
+    .mint-container {
+      max-width: 500px;
+      margin: 20px auto;
       background: #fff;
       padding: 20px;
       border-radius: 10px;
+      text-align: center;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin: 0 auto;
     }
-    .balance-box {
-      margin-bottom: 20px;
-    }
-    .max-btn {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    .sample-image {
+    .mint-container img {
       max-width: 100%;
       border-radius: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+    }
+    #status, #ethStatus {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333;
+      word-wrap: break-word;
+    }
+    #mintCost {
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Sample image from the mint frontend -->
-    <img class="sample-image" src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/6ababf4d5361019ed5fb5c257dea0e/f96ababf4d5361019ed5fb5c257dea0e.png" alt="Mint Image">
+  <!-- Carga dinámica del menú externo -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => { console.error('Error loading menu:', error); });
+  </script>
+  <script src="components/menu2.js"></script>
 
-    <h1>Admin Funds Playground</h1>
-    <p class="text-muted">Time to check your crypto piggy bank and make it rain!</p>
-    
-    <!-- Connect Wallet -->
-    <button class="btn btn-primary mb-3" id="connectButton">Connect Wallet</button>
-    <p id="walletStatus">Wallet not connected 😢</p>
+  <!-- Función para formatear la cantidad de tokens -->
+  <script>
+    function formatTokenAmount(amountStr) {
+      const num = parseFloat(amountStr);
+      if (num >= 1e6) {
+        return (num / 1e6).toFixed(2) + "M $ADRIAN";
+      } else if (num >= 1e3) {
+        return (num / 1e3).toFixed(0) + "k $ADRIAN";
+      } else {
+        return num + " $ADRIAN";
+      }
+    }
+  </script>
 
-    <!-- Contract Balances -->
-    <div class="balance-box">
-      <h4>Contract Balances</h4>
-      <p>ETH: <span id="ethBalance">Loading...</span></p>
-      <p>$ADRIAN: <span id="adrianBalance">Loading...</span></p>
-      <button class="btn btn-secondary btn-sm" id="refreshBalances">Refresh Balances</button>
-    </div>
+  <!-- Definición del callback para cuando la wallet se conecta -->
+  <script>
+    // Dirección del contrato de minting
+    const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
+    // ABI del contrato con la función depositAdrianForMint y requiredAdrian
+    const pimpsAdrianABI = [
+      "function depositAdrianForMint() external",
+      "function requiredAdrian() external view returns (uint256)"
+    ];
 
-    <!-- Withdraw ETH -->
-    <div class="mb-3">
-      <h5>Withdraw ETH</h5>
-      <div class="input-group">
-        <input type="number" class="form-control" id="ethAmount" placeholder="Amount in ETH" step="0.0001" min="0">
-        <button class="btn btn-info max-btn" id="maxEthButton">MAX</button>
-        <button class="btn btn-warning" id="withdrawEthButton">Withdraw ETH</button>
-      </div>
-    </div>
+    // Variable global para guardar la cantidad requerida (en BigNumber)
+    window.requiredAdrianValue = null;
 
-    <!-- Withdraw ADRIAN -->
-    <div class="mb-3">
-      <h5>Withdraw $ADRIAN</h5>
-      <div class="input-group">
-        <input type="number" class="form-control" id="adrianAmount" placeholder="Amount in ADRIAN" step="any" min="0">
-        <button class="btn btn-info max-btn" id="maxAdrianButton">MAX</button>
-        <button class="btn btn-warning" id="withdrawAdrianButton">Withdraw ADRIAN</button>
-      </div>
-    </div>
+    window.onMenuWalletConnected = async function() {
+      // Habilitar el botón de mint tras la conexión
+      document.getElementById("mintButton").disabled = false;
+      document.getElementById("status").innerText = "Wallet connected: " + window.menuUserAccount;
 
-    <p id="status" class="mt-3"></p>
+      try {
+        // Instanciar el contrato de mint usando el signer del menú
+        const contract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+        // Llamar a la función requiredAdrian para obtener la cantidad requerida
+        const reqValue = await contract.requiredAdrian();
+        window.requiredAdrianValue = reqValue;
+        // Convertir la cantidad a formato legible (asumiendo 18 decimales)
+        const reqInTokens = ethers.utils.formatUnits(reqValue, 18);
+        document.getElementById("mintCost").innerText = "Cost: " + formatTokenAmount(reqInTokens);
+      } catch (error) {
+        console.error("Error fetching requiredAdrian:", error);
+        document.getElementById("mintCost").innerText = "Cost: Error fetching value";
+      }
+    };
+  </script>
+
+  <!-- Mint Section -->
+  <div class="mint-container">
+    <h1>Mint with ADRIAN</h1>
+    <img src="https://raw2.seadn.io/base/0xc38e2ae060440c9269cceb8c0ea8019a66ce8927/6ababf4d5361019ed5fb5c257dea0e/f96ababf4d5361019ed5fb5c257dea0e.png" alt="Mint Image" />
+    <p>
+      To mint, you must first approve the contract to spend the required amount of $ADRIAN tokens on your behalf.<br />
+      Your NFT will be minted directly to your wallet.
+    </p>
+    <!-- Mostrar el costo dinámico -->
+    <p id="mintCost">Cost: Loading...</p>
+    <button id="mintButton" class="btn btn-primary" disabled>Approve & Mint with ADRIAN</button>
+    <div id="status"></div>
   </div>
 
-  <!-- Bootstrap Bundle JS -->
+  <!-- ETH Transfer Section -->
+  <div class="mint-container">
+    <h1>Add ETH to Contract</h1>
+    <p>Introduce la cantidad de ETH que deseas enviar al contrato:</p>
+    <input type="text" id="ethAmount" placeholder="0.1" />
+    <button id="addEthButton" class="btn btn-secondary">Send ETH</button>
+    <div id="ethStatus"></div>
+  </div>
+
+  <!-- Bootstrap JS Bundle (for navbar toggler) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+  <!-- Lógica para la función de Mint -->
   <script>
-    // Contract addresses (update if needed)
-    const pimpsAdrianAddress = "0xe6f90Aa208B39f2f359e97c1e19EA631EF4B4379";
-    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    document.getElementById("mintButton").addEventListener("click", async () => {
+      const statusDiv = document.getElementById("status");
+      if (!window.menuProvider || !window.menuSigner) {
+        statusDiv.innerText = "Wallet not connected!";
+        return;
+      }
+      // Asegurarse de tener la cantidad requerida previamente leída
+      if (!window.requiredAdrianValue) {
+        statusDiv.innerText = "Fetching required token amount...";
+        try {
+          const contract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+          window.requiredAdrianValue = await contract.requiredAdrian();
+        } catch (error) {
+          console.error("Error fetching requiredAdrian:", error);
+          statusDiv.innerText = "Error fetching required token amount";
+          return;
+        }
+      }
 
-    // Minimal ABI for admin functions
-    const pimpsAdrianABI = [
-      "function withdrawETH(uint256 amount) external",
-      "function withdrawTokens(address tokenAddress, uint256 amount) external"
-    ];
+      // Configuración para el mint:
+      const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+      // Nota: ya no usamos un valor hard-coded, sino el dinámico obtenido de requiredAdrian()
+      const mintEthAmount = ethers.utils.parseEther("0.0069");
 
-    // Minimal ERC20 ABI to query token balance
-    const erc20ABI = [
-      "function balanceOf(address account) external view returns (uint256)",
-      "function decimals() external view returns (uint8)"
-    ];
+      const erc20ABI = [
+        "function approve(address spender, uint256 amount) external returns (bool)"
+      ];
+      
+      try {
+        statusDiv.innerText = "Checking contract ETH pool balance...";
+        const contractBalance = await window.menuProvider.getBalance(pimpsAdrianAddress);
+        if (contractBalance.lt(mintEthAmount)) {
+          statusDiv.innerText = "The contract does not have enough ETH for minting. Please contact the owner.";
+          return;
+        }
+        const adrianToken = new ethers.Contract(adrianTokenAddress, erc20ABI, window.menuSigner);
+        statusDiv.innerText = "Approving ADRIAN tokens for spending...";
+        const approveTx = await adrianToken.approve(pimpsAdrianAddress, window.requiredAdrianValue);
+        statusDiv.innerText = "Approval transaction sent. Waiting for confirmation...";
+        await approveTx.wait();
+        statusDiv.innerText = "Approval confirmed! Proceeding to mint...";
+        
+        const pimpsAdrian = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, window.menuSigner);
+        statusDiv.innerText = "Sending mint transaction...";
+        const mintTx = await pimpsAdrian.depositAdrianForMint();
+        statusDiv.innerText = "Mint transaction sent. Waiting for confirmation...";
+        await mintTx.wait();
+        statusDiv.innerText = "Mint successful! Your NFT should now be in your wallet.";
+      } catch (error) {
+        console.error("Error during mint:", error);
+        statusDiv.innerText = "Error: " + (error.data?.message || error.message);
+      }
+    });
+  </script>
 
-    let provider, signer, userAccount;
-    let pimpsAdrianContract, adrianTokenContract;
-    // Global variables to store contract balances (as strings in user-friendly format)
-    let globalEthBalance = "0";
-    let globalAdrianBalance = "0";
-
-    // Connect Wallet function
-    async function connectWallet() {
-      const statusEl = document.getElementById("walletStatus");
-      if (!window.ethereum) {
-        statusEl.innerText = "No Ethereum provider found. Install MetaMask!";
+  <!-- Lógica para enviar ETH al contrato -->
+  <script>
+    document.getElementById("addEthButton").addEventListener("click", async () => {
+      const ethStatusDiv = document.getElementById("ethStatus");
+      if (!window.menuProvider || !window.menuSigner) {
+        ethStatusDiv.innerText = "Wallet not connected!";
+        return;
+      }
+      const ethAmount = document.getElementById("ethAmount").value;
+      if (!ethAmount || isNaN(ethAmount)) {
+        ethStatusDiv.innerText = "Please enter a valid ETH amount.";
         return;
       }
       try {
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        userAccount = accounts[0];
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        statusEl.innerText = "Wallet connected: " + userAccount + " 🎉";
-
-        // Instantiate contracts
-        pimpsAdrianContract = new ethers.Contract(pimpsAdrianAddress, pimpsAdrianABI, signer);
-        adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, provider);
-
-        // Refresh balances once connected
-        refreshBalances();
-      } catch (error) {
-        console.error("Wallet connection error:", error);
-        statusEl.innerText = "Error connecting wallet: " + error.message;
-      }
-    }
-
-    // Function to refresh contract balances
-    async function refreshBalances() {
-      const ethBalanceEl = document.getElementById("ethBalance");
-      const adrianBalanceEl = document.getElementById("adrianBalance");
-      try {
-        // Get ETH balance of the contract
-        const balanceETH = await provider.getBalance(pimpsAdrianAddress);
-        globalEthBalance = ethers.utils.formatEther(balanceETH);
-        ethBalanceEl.innerText = globalEthBalance + " ETH";
-
-        // Get ADRIAN token balance of the contract
-        const rawAdrian = await adrianTokenContract.balanceOf(pimpsAdrianAddress);
-        globalAdrianBalance = ethers.utils.formatUnits(rawAdrian, 18);
-        adrianBalanceEl.innerText = globalAdrianBalance + " $ADRIAN";
-      } catch (error) {
-        console.error("Error fetching balances:", error);
-        ethBalanceEl.innerText = "Error";
-        adrianBalanceEl.innerText = "Error";
-      }
-    }
-
-    // Withdraw ETH function
-    document.getElementById("withdrawEthButton").addEventListener("click", async () => {
-      const statusEl = document.getElementById("status");
-      const ethInput = document.getElementById("ethAmount").value;
-      if (!ethInput || isNaN(ethInput) || ethInput <= 0) {
-        statusEl.innerText = "Please enter a valid ETH amount.";
-        return;
-      }
-      try {
-        statusEl.innerText = "Sending transaction to withdraw ETH... 🚀";
-        const amountWei = ethers.utils.parseEther(ethInput);
-        const tx = await pimpsAdrianContract.withdrawETH(amountWei);
-        statusEl.innerText = "Transaction sent. Waiting for confirmation...";
+        ethStatusDiv.innerText = "Sending ETH to contract...";
+        const tx = await window.menuSigner.sendTransaction({
+          to: pimpsAdrianAddress,
+          value: ethers.utils.parseEther(ethAmount)
+        });
+        ethStatusDiv.innerText = "Transaction sent. Waiting for confirmation...";
         await tx.wait();
-        statusEl.innerText = "ETH withdrawal successful! 🎊";
-        refreshBalances();
+        ethStatusDiv.innerText = "ETH successfully added to the contract!";
       } catch (error) {
-        console.error("Error withdrawing ETH:", error);
-        statusEl.innerText = "Error: " + (error.data?.message || error.message);
+        console.error("Error adding ETH to contract:", error);
+        ethStatusDiv.innerText = "Error: " + (error.data?.message || error.message);
       }
     });
-
-    // Withdraw ADRIAN tokens function
-    document.getElementById("withdrawAdrianButton").addEventListener("click", async () => {
-      const statusEl = document.getElementById("status");
-      const adrianInput = document.getElementById("adrianAmount").value;
-      if (!adrianInput || isNaN(adrianInput) || adrianInput <= 0) {
-        statusEl.innerText = "Please enter a valid ADRIAN amount.";
-        return;
-      }
-      try {
-        statusEl.innerText = "Sending transaction to withdraw ADRIAN tokens... 🚀";
-        const amountTokens = ethers.utils.parseUnits(adrianInput, 18);
-        const tx = await pimpsAdrianContract.withdrawTokens(adrianTokenAddress, amountTokens);
-        statusEl.innerText = "Transaction sent. Waiting for confirmation...";
-        await tx.wait();
-        statusEl.innerText = "ADRIAN withdrawal successful! 🎊";
-        refreshBalances();
-      } catch (error) {
-        console.error("Error withdrawing ADRIAN:", error);
-        statusEl.innerText = "Error: " + (error.data?.message || error.message);
-      }
-    });
-
-    // MAX button for ETH: fill the input with the full contract ETH balance
-    document.getElementById("maxEthButton").addEventListener("click", () => {
-      document.getElementById("ethAmount").value = globalEthBalance;
-    });
-
-    // MAX button for ADRIAN: fill the input with the full contract ADRIAN balance
-    document.getElementById("maxAdrianButton").addEventListener("click", () => {
-      document.getElementById("adrianAmount").value = globalAdrianBalance;
-    });
-
-    // Event listeners for Connect Wallet and Refresh Balances buttons
-    document.getElementById("connectButton").addEventListener("click", connectWallet);
-    document.getElementById("refreshBalances").addEventListener("click", refreshBalances);
   </script>
 </body>
 </html>
