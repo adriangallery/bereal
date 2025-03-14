@@ -64,7 +64,7 @@
   </div>
 
   <script>
-    // ABI completa del contrato (según lo proporcionado)
+    // ABI completa del contrato de staking (según lo proporcionado)
     const contractABI = [
       {
         "inputs": [],
@@ -409,6 +409,13 @@
       }
     ];
 
+    // ABI mínima para ERC20 (permitirá consultar allowance y aprobar)
+    const erc20ABI = [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+
+    // Dirección del contrato de staking desplegado
     const contractAddress = "0x1AD5Bd04E55BC3283CdDC8f00C74f57E7b057915";
     const poolId = 0;
     const secondsInYear = 31536000;
@@ -467,6 +474,19 @@
       }
       try {
         const amount = ethers.utils.parseEther(stakeAmountStr);
+        // Obtiene la dirección del token de staking (ADRIAN) desde los datos del pool
+        const tokenAddress = document.getElementById("stakingToken").innerText;
+        // Instancia el contrato ERC20 del token
+        const erc20Contract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+        const currentAccount = document.getElementById("account").innerText;
+        // Verifica el allowance actual
+        const allowance = await erc20Contract.allowance(currentAccount, contractAddress);
+        if (allowance.lt(amount)) {
+          alert("Aprobando tokens, por favor espera...");
+          const approveTx = await erc20Contract.approve(contractAddress, amount);
+          await approveTx.wait();
+          alert("Tokens aprobados.");
+        }
         const tx = await contract.stake(poolId, amount);
         await tx.wait();
         alert("Stake realizado correctamente.");
