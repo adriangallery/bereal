@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ADRIAN Lottery Frontend</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2 { color: #333; }
+    .container { max-width: 800px; margin: auto; }
+    .section { margin-bottom: 40px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    label { display: block; margin-top: 10px; }
+    input, button { padding: 10px; margin-top: 5px; width: 100%; max-width: 400px; }
+    button { cursor: pointer; }
+    .admin-section { background-color: #f9f9f9; border: 2px solid #f44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ADRIAN Lottery</h1>
+    
+    <!-- User Section -->
+    <div class="section" id="user-section">
+      <h2>User Dashboard</h2>
+      <div>
+        <button id="connectWallet">Connect Wallet</button>
+      </div>
+      <div id="accountDisplay"></div>
+      <div>
+        <h3>Claim Tickets</h3>
+        <label for="numTickets">Number of Tickets:</label>
+        <input type="number" id="numTickets" min="1" placeholder="Enter number of tickets" />
+        <button id="claimTicketsButton">Claim Tickets</button>
+      </div>
+      <div>
+        <h3>Current Round Info</h3>
+        <div id="roundInfo"></div>
+      </div>
+    </div>
+    
+    <!-- Admin Section -->
+    <div class="section admin-section" id="admin-section">
+      <h2>Admin Functions</h2>
+      <div>
+        <h3>Start New Lottery Round</h3>
+        <label for="snapshotId">Snapshot ID:</label>
+        <input type="number" id="snapshotId" placeholder="Enter snapshot ID" />
+        <label for="newTicketPrice">Ticket Price (tokens required per ticket):</label>
+        <input type="number" id="newTicketPrice" placeholder="Enter new ticket price" />
+        <button id="startRoundButton">Start Lottery Round</button>
+      </div>
+      <div>
+        <h3>Update Ticket Price</h3>
+        <label for="updateTicketPriceInput">New Ticket Price:</label>
+        <input type="number" id="updateTicketPriceInput" placeholder="Enter new ticket price" />
+        <button id="updateTicketPriceButton">Update Ticket Price</button>
+      </div>
+      <div>
+        <h3>Draw Winners</h3>
+        <button id="drawWinnersButton">Draw Winners</button>
+      </div>
+      <div>
+        <h3>Distribute Prizes</h3>
+        <button id="distributePrizesButton">Distribute Prizes</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Include ethers.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script>
+    // Global variables
+    let provider;
+    let signer;
+    let userAddress;
+    let contract;
+    
+    // ADRIANlottery contract address and ABI
+    const contractAddress = "0xe40deaff899a18c91632728cdaad70f389968641";
+    const contractABI = [
+      // Minimal ABI for functions we need:
+      "function claimTickets(uint256 numTickets) external",
+      "function startLotteryRound(uint256 snapshotId, uint256 newTicketPrice) external",
+      "function updateTicketPrice(uint256 newPrice) external",
+      "function drawWinners() external",
+      "function distributePrizes() external",
+      "function currentRoundId() view returns (uint256)",
+      "function claimDeadline() view returns (uint256)",
+      "function drawTime() view returns (uint256)",
+      "function ticketPrice() view returns (uint256)",
+      "function getWinners() view returns (address[])"
+    ];
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        document.getElementById("accountDisplay").innerText = "Connected: " + userAddress;
+        contract = new ethers.Contract(contractAddress, contractABI, signer);
+        loadRoundInfo();
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+    
+    async function loadRoundInfo() {
+      try {
+        const roundId = await contract.currentRoundId();
+        const deadline = await contract.claimDeadline();
+        const drawTimeVal = await contract.drawTime();
+        const price = await contract.ticketPrice();
+        const infoDiv = document.getElementById("roundInfo");
+        infoDiv.innerHTML = `
+          <p>Current Round ID: ${roundId}</p>
+          <p>Ticket Price: ${price.toString()}</p>
+          <p>Claim Deadline: ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
+          <p>Draw Time: ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
+        `;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    document.getElementById("connectWallet").addEventListener("click", connectWallet);
+    
+    // User: Claim Tickets
+    document.getElementById("claimTicketsButton").addEventListener("click", async () => {
+      const numTickets = document.getElementById("numTickets").value;
+      if(!numTickets || numTickets <= 0) {
+        alert("Enter a valid number of tickets.");
+        return;
+      }
+      try {
+        const tx = await contract.claimTickets(numTickets);
+        await tx.wait();
+        alert("Tickets claimed successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error claiming tickets: " + err.message);
+      }
+    });
+    
+    // Admin: Start New Lottery Round
+    document.getElementById("startRoundButton").addEventListener("click", async () => {
+      const snapshotId = document.getElementById("snapshotId").value;
+      const newTicketPrice = document.getElementById("newTicketPrice").value;
+      if(!snapshotId || !newTicketPrice) {
+        alert("Please enter snapshot ID and ticket price.");
+        return;
+      }
+      try {
+        const tx = await contract.startLotteryRound(snapshotId, newTicketPrice);
+        await tx.wait();
+        alert("Lottery round started successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error starting round: " + err.message);
+      }
+    });
+    
+    // Admin: Update Ticket Price
+    document.getElementById("updateTicketPriceButton").addEventListener("click", async () => {
+      const newPrice = document.getElementById("updateTicketPriceInput").value;
+      if(!newPrice) {
+        alert("Enter a new ticket price.");
+        return;
+      }
+      try {
+        const tx = await contract.updateTicketPrice(newPrice);
+        await tx.wait();
+        alert("Ticket price updated successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error updating ticket price: " + err.message);
+      }
+    });
+    
+    // Admin: Draw Winners
+    document.getElementById("drawWinnersButton").addEventListener("click", async () => {
+      try {
+        const tx = await contract.drawWinners();
+        await tx.wait();
+        alert("Winners drawn successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error drawing winners: " + err.message);
+      }
+    });
+    
+    // Admin: Distribute Prizes
+    document.getElementById("distributePrizesButton").addEventListener("click", async () => {
+      try {
+        const tx = await contract.distributePrizes();
+        await tx.wait();
+        alert("Prizes distributed successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error distributing prizes: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
