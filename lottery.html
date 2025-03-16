@@ -69,17 +69,16 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
+      <!-- Note: Snapshot is now automatic -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <label for="snapshotId">Snapshot ID:</label>
-        <input type="number" id="snapshotId" class="form-control" placeholder="Enter Snapshot ID">
         <label for="newTicketPrice">Regular Ticket Price:</label>
         <input type="number" id="newTicketPrice" class="form-control" placeholder="Price in tokens" step="any">
         <label for="newComplTicketPrice">Complementary Ticket Price:</label>
         <input type="number" id="newComplTicketPrice" class="form-control" placeholder="Price in tokens" step="any">
         <label for="newFixedPrize">Fixed Prize Amount:</label>
         <input type="number" id="newFixedPrize" class="form-control" placeholder="Fixed prize in tokens" step="any">
-        <button id="startRoundButton" class="btn btn-danger mt-2">Start Round</button>
+        <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round (Auto Snapshot)</button>
       </div>
       <div class="mb-3">
         <h4>Update Regular Ticket Price</h4>
@@ -118,11 +117,11 @@
     let provider;
     let signer;
     let userAddress;
-    let contract;
+    let lotteryContract;
     
-    // ADRIANlottery contract address (updated)
-    const contractAddress = "0x3fa34475260e59cc5f2b762d75bb42b7f34ef05a";
-    const contractABI = [
+    // Lottery contract address (v2.1)
+    const lotteryAddress = "0x3fa34475260e59cc5f2b762d75bb42b7f34ef05a";
+    const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
       "function startLotteryRound(uint256 snapshotId, uint256 newTicketPrice, uint256 newComplementaryTicketPrice, uint256 newFixedPrize) external",
@@ -140,6 +139,12 @@
       "function getWinners() view returns (address[])"
     ];
     
+    // ADRIAN token contract address (for snapshot)
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    const tokenABI = [
+      "function snapshot() external returns (uint256)"
+    ];
+    
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -148,7 +153,7 @@
           signer = provider.getSigner();
           userAddress = await signer.getAddress();
           document.getElementById("accountDisplay").innerText = "Connected: " + userAddress;
-          contract = new ethers.Contract(contractAddress, contractABI, signer);
+          lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
           loadRoundInfo();
         } catch (error) {
           console.error("Error connecting wallet:", error);
@@ -161,12 +166,12 @@
     
     async function loadRoundInfo() {
       try {
-        const roundId = await contract.currentRoundId();
-        const deadline = await contract.claimDeadline();
-        const drawTimeVal = await contract.drawTime();
-        const price = await contract.ticketPrice();
-        const complPrice = await contract.complementaryTicketPrice();
-        const fixedPrizeVal = await contract.fixedPrize();
+        const roundId = await lotteryContract.currentRoundId();
+        const deadline = await lotteryContract.claimDeadline();
+        const drawTimeVal = await lotteryContract.drawTime();
+        const price = await lotteryContract.ticketPrice();
+        const complPrice = await lotteryContract.complementaryTicketPrice();
+        const fixedPrizeVal = await lotteryContract.fixedPrize();
         const infoDiv = document.getElementById("roundInfo");
         infoDiv.innerHTML = `
           <p><strong>Current Round ID:</strong> ${roundId}</p>
@@ -191,7 +196,7 @@
         return;
       }
       try {
-        const tx = await contract.claimTickets(numTickets);
+        const tx = await lotteryContract.claimTickets(numTickets);
         await tx.wait();
         alert("Regular tickets purchased successfully!");
         loadRoundInfo();
@@ -209,7 +214,7 @@
         return;
       }
       try {
-        const tx = await contract.buyComplementaryTickets(numComplTickets);
+        const tx = await lotteryContract.buyComplementaryTickets(numComplTickets);
         await tx.wait();
         alert("Complementary tickets purchased successfully!");
         loadRoundInfo();
@@ -219,20 +224,29 @@
       }
     });
     
-    // Admin: Start New Round
+    // Admin: Start New Round (Auto Snapshot)
     document.getElementById("startRoundButton").addEventListener("click", async () => {
-      const snapshotId = document.getElementById("snapshotId").value;
       const newTicketPrice = document.getElementById("newTicketPrice").value;
       const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
       const newFixedPrize = document.getElementById("newFixedPrize").value;
-      if (!snapshotId || !newTicketPrice || !newComplTicketPrice || !newFixedPrize) {
-        alert("Please enter Snapshot ID, ticket prices, and fixed prize.");
+      if (!newTicketPrice || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter ticket prices and fixed prize.");
         return;
       }
       try {
-        const tx = await contract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
+        // Call snapshot() on the ADRIAN token contract
+        const tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+        const snapshotTx = await tokenContract.snapshot();
+        const receipt = await snapshotTx.wait();
+        // Extract the snapshot ID from the transaction return (if available)
+        // Here we assume the snapshot() function returns a value; if not, use events or a separate call.
+        // For simplicity, we perform a call:
+        const snapshotId = await tokenContract.callStatic.snapshot();
+        console.log("Snapshot ID:", snapshotId.toString());
+        
+        const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
         await tx.wait();
-        alert("Lottery round started successfully!");
+        alert("Lottery round started successfully! Snapshot ID: " + snapshotId.toString());
         loadRoundInfo();
       } catch (err) {
         console.error(err);
@@ -248,7 +262,7 @@
         return;
       }
       try {
-        const tx = await contract.updateTicketPrice(newPrice);
+        const tx = await lotteryContract.updateTicketPrice(newPrice);
         await tx.wait();
         alert("Regular ticket price updated successfully!");
         loadRoundInfo();
@@ -266,7 +280,7 @@
         return;
       }
       try {
-        const tx = await contract.updateComplementaryTicketPrice(newPrice);
+        const tx = await lotteryContract.updateComplementaryTicketPrice(newPrice);
         await tx.wait();
         alert("Complementary ticket price updated successfully!");
         loadRoundInfo();
@@ -284,7 +298,7 @@
         return;
       }
       try {
-        const tx = await contract.updateFixedPrize(newFixedPrize);
+        const tx = await lotteryContract.updateFixedPrize(newFixedPrize);
         await tx.wait();
         alert("Fixed prize updated successfully!");
         loadRoundInfo();
@@ -297,7 +311,7 @@
     // Admin: Draw Winners
     document.getElementById("drawWinnersButton").addEventListener("click", async () => {
       try {
-        const tx = await contract.drawWinners();
+        const tx = await lotteryContract.drawWinners();
         await tx.wait();
         alert("Winners drawn successfully!");
       } catch (err) {
@@ -309,7 +323,7 @@
     // Admin: Distribute Prizes
     document.getElementById("distributePrizesButton").addEventListener("click", async () => {
       try {
-        const tx = await contract.distributePrizes();
+        const tx = await lotteryContract.distributePrizes();
         await tx.wait();
         alert("Prizes distributed successfully!");
       } catch (err) {
