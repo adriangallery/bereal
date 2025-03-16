@@ -69,7 +69,7 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
-      <!-- Note: Snapshot is now automatic -->
+      <!-- Snapshot is now automatic -->
       <div class="mb-3">
         <h4>Start New Round</h4>
         <label for="newTicketPrice">Regular Ticket Price:</label>
@@ -139,9 +139,15 @@
       "function getWinners() view returns (address[])"
     ];
     
-    // ADRIAN token contract address (for snapshot)
+    // ADRIAN token contract address (for snapshot and token approvals)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    const tokenABI = [
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ];
+    
+    // Token ABI for snapshot (assuming snapshot() returns a uint256)
+    const tokenSnapshotABI = [
       "function snapshot() external returns (uint256)"
     ];
     
@@ -188,6 +194,16 @@
     
     document.getElementById("connectWallet").addEventListener("click", connectWallet);
     
+    // Helper function to approve tokens if needed
+    async function approveTokensIfNeeded(amount) {
+      const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+      const currentAllowance = await tokenContract.allowance(userAddress, lotteryAddress);
+      if (currentAllowance.lt(amount)) {
+        const tx = await tokenContract.approve(lotteryAddress, amount);
+        await tx.wait();
+      }
+    }
+    
     // User: Buy Regular Tickets
     document.getElementById("claimTicketsButton").addEventListener("click", async () => {
       const numTickets = document.getElementById("numRegularTickets").value;
@@ -196,6 +212,13 @@
         return;
       }
       try {
+        // Get the regular ticket price from the lottery contract
+        const price = await lotteryContract.ticketPrice();
+        // Calculate total cost (using BigNumber arithmetic)
+        const totalCost = price.mul(numTickets);
+        // Approve tokens if needed
+        await approveTokensIfNeeded(totalCost);
+        // Purchase regular tickets
         const tx = await lotteryContract.claimTickets(numTickets);
         await tx.wait();
         alert("Regular tickets purchased successfully!");
@@ -214,6 +237,11 @@
         return;
       }
       try {
+        // Get the complementary ticket price
+        const complPrice = await lotteryContract.complementaryTicketPrice();
+        const totalCost = complPrice.mul(numComplTickets);
+        await approveTokensIfNeeded(totalCost);
+        // Purchase complementary tickets
         const tx = await lotteryContract.buyComplementaryTickets(numComplTickets);
         await tx.wait();
         alert("Complementary tickets purchased successfully!");
@@ -234,16 +262,14 @@
         return;
       }
       try {
-        // Call snapshot() on the ADRIAN token contract
-        const tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+        // Create a token contract instance for snapshot
+        const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
+        // Call snapshot() to generate a new snapshot
         const snapshotTx = await tokenContract.snapshot();
-        const receipt = await snapshotTx.wait();
-        // Extract the snapshot ID from the transaction return (if available)
-        // Here we assume the snapshot() function returns a value; if not, use events or a separate call.
-        // For simplicity, we perform a call:
+        await snapshotTx.wait();
+        // Retrieve the new snapshot id using callStatic (simulate the call)
         const snapshotId = await tokenContract.callStatic.snapshot();
         console.log("Snapshot ID:", snapshotId.toString());
-        
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
         await tx.wait();
         alert("Lottery round started successfully! Snapshot ID: " + snapshotId.toString());
