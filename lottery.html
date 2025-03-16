@@ -2,45 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADRIAN Lottery v2.2 Frontend</title>
-  <!-- Bootstrap CSS for styling -->
+  <title>ADRIAN Lottery v3 Frontend</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Load ethers.js (UMD build from ethers v5.7.2) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    body {
-      background-color: #f7f7f7;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-    }
-    .section {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .admin-section {
-      border: 2px solid #f44336;
-    }
-    label {
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .input-group .form-control {
-      flex: 1 1 auto;
-    }
+    body { background-color: #f7f7f7; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    .section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .admin-section { border: 2px solid #f44336; }
+    label { margin-top: 10px; font-weight: bold; }
+    .input-group .form-control { flex: 1 1 auto; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">ADRIAN Lottery v2.2</h1>
+    <h1 class="mb-4">ADRIAN Lottery v3</h1>
     
     <!-- Wallet Connection Section -->
     <div class="section text-center mb-4">
@@ -83,8 +60,10 @@
           <input type="number" id="snapshotId" class="form-control" placeholder="Enter or generate Snapshot ID">
           <button id="generateSnapshotButton" class="btn btn-info">Generate Snapshot</button>
         </div>
-        <label for="newTicketPrice">Regular Ticket Price (whole tokens):</label>
-        <input type="number" id="newTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
+        <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
+        <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
+        <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
+        <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 100" step="any">
         <label for="newComplTicketPrice">Complementary Ticket Price (whole tokens):</label>
         <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 50" step="any">
         <label for="newFixedPrize">Fixed Prize Amount (whole tokens):</label>
@@ -92,10 +71,16 @@
         <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round</button>
       </div>
       <div class="mb-3">
-        <h4>Update Regular Ticket Price</h4>
-        <label for="updateTicketPriceInput">New Regular Ticket Price (whole tokens):</label>
-        <input type="number" id="updateTicketPriceInput" class="form-control" placeholder="New price" step="any">
-        <button id="updateTicketPriceButton" class="btn btn-warning mt-2">Update Regular Ticket Price</button>
+        <h4>Update Regular Ticket Ratio</h4>
+        <label for="updateTicketRatioInput">New Regular Ticket Ratio (whole tokens):</label>
+        <input type="number" id="updateTicketRatioInput" class="form-control" placeholder="New ratio" step="any">
+        <button id="updateTicketRatioButton" class="btn btn-warning mt-2">Update Regular Ticket Ratio</button>
+      </div>
+      <div class="mb-3">
+        <h4>Update Regular Ticket Cost</h4>
+        <label for="updateTicketCostInput">New Regular Ticket Cost (whole tokens):</label>
+        <input type="number" id="updateTicketCostInput" class="form-control" placeholder="New cost" step="any">
+        <button id="updateTicketCostButton" class="btn btn-warning mt-2">Update Regular Ticket Cost</button>
       </div>
       <div class="mb-3">
         <h4>Update Complementary Ticket Price</h4>
@@ -108,6 +93,10 @@
         <label for="updateFixedPrizeInput">New Fixed Prize (whole tokens):</label>
         <input type="number" id="updateFixedPrizeInput" class="form-control" placeholder="New fixed prize" step="any">
         <button id="updateFixedPrizeButton" class="btn btn-warning mt-2">Update Fixed Prize</button>
+      </div>
+      <div class="mb-3">
+        <h4>Force Finish Round</h4>
+        <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
       </div>
       <div class="mb-3">
         <h4>Draw Winners</h4>
@@ -132,26 +121,24 @@
     </div>
   </div>
   
-  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Frontend Script -->
   <script>
     let provider;
     let signer;
     let userAddress;
     let lotteryContract;
     
-    // Scaling factor to convert human-readable token amounts (whole tokens) into token units (18 decimals)
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // New Lottery contract address (v2.2 with emergency pause)
-    const lotteryAddress = "0xf8756348707e57467a541e5f59e775558de04347";
+    // Updated contract address for v3
+    const lotteryAddress = "0x5ee6d1e6f0d9c263d6d89ae4772061dc32a18068";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
-      "function startLotteryRound(uint256 snapshotId, uint256 newTicketPrice, uint256 newComplementaryTicketPrice, uint256 newFixedPrize) external",
-      "function updateTicketPrice(uint256 newPrice) external",
+      "function startLotteryRound(uint256 snapshotId, uint256 newTicketCost, uint256 newTicketRatio, uint256 newComplTicketPrice, uint256 newFixedPrize) external",
+      "function updateTicketCost(uint256 newCost) external",
+      "function updateTicketRatio(uint256 newRatio) external",
       "function updateComplementaryTicketPrice(uint256 newPrice) external",
       "function updateFixedPrize(uint256 newFixedPrize) external",
       "function drawWinners() external",
@@ -160,22 +147,22 @@
       "function currentSnapshotId() view returns (uint256)",
       "function claimDeadline() view returns (uint256)",
       "function drawTime() view returns (uint256)",
-      "function ticketPrice() view returns (uint256)",
+      "function ticketCost() view returns (uint256)",
+      "function ticketRatio() view returns (uint256)",
       "function complementaryTicketPrice() view returns (uint256)",
       "function fixedPrize() view returns (uint256)",
       "function getWinners() view returns (address[])",
       "function ticketsPurchased(uint256, address) view returns (uint256)",
       "function pause() external",
-      "function unpause() external"
+      "function unpause() external",
+      "function forceFinishRound() external"
     ];
     
-    // ADRIAN token contract address (for token approvals and snapshot)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)"
     ];
-    // Token snapshot ABI
     const tokenSnapshotABI = [
       "function snapshot() external returns (uint256)"
     ];
@@ -205,13 +192,15 @@
         const roundId = await lotteryContract.currentRoundId();
         const deadline = await lotteryContract.claimDeadline();
         const drawTimeVal = await lotteryContract.drawTime();
-        const price = await lotteryContract.ticketPrice();
+        const cost = await lotteryContract.ticketCost();
+        const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
         const fixedPrizeVal = await lotteryContract.fixedPrize();
         const infoDiv = document.getElementById("roundInfo");
         infoDiv.innerHTML = `
           <p><strong>Current Round ID:</strong> ${roundId}</p>
-          <p><strong>Regular Ticket Price:</strong> ${price.toString()} tokens</p>
+          <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
+          <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
           <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
           <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
           <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
@@ -232,8 +221,8 @@
         const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address, uint256) view returns (uint256)"], signer);
         const snapshotId = await lotteryContract.currentSnapshotId();
         const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
-        const price = await lotteryContract.ticketPrice();
-        const allowedTickets = snapshotBalance.div(price.mul(SCALING));
+        const ratio = await lotteryContract.ticketRatio();
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const claimedTickets = await lotteryContract.ticketsPurchased(roundId, userAddress);
         const availableTickets = allowedTickets.sub(claimedTickets);
         document.getElementById("userTicketInfo").innerHTML = `
@@ -253,7 +242,6 @@
       updateUserTicketInfo();
     });
     
-    // Helper function to approve tokens if needed
     async function approveTokensIfNeeded(amount) {
       const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
       const currentAllowance = await tokenContract.allowance(userAddress, lotteryAddress);
@@ -263,7 +251,6 @@
       }
     }
     
-    // User: Buy Regular Tickets
     document.getElementById("claimTicketsButton").addEventListener("click", async () => {
       const numTickets = document.getElementById("numRegularTickets").value;
       if (!numTickets || numTickets <= 0) {
@@ -271,8 +258,8 @@
         return;
       }
       try {
-        const price = await lotteryContract.ticketPrice();
-        const totalCost = price.mul(numTickets).mul(SCALING);
+        const cost = await lotteryContract.ticketCost();
+        const totalCost = cost.mul(numTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
         const tx = await lotteryContract.claimTickets(numTickets);
         await tx.wait();
@@ -285,7 +272,6 @@
       }
     });
     
-    // User: Buy Complementary Tickets
     document.getElementById("buyComplTicketsButton").addEventListener("click", async () => {
       const numComplTickets = document.getElementById("numComplTickets").value;
       if (!numComplTickets || numComplTickets <= 0) {
@@ -307,13 +293,11 @@
       }
     });
     
-    // Admin: Generate Snapshot
     document.getElementById("generateSnapshotButton").addEventListener("click", async () => {
       try {
         const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
         const tx = await tokenContract.snapshot();
         await tx.wait();
-        // Retrieve the new snapshot id using callStatic
         const snapshotId = await tokenContract.callStatic.snapshot();
         document.getElementById("snapshotId").value = snapshotId.toString();
         alert("Snapshot generated successfully! Snapshot ID: " + snapshotId.toString());
@@ -323,18 +307,17 @@
       }
     });
     
-    // Admin: Start New Round
     document.getElementById("startRoundButton").addEventListener("click", async () => {
       const snapshotId = document.getElementById("snapshotId").value;
-      const newTicketPrice = document.getElementById("newTicketPrice").value;
+      const newTicketRatio = document.getElementById("newTicketRatio").value;
+      const newTicketCost = document.getElementById("newTicketCost").value;
       const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
       const newFixedPrize = document.getElementById("newFixedPrize").value;
-      if (!snapshotId || !newTicketPrice || !newComplTicketPrice || !newFixedPrize) {
-        alert("Please enter Snapshot ID, ticket prices, and fixed prize.");
+      if (!snapshotId || !newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter Snapshot ID, ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
         return;
       }
       try {
-        // Check if an active round exists
         const currentRoundId = await lotteryContract.currentRoundId();
         if (currentRoundId.gt(0)) {
           const drawTimeVal = await lotteryContract.drawTime();
@@ -345,7 +328,7 @@
             return;
           }
         }
-        const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
+        const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize);
         await tx.wait();
         alert("Lottery round started successfully! Snapshot ID: " + snapshotId);
         loadRoundInfo();
@@ -356,25 +339,40 @@
       }
     });
     
-    // Admin: Update Regular Ticket Price
-    document.getElementById("updateTicketPriceButton").addEventListener("click", async () => {
-      const newPrice = document.getElementById("updateTicketPriceInput").value;
-      if (!newPrice) {
-        alert("Enter a new regular ticket price.");
+    document.getElementById("updateTicketRatioButton").addEventListener("click", async () => {
+      const newRatio = document.getElementById("updateTicketRatioInput").value;
+      if (!newRatio) {
+        alert("Enter a new regular ticket ratio.");
         return;
       }
       try {
-        const tx = await lotteryContract.updateTicketPrice(newPrice);
+        const tx = await lotteryContract.updateTicketRatio(newRatio);
         await tx.wait();
-        alert("Regular ticket price updated successfully!");
+        alert("Regular ticket ratio updated successfully!");
         loadRoundInfo();
       } catch (err) {
         console.error(err);
-        alert("Error updating regular ticket price: " + err.message);
+        alert("Error updating regular ticket ratio: " + err.message);
       }
     });
     
-    // Admin: Update Complementary Ticket Price
+    document.getElementById("updateTicketCostButton").addEventListener("click", async () => {
+      const newCost = document.getElementById("updateTicketCostInput").value;
+      if (!newCost) {
+        alert("Enter a new regular ticket cost.");
+        return;
+      }
+      try {
+        const tx = await lotteryContract.updateTicketCost(newCost);
+        await tx.wait();
+        alert("Regular ticket cost updated successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error updating regular ticket cost: " + err.message);
+      }
+    });
+    
     document.getElementById("updateComplTicketPriceButton").addEventListener("click", async () => {
       const newPrice = document.getElementById("updateComplTicketPriceInput").value;
       if (!newPrice) {
@@ -392,7 +390,6 @@
       }
     });
     
-    // Admin: Update Fixed Prize
     document.getElementById("updateFixedPrizeButton").addEventListener("click", async () => {
       const newFixedPrize = document.getElementById("updateFixedPrizeInput").value;
       if (!newFixedPrize) {
@@ -410,7 +407,18 @@
       }
     });
     
-    // Admin: Draw Winners
+    document.getElementById("forceFinishRoundButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.forceFinishRound();
+        await tx.wait();
+        alert("Round force-finished successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error force-finishing round: " + err.message);
+      }
+    });
+    
     document.getElementById("drawWinnersButton").addEventListener("click", async () => {
       try {
         const tx = await lotteryContract.drawWinners();
@@ -422,7 +430,6 @@
       }
     });
     
-    // Admin: Distribute Prizes
     document.getElementById("distributePrizesButton").addEventListener("click", async () => {
       try {
         const tx = await lotteryContract.distributePrizes();
@@ -434,7 +441,6 @@
       }
     });
     
-    // Admin: Emergency Pause and Unpause
     document.getElementById("pauseButton").addEventListener("click", async () => {
       try {
         const tx = await lotteryContract.pause();
@@ -457,7 +463,6 @@
       }
     });
     
-    // Admin: Refresh Debug Info for connected wallet
     document.getElementById("refreshDebugButton").addEventListener("click", async () => {
       try {
         const roundId = await lotteryContract.currentRoundId();
@@ -468,8 +473,8 @@
         const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address, uint256) view returns (uint256)"], signer);
         const snapshotId = await lotteryContract.currentSnapshotId();
         const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
-        const price = await lotteryContract.ticketPrice();
-        const allowedTickets = snapshotBalance.div(price.mul(SCALING));
+        const ratio = await lotteryContract.ticketRatio();
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const claimedTickets = await lotteryContract.ticketsPurchased(roundId, userAddress);
         const totalTickets = await lotteryContract.totalTickets();
         document.getElementById("debugInfo").innerHTML = `
