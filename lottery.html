@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADRIAN Lottery v2.1</title>
+  <title>ADRIAN Lottery v2.2</title>
   <!-- Bootstrap CSS for styling -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Load ethers.js (UMD build from ethers v5.7.2) -->
@@ -37,7 +37,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="mb-4">ADRIAN Lottery v2.1</h1>
+    <h1 class="mb-4">ADRIAN Lottery v2.2</h1>
     
     <!-- Wallet Connection Section -->
     <div class="section text-center mb-4">
@@ -72,29 +72,29 @@
       <!-- Snapshot is now automatic -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <label for="newTicketPrice">Regular Ticket Price:</label>
-        <input type="number" id="newTicketPrice" class="form-control" placeholder="Price in tokens" step="any">
-        <label for="newComplTicketPrice">Complementary Ticket Price:</label>
-        <input type="number" id="newComplTicketPrice" class="form-control" placeholder="Price in tokens" step="any">
-        <label for="newFixedPrize">Fixed Prize Amount:</label>
-        <input type="number" id="newFixedPrize" class="form-control" placeholder="Fixed prize in tokens" step="any">
+        <label for="newTicketPrice">Regular Ticket Price (whole tokens):</label>
+        <input type="number" id="newTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
+        <label for="newComplTicketPrice">Complementary Ticket Price (whole tokens):</label>
+        <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 50" step="any">
+        <label for="newFixedPrize">Fixed Prize Amount (whole tokens):</label>
+        <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 100000" step="any">
         <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round (Auto Snapshot)</button>
       </div>
       <div class="mb-3">
         <h4>Update Regular Ticket Price</h4>
-        <label for="updateTicketPriceInput">New Regular Ticket Price:</label>
+        <label for="updateTicketPriceInput">New Regular Ticket Price (whole tokens):</label>
         <input type="number" id="updateTicketPriceInput" class="form-control" placeholder="New price" step="any">
         <button id="updateTicketPriceButton" class="btn btn-warning mt-2">Update Regular Ticket Price</button>
       </div>
       <div class="mb-3">
         <h4>Update Complementary Ticket Price</h4>
-        <label for="updateComplTicketPriceInput">New Complementary Ticket Price:</label>
+        <label for="updateComplTicketPriceInput">New Complementary Ticket Price (whole tokens):</label>
         <input type="number" id="updateComplTicketPriceInput" class="form-control" placeholder="New price" step="any">
         <button id="updateComplTicketPriceButton" class="btn btn-warning mt-2">Update Complementary Ticket Price</button>
       </div>
       <div class="mb-3">
         <h4>Update Fixed Prize</h4>
-        <label for="updateFixedPrizeInput">New Fixed Prize:</label>
+        <label for="updateFixedPrizeInput">New Fixed Prize (whole tokens):</label>
         <input type="number" id="updateFixedPrizeInput" class="form-control" placeholder="New fixed prize" step="any">
         <button id="updateFixedPrizeButton" class="btn btn-warning mt-2">Update Fixed Prize</button>
       </div>
@@ -119,8 +119,11 @@
     let userAddress;
     let lotteryContract;
     
-    // Lottery contract address (v2.1)
-    const lotteryAddress = "0x3fa34475260e59cc5f2b762d75bb42b7f34ef05a";
+    // Scaling factor for 18 decimals
+    const SCALING = ethers.BigNumber.from("1000000000000000000");
+    
+    // Lottery contract address (updated to new contract address)
+    const lotteryAddress = "0x54a6539300937eb9e14b9ef2b56aad84a07e87e0";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -139,14 +142,13 @@
       "function getWinners() view returns (address[])"
     ];
     
-    // ADRIAN token contract address (for snapshot and token approvals)
+    // ADRIAN token contract (for snapshot and token approvals)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)"
     ];
-    
-    // Token ABI for snapshot (assuming snapshot() returns a uint256)
+    // Token snapshot ABI
     const tokenSnapshotABI = [
       "function snapshot() external returns (uint256)"
     ];
@@ -181,9 +183,9 @@
         const infoDiv = document.getElementById("roundInfo");
         infoDiv.innerHTML = `
           <p><strong>Current Round ID:</strong> ${roundId}</p>
-          <p><strong>Regular Ticket Price:</strong> ${price.toString()}</p>
-          <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()}</p>
-          <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()}</p>
+          <p><strong>Regular Ticket Price:</strong> ${price.toString()} tokens</p>
+          <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
+          <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
           <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
           <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
         `;
@@ -212,13 +214,10 @@
         return;
       }
       try {
-        // Get the regular ticket price from the lottery contract
+        // Get the regular ticket price (human-readable, whole tokens)
         const price = await lotteryContract.ticketPrice();
-        // Calculate total cost (using BigNumber arithmetic)
-        const totalCost = price.mul(numTickets);
-        // Approve tokens if needed
+        const totalCost = price.mul(numTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
-        // Purchase regular tickets
         const tx = await lotteryContract.claimTickets(numTickets);
         await tx.wait();
         alert("Regular tickets purchased successfully!");
@@ -237,11 +236,9 @@
         return;
       }
       try {
-        // Get the complementary ticket price
         const complPrice = await lotteryContract.complementaryTicketPrice();
-        const totalCost = complPrice.mul(numComplTickets);
+        const totalCost = complPrice.mul(numComplTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
-        // Purchase complementary tickets
         const tx = await lotteryContract.buyComplementaryTickets(numComplTickets);
         await tx.wait();
         alert("Complementary tickets purchased successfully!");
@@ -264,10 +261,9 @@
       try {
         // Create a token contract instance for snapshot
         const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
-        // Call snapshot() to generate a new snapshot
         const snapshotTx = await tokenContract.snapshot();
         await snapshotTx.wait();
-        // Retrieve the new snapshot id using callStatic (simulate the call)
+        // Retrieve the new snapshot id using callStatic
         const snapshotId = await tokenContract.callStatic.snapshot();
         console.log("Snapshot ID:", snapshotId.toString());
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
