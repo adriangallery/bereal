@@ -53,26 +53,30 @@
   <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
-      <h1>Swap $ADRIAN for ETH</h1>
-      <p class="lead">Exchange your $ADRIAN tokens directly via Uniswap.</p>
+      <h1>$ADRIAN Swap</h1>
+      <p class="lead">Compra o vende $ADRIAN usando ETH vía Uniswap.</p>
     </div>
   </section>
   
   <!-- Swap Section -->
   <div class="container my-5">
     <div id="swapSection" class="text-center">
-      <h2>Exchange $ADRIAN Tokens</h2>
+      <h2>Intercambia $ADRIAN Tokens</h2>
+      <!-- Estado de conexión de wallet -->
+      <p id="walletStatus">Wallet no conectada. Conecta mediante el menú.</p>
       
-      <!-- Wallet connection status -->
-      <p id="walletStatus">Wallet not connected. Please connect via the menu.</p>
-      
+      <!-- Selector de dirección de swap -->
       <div class="mb-3">
-        <input type="number" id="amountIn" class="form-control" placeholder="Amount of $ADRIAN to swap" min="0" step="any">
+        <select id="swapDirection" class="form-select">
+          <option value="sell" selected>Vender $ADRIAN por ETH</option>
+          <option value="buy">Comprar $ADRIAN con ETH</option>
+        </select>
       </div>
+      <!-- Input de cantidad -->
       <div class="mb-3">
-        <input type="number" id="amountOutMin" class="form-control" placeholder="Minimum ETH to receive" min="0" step="any">
+        <input type="number" id="swapAmount" class="form-control" placeholder="Ingresa la cantidad" min="0" step="any">
       </div>
-      <button id="swapBtn" class="btn btn-primary">Swap</button>
+      <button id="swapBtn" class="btn btn-primary">Ejecutar Swap</button>
       <p class="status mt-3" id="swapStatus"></p>
     </div>
   </div>
@@ -96,13 +100,13 @@
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const WETHAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH en Mainnet
 
-    // ABI del Router de Uniswap (incluye la función de swap)
+    // ABI del Router (se incluyen funciones para swap de tokens a ETH y viceversa)
     const routerABI = [
       "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
-      "function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)"
+      "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"
     ];
 
-    // ABI ERC20 (balanceOf, allowance, approve)
+    // ABI ERC20 para funciones básicas
     const erc20ABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -111,77 +115,82 @@
 
     let provider, signer, userAddress, routerContract, adrianTokenContract;
 
-    // Helper para formatear montos (por defecto 18 decimales)
-    function formatAmount(amountBN, decimals = 18) {
-      const amount = Number(ethers.utils.formatUnits(amountBN, decimals));
-      return amount.toLocaleString('en-US', { maximumFractionDigits: 6 });
-    }
-
-    // Función que ejecuta el swap de $ADRIAN por ETH
-    async function swapADRIANForETH() {
-      const amountInValue = document.getElementById("amountIn").value;
-      const amountOutMinValue = document.getElementById("amountOutMin").value;
-      if (!amountInValue || !amountOutMinValue) {
-        document.getElementById("swapStatus").innerText = "Please enter both amounts.";
+    // Función que ejecuta el swap según la dirección elegida
+    async function performSwap() {
+      const direction = document.getElementById("swapDirection").value;
+      const amountValue = document.getElementById("swapAmount").value;
+      if (!amountValue || amountValue <= 0) {
+        document.getElementById("swapStatus").innerText = "Ingresa una cantidad válida.";
         return;
       }
-      const amountIn = ethers.utils.parseUnits(amountInValue, 18);
-      const amountOutMin = ethers.utils.parseUnits(amountOutMinValue, 18);
-      
-      document.getElementById("swapStatus").innerText = "Processing swap...";
+      document.getElementById("swapStatus").innerText = "Procesando swap...";
       
       try {
-        // Verificar allowance actual
-        let allowance = await adrianTokenContract.allowance(userAddress, uniswapRouterAddress);
-        if (allowance.lt(amountIn)) {
-          document.getElementById("swapStatus").innerText = "Approving $ADRIAN tokens...";
-          const approveTx = await adrianTokenContract.approve(uniswapRouterAddress, amountIn);
-          await approveTx.wait();
-          document.getElementById("swapStatus").innerText = "Approval successful.";
-        }
-        
-        // Definir la ruta del swap: $ADRIAN -> WETH (que se convertirá en ETH)
-        const path = [adrianTokenAddress, WETHAddress];
-        // Deadline: tiempo actual + 20 minutos
+        // Deadline: 20 minutos desde ahora
         const deadline = Math.floor(Date.now() / 1000) + (20 * 60);
-        
-        // Ejecutar el swap
-        document.getElementById("swapStatus").innerText = "Executing swap...";
-        const tx = await routerContract.swapExactTokensForETH(
-          amountIn,
-          amountOutMin,
-          path,
-          userAddress,
-          deadline
-        );
-        await tx.wait();
-        document.getElementById("swapStatus").innerText = "Swap successful!";
+        if (direction === "sell") {
+          // Vender $ADRIAN por ETH
+          const amountIn = ethers.utils.parseUnits(amountValue, 18);
+          // Para efectos de prueba, usamos 0 en amountOutMin
+          const amountOutMin = 0;
+          // Verificar allowance del token $ADRIAN
+          let allowance = await adrianTokenContract.allowance(userAddress, uniswapRouterAddress);
+          if (allowance.lt(amountIn)) {
+            document.getElementById("swapStatus").innerText = "Aprobando tokens $ADRIAN...";
+            const approveTx = await adrianTokenContract.approve(uniswapRouterAddress, amountIn);
+            await approveTx.wait();
+          }
+          const path = [adrianTokenAddress, WETHAddress];
+          document.getElementById("swapStatus").innerText = "Ejecutando swap de venta...";
+          const tx = await routerContract.swapExactTokensForETH(
+            amountIn,
+            amountOutMin,
+            path,
+            userAddress,
+            deadline
+          );
+          await tx.wait();
+          document.getElementById("swapStatus").innerText = "Swap de venta completado.";
+        } else {
+          // Comprar $ADRIAN con ETH
+          const amountInETH = ethers.utils.parseUnits(amountValue, 18);
+          const amountOutMin = 0;
+          const path = [WETHAddress, adrianTokenAddress];
+          document.getElementById("swapStatus").innerText = "Ejecutando swap de compra...";
+          const tx = await routerContract.swapExactETHForTokens(
+            amountOutMin,
+            path,
+            userAddress,
+            deadline,
+            { value: amountInETH }
+          );
+          await tx.wait();
+          document.getElementById("swapStatus").innerText = "Swap de compra completado.";
+        }
       } catch (error) {
         console.error("Swap failed:", error);
-        document.getElementById("swapStatus").innerText = "Swap failed. Check console for details.";
+        document.getElementById("swapStatus").innerText = "Swap fallido. Revisa la consola para más detalles.";
       }
     }
 
-    document.getElementById("swapBtn").addEventListener("click", swapADRIANForETH);
+    document.getElementById("swapBtn").addEventListener("click", performSwap);
 
     // Callback de conexión de wallet (desde menu2.js)
     window.onMenuWalletConnected = async function() {
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
       signer = window.menuSigner;
-      console.log("Wallet connected:", userAddress);
-      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
-      
-      // Instanciar los contratos
+      console.log("Wallet conectada:", userAddress);
+      document.getElementById("walletStatus").innerText = "Conectada: " + userAddress;
       routerContract = new ethers.Contract(uniswapRouterAddress, routerABI, signer);
       adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
     };
 
     window.onMenuWalletDisconnected = function() {
-      document.getElementById("walletStatus").innerText = "Wallet not connected. Please connect via the menu.";
+      document.getElementById("walletStatus").innerText = "Wallet no conectada. Conecta mediante el menú.";
     };
 
-    // Opcional: intentar auto-conexión al cargar la página (si menu2.js no lo gestiona)
+    // Intento de auto-conexión al cargar la página (opcional)
     window.addEventListener("load", async () => {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -189,12 +198,12 @@
           await provider.send("eth_requestAccounts", []);
           signer = provider.getSigner();
           userAddress = await signer.getAddress();
-          console.log("Wallet auto-connected:", userAddress);
-          document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+          console.log("Wallet auto-conectada:", userAddress);
+          document.getElementById("walletStatus").innerText = "Conectada: " + userAddress;
           routerContract = new ethers.Contract(uniswapRouterAddress, routerABI, signer);
           adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
         } catch (error) {
-          console.log("Auto-connection failed:", error);
+          console.log("Auto-conexión fallida:", error);
         }
       }
     });
