@@ -72,7 +72,6 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
-      <!-- Manual Snapshot ID input with a Generate Snapshot button -->
       <div class="mb-3">
         <h4>Start New Round</h4>
         <label for="snapshotId">Snapshot ID:</label>
@@ -114,7 +113,13 @@
         <h4>Distribute Prizes</h4>
         <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
       </div>
-      <!-- Emergency Pause Controls (optional) -->
+      <!-- Debug / Admin Info Section -->
+      <div class="mb-3">
+        <h4>Debug Info (Connected Wallet)</h4>
+        <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
+        <div id="debugInfo" class="mt-2"></div>
+      </div>
+      <!-- Emergency Pause Controls -->
       <div class="mb-3">
         <h4>Emergency Pause</h4>
         <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
@@ -136,7 +141,7 @@
     // Scaling factor to convert human-readable token amounts (whole tokens) into token units (18 decimals)
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // New Lottery contract address (v2.2 manual snapshot version)
+    // New Lottery contract address (v2.2 with emergency pause)
     const lotteryAddress = "0xf8756348707e57467a541e5f59e775558de04347";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -410,6 +415,33 @@
       } catch (err) {
         console.error(err);
         alert("Error unpausing contract: " + err.message);
+      }
+    });
+    
+    // Debug Info: Refresh Debug Info for connected wallet
+    document.getElementById("refreshDebugButton").addEventListener("click", async () => {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        if (roundId.eq(0)) {
+          document.getElementById("debugInfo").innerHTML = "No active round.";
+          return;
+        }
+        const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address account, uint256 snapshotId) view returns (uint256)"], signer);
+        const snapshotId = await lotteryContract.currentSnapshotId();
+        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
+        const price = await lotteryContract.ticketPrice();
+        const allowedTickets = snapshotBalance.div(price.mul(SCALING));
+        const claimedTickets = await lotteryContract.ticketsPurchased(roundId, userAddress);
+        const totalTickets = await lotteryContract.totalTickets();
+        document.getElementById("debugInfo").innerHTML = `
+          <p><strong>Your Snapshot Balance:</strong> ${ethers.utils.formatUnits(snapshotBalance, 18)} tokens</p>
+          <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
+          <p><strong>Regular Tickets Claimed:</strong> ${claimedTickets.toString()}</p>
+          <p><strong>Total Tickets Claimed (all):</strong> ${totalTickets.toString()}</p>
+        `;
+      } catch (e) {
+        console.error(e);
+        document.getElementById("debugInfo").innerText = "Error loading debug info: " + e.message;
       }
     });
   </script>
