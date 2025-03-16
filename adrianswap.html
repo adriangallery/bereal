@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>$ADRIAN SWAP - Uniswap v4</title>
+  <title>$ADRIAN Swap - Uniswap V4 Universal Router</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -34,7 +34,7 @@
   <section class="hero">
     <div class="container">
       <h1>$ADRIAN Swap</h1>
-      <p class="lead">Compra o vende $ADRIAN usando ETH vía Uniswap v4.</p>
+      <p class="lead">Compra o vende $ADRIAN contra ETH vía el Universal Router de Uniswap V4</p>
     </div>
   </section>
   
@@ -42,7 +42,7 @@
   <div id="swapSection">
     <p id="walletStatus">Wallet no conectada.</p>
     
-    <!-- Selector para elegir dirección del swap -->
+    <!-- Selector para elegir swap: vender (ADRIAN ➜ ETH) o comprar (ETH ➜ ADRIAN) -->
     <div class="mb-3">
       <select id="swapDirection" class="form-select">
         <option value="sell" selected>Vender $ADRIAN por ETH</option>
@@ -50,37 +50,33 @@
       </select>
     </div>
     
-    <!-- Cantidad a intercambiar -->
+    <!-- Input de cantidad (para "sell": cantidad de ADRIAN; para "buy": cantidad de ETH a gastar) -->
     <div class="mb-3">
       <input type="number" id="swapAmount" class="form-control" placeholder="Ingresa la cantidad" min="0" step="any">
     </div>
     
     <button id="swapBtn" class="btn btn-primary">Ejecutar Swap</button>
     <p class="mt-3" id="swapStatus"></p>
-    
-    <!-- Botón y display para consultar reservas del par -->
-    <button id="getReservesBtn" class="btn btn-secondary mt-4">Consultar Reservas del Par</button>
-    <p class="mt-2" id="reservesDisplay"></p>
   </div>
   
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
+    /**************** Configuración ****************/
     // Direcciones conocidas
-    const routerAddress = "0x6fF5693b99212Da76ad316178A184AB56D299b43";
-    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    const pairAddress = "0x95EBfcb1c6b345fdA69cF56C51E30421e5a35aeC";
-    const WETHAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH en Mainnet
-
-    // ABI del router (se asume interfaz similar a Uniswap v2)
+    const routerAddress = "0x6fF5693b99212Da76ad316178A184AB56D299b43"; // Universal Router V4
+    const pairAddress = "0x95EBfcb1c6b345fdA69cF56C51E30421e5a35aeC"; // Contrato de la pareja ADRIAN/WETH
+    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Token ADRIAN
+    const WETHAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";    // WETH (Mainnet)
+    
+    // ABI mínimo del Universal Router V4 (función execute)
     const routerABI = [
-      "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)",
-      "function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"
+      "function execute(tuple(address target, uint256 value, bytes data, bool allowFailure)[] calls, address to, uint256 deadline) external payable returns (bytes[] memory results)"
     ];
     
-    // ABI del par (tal como fue proporcionado)
-    const pairABI = [
+    // ABI del par (tal como se proporcionó)
+    const pairABI = [ /* Aquí se inserta el ABI completo que proporcionaste */ 
       {"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},
       {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},
       {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},
@@ -117,15 +113,20 @@
       {"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}
     ];
     
-    // ABI ERC20 para funciones básicas
+    // ABI ERC20 mínimo (para approve)
     const erc20ABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
     
-    let provider, signer, userAddress, routerContract, adrianTokenContract, pairContract;
+    let provider, signer, userAddress;
+    let routerContract, adrianTokenContract, pairContract;
+    // Variables para saber el orden de tokens en el par
+    let token0Address, token1Address;
     
+    /**************** Funciones Auxiliares ****************/
+    // Conectar la wallet
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -133,91 +134,127 @@
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
         document.getElementById("walletStatus").innerText = "Wallet conectada: " + userAddress;
-        // Instanciar el contrato del router (para swaps)
+        // Instanciar contratos
         routerContract = new ethers.Contract(routerAddress, routerABI, signer);
-        // Instanciar el contrato del token ADRIAN
         adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
-        // Instanciar el contrato del par para consultar reservas
         pairContract = new ethers.Contract(pairAddress, pairABI, provider);
+        // Consultar token0 y token1 del par
+        token0Address = (await pairContract.token0()).toLowerCase();
+        token1Address = (await pairContract.token1()).toLowerCase();
+        console.log("Token0:", token0Address, "Token1:", token1Address);
       } else {
         alert("Por favor, instala MetaMask.");
       }
     }
     
-    // Conectar wallet al cargar la página
-    connectWallet();
+    // Función para calcular el monto de salida según la fórmula de Uniswap (fee 0.3%)
+    function computeAmountOut(amountIn, reserveIn, reserveOut) {
+      const feeNumerator = ethers.BigNumber.from(997);
+      const feeDenom = ethers.BigNumber.from(1000);
+      return amountIn.mul(feeNumerator).mul(reserveOut).div(reserveIn.mul(feeDenom).add(amountIn.mul(feeNumerator)));
+    }
     
+    /**************** Función de Swap ****************/
     async function performSwap() {
-      const direction = document.getElementById("swapDirection").value;
+      const direction = document.getElementById("swapDirection").value; // "sell" o "buy"
       const amountValue = document.getElementById("swapAmount").value;
-      if (!amountValue || amountValue <= 0) {
+      if (!amountValue || Number(amountValue) <= 0) {
         document.getElementById("swapStatus").innerText = "Ingresa una cantidad válida.";
         return;
       }
-      // Deadline: 20 minutos a partir de ahora
+      // Deadline a 20 minutos
       const deadline = Math.floor(Date.now() / 1000) + (20 * 60);
+      
       try {
+        // Primero, obtener las reservas del par
+        const reserves = await pairContract.getReserves();
+        const reserve0 = ethers.BigNumber.from(reserves._reserve0);
+        const reserve1 = ethers.BigNumber.from(reserves._reserve1);
+        
+        let amountIn, expectedOut, amount0Out, amount1Out, callData, valueToSend;
+        // Por defecto, inicializamos sin enviar ETH
+        valueToSend = ethers.BigNumber.from(0);
+        
+        // En nuestro ejemplo asumiremos:
+        // Si token0 es ADRIAN y token1 es WETH, para "sell":
+        //   - Vender ADRIAN (token0) => se calcula output en WETH (token1)
+        // Para "buy":
+        //   - Comprar ADRIAN (token0) con ETH (input en WETH)
+        // (Si el orden fuera inverso, se invierten los roles)
         if (direction === "sell") {
           // Vender ADRIAN por ETH
-          const amountIn = ethers.utils.parseUnits(amountValue, 18);
-          const amountOutMin = 0; // para pruebas
-          // Verificar allowance del token ADRIAN
-          let allowance = await adrianTokenContract.allowance(userAddress, routerAddress);
+          amountIn = ethers.utils.parseUnits(amountValue, 18); // cantidad de ADRIAN
+          // Verificar y, si es necesario, aprobar el router para gastar ADRIAN
+          const allowance = await adrianTokenContract.allowance(userAddress, routerAddress);
           if (allowance.lt(amountIn)) {
             document.getElementById("swapStatus").innerText = "Aprobando tokens ADRIAN...";
             const approveTx = await adrianTokenContract.approve(routerAddress, amountIn);
             await approveTx.wait();
           }
-          const path = [adrianTokenAddress, WETHAddress];
-          document.getElementById("swapStatus").innerText = "Ejecutando swap de venta...";
-          const tx = await routerContract.swapExactTokensForETH(
-            amountIn,
-            amountOutMin,
-            path,
-            userAddress,
-            deadline,
-            { gasLimit: 600000 }
-          );
-          await tx.wait();
-          document.getElementById("swapStatus").innerText = "Swap de venta completado.";
+          // Si ADRIAN es token0, se usa reserve0 como input y reserve1 para output; si es token1, se invierte
+          if (token0Address === adrianTokenAddress.toLowerCase()) {
+            expectedOut = computeAmountOut(amountIn, reserve0, reserve1);
+            // Para swap en par: se envía ADRIAN (input) y se espera salida de WETH
+            amount0Out = ethers.BigNumber.from(0);
+            amount1Out = expectedOut;
+          } else {
+            // En caso de que ADRIAN sea token1
+            expectedOut = computeAmountOut(amountIn, reserve1, reserve0);
+            amount0Out = expectedOut;
+            amount1Out = ethers.BigNumber.from(0);
+          }
+          valueToSend = ethers.BigNumber.from(0);
         } else {
           // Comprar ADRIAN con ETH
-          const amountInETH = ethers.utils.parseUnits(amountValue, 18);
-          const amountOutMin = 0;
-          const path = [WETHAddress, adrianTokenAddress];
-          document.getElementById("swapStatus").innerText = "Ejecutando swap de compra...";
-          const tx = await routerContract.swapExactETHForTokens(
-            amountOutMin,
-            path,
-            userAddress,
-            deadline,
-            { value: amountInETH, gasLimit: 600000 }
-          );
-          await tx.wait();
-          document.getElementById("swapStatus").innerText = "Swap de compra completado.";
+          // En este caso, amountValue es ETH (en valor) a gastar
+          amountIn = ethers.utils.parseUnits(amountValue, 18); // ETH a invertir
+          valueToSend = amountIn; // se envía en la transacción
+          if (token0Address === adrianTokenAddress.toLowerCase()) {
+            // ADRIAN es token0, y ETH (WETH) es token1
+            expectedOut = computeAmountOut(amountIn, reserve1, reserve0);
+            amount0Out = expectedOut;
+            amount1Out = ethers.BigNumber.from(0);
+          } else {
+            // Si ADRIAN es token1, entonces output se calcula desde reserve0 a reserve1
+            expectedOut = computeAmountOut(amountIn, reserve0, reserve1);
+            amount0Out = ethers.BigNumber.from(0);
+            amount1Out = expectedOut;
+          }
         }
+        console.log("Amount In:", amountIn.toString(), "Expected Out:", expectedOut.toString());
+        
+        // Codificar la llamada al contrato de la pareja: función swap(uint256 amount0Out, uint256 amount1Out, address to, bytes data)
+        callData = pairContract.interface.encodeFunctionData("swap", [
+          amount0Out, amount1Out, userAddress, "0x"
+        ]);
+        
+        // Construir el objeto de call para el Universal Router
+        const callObject = {
+          target: pairAddress,
+          value: valueToSend,
+          data: callData,
+          allowFailure: false
+        };
+        
+        // Llamar a execute del router con el array de calls
+        document.getElementById("swapStatus").innerText = "Ejecutando swap...";
+        const tx = await routerContract.execute([callObject], userAddress, deadline, {
+          value: valueToSend,
+          gasLimit: 600000
+        });
+        await tx.wait();
+        document.getElementById("swapStatus").innerText = "Swap completado con éxito.";
       } catch (error) {
         console.error("Swap fallido:", error);
         document.getElementById("swapStatus").innerText = "Swap fallido. Revisa la consola.";
       }
     }
     
+    /**************** Eventos ****************/
     document.getElementById("swapBtn").addEventListener("click", performSwap);
     
-    // Función para consultar las reservas del par
-    async function getReserves() {
-      try {
-        const reserves = await pairContract.getReserves();
-        // getReserves devuelve _reserve0, _reserve1 y _blockTimestampLast
-        document.getElementById("reservesDisplay").innerText =
-          `Reservas del par:\nToken0: ${reserves._reserve0.toString()}\nToken1: ${reserves._reserve1.toString()}`;
-      } catch (error) {
-        console.error("Error al obtener reservas:", error);
-        document.getElementById("reservesDisplay").innerText = "Error al obtener reservas.";
-      }
-    }
-    
-    document.getElementById("getReservesBtn").addEventListener("click", getReserves);
+    // Conectar la wallet al cargar la página
+    window.addEventListener("load", connectWallet);
   </script>
 </body>
 </html>
