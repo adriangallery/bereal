@@ -69,16 +69,18 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
-      <!-- Snapshot is now automatic -->
+      <!-- Manual Snapshot ID required -->
       <div class="mb-3">
         <h4>Start New Round</h4>
+        <label for="snapshotId">Snapshot ID:</label>
+        <input type="number" id="snapshotId" class="form-control" placeholder="Enter Snapshot ID">
         <label for="newTicketPrice">Regular Ticket Price (whole tokens):</label>
         <input type="number" id="newTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
         <label for="newComplTicketPrice">Complementary Ticket Price (whole tokens):</label>
         <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 50" step="any">
         <label for="newFixedPrize">Fixed Prize Amount (whole tokens):</label>
         <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 100000" step="any">
-        <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round (Auto Snapshot)</button>
+        <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round</button>
       </div>
       <div class="mb-3">
         <h4>Update Regular Ticket Price</h4>
@@ -119,10 +121,10 @@
     let userAddress;
     let lotteryContract;
     
-    // Scaling factor for 18 decimals
+    // Scaling factor to convert human-readable token amounts to 18-decimal units
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Lottery contract address (updated to new contract address)
+    // Lottery contract address (v2.2)
     const lotteryAddress = "0x54a6539300937eb9e14b9ef2b56aad84a07e87e0";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -142,7 +144,7 @@
       "function getWinners() view returns (address[])"
     ];
     
-    // ADRIAN token contract (for snapshot and token approvals)
+    // ADRIAN token contract address (for snapshot and token approvals)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
@@ -214,7 +216,6 @@
         return;
       }
       try {
-        // Get the regular ticket price (human-readable, whole tokens)
         const price = await lotteryContract.ticketPrice();
         const totalCost = price.mul(numTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
@@ -249,26 +250,20 @@
       }
     });
     
-    // Admin: Start New Round (Auto Snapshot)
+    // Admin: Start New Round using a manually entered snapshot id.
     document.getElementById("startRoundButton").addEventListener("click", async () => {
+      const snapshotId = document.getElementById("snapshotId").value;
       const newTicketPrice = document.getElementById("newTicketPrice").value;
       const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
       const newFixedPrize = document.getElementById("newFixedPrize").value;
-      if (!newTicketPrice || !newComplTicketPrice || !newFixedPrize) {
-        alert("Please enter ticket prices and fixed prize.");
+      if (!snapshotId || !newTicketPrice || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter Snapshot ID, ticket prices, and fixed prize.");
         return;
       }
       try {
-        // Create a token contract instance for snapshot
-        const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
-        const snapshotTx = await tokenContract.snapshot();
-        await snapshotTx.wait();
-        // Retrieve the new snapshot id using callStatic
-        const snapshotId = await tokenContract.callStatic.snapshot();
-        console.log("Snapshot ID:", snapshotId.toString());
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
         await tx.wait();
-        alert("Lottery round started successfully! Snapshot ID: " + snapshotId.toString());
+        alert("Lottery round started successfully! Snapshot ID: " + snapshotId);
         loadRoundInfo();
       } catch (err) {
         console.error(err);
