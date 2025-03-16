@@ -33,6 +33,9 @@
       margin-top: 10px;
       font-weight: bold;
     }
+    .input-group .form-control {
+      flex: 1 1 auto;
+    }
   </style>
 </head>
 <body>
@@ -69,11 +72,13 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
-      <!-- Manual Snapshot ID required -->
       <div class="mb-3">
         <h4>Start New Round</h4>
         <label for="snapshotId">Snapshot ID:</label>
-        <input type="number" id="snapshotId" class="form-control" placeholder="Enter Snapshot ID">
+        <div class="input-group mb-2">
+          <input type="number" id="snapshotId" class="form-control" placeholder="Enter or generate Snapshot ID">
+          <button id="generateSnapshotButton" class="btn btn-info">Generate Snapshot</button>
+        </div>
         <label for="newTicketPrice">Regular Ticket Price (whole tokens):</label>
         <input type="number" id="newTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
         <label for="newComplTicketPrice">Complementary Ticket Price (whole tokens):</label>
@@ -121,10 +126,10 @@
     let userAddress;
     let lotteryContract;
     
-    // Scaling factor to convert human-readable token amounts to 18-decimal units
+    // Scaling factor to convert human-readable token amounts into token units (18 decimals)
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Lottery contract address (v2.2)
+    // Lottery contract address (v2.2 manual snapshot version)
     const lotteryAddress = "0x54a6539300937eb9e14b9ef2b56aad84a07e87e0";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -144,7 +149,7 @@
       "function getWinners() view returns (address[])"
     ];
     
-    // ADRIAN token contract address (for snapshot and token approvals)
+    // ADRIAN token contract address (for token approvals and snapshot)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
@@ -250,7 +255,23 @@
       }
     });
     
-    // Admin: Start New Round using a manually entered snapshot id.
+    // Admin: Generate Snapshot Button
+    document.getElementById("generateSnapshotButton").addEventListener("click", async () => {
+      try {
+        const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
+        const tx = await tokenContract.snapshot();
+        await tx.wait();
+        // Try to get the snapshot id using callStatic
+        const snapshotId = await tokenContract.callStatic.snapshot();
+        document.getElementById("snapshotId").value = snapshotId.toString();
+        alert("Snapshot generated successfully! Snapshot ID: " + snapshotId.toString());
+      } catch (err) {
+        console.error(err);
+        alert("Error generating snapshot automatically. Please enter the Snapshot ID manually.");
+      }
+    });
+    
+    // Admin: Start New Round
     document.getElementById("startRoundButton").addEventListener("click", async () => {
       const snapshotId = document.getElementById("snapshotId").value;
       const newTicketPrice = document.getElementById("newTicketPrice").value;
