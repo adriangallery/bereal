@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <!-- Ensure proper scaling on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADRIAN Lottery v2.2</title>
+  <title>ADRIAN Lottery v2.2 Frontend</title>
   <!-- Bootstrap CSS for styling -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Load ethers.js (UMD build from ethers v5.7.2) -->
@@ -72,6 +72,7 @@
     <!-- Admin Functions -->
     <div class="section admin-section">
       <h2>Admin Functions</h2>
+      <!-- Manual Snapshot ID input with a Generate Snapshot button -->
       <div class="mb-3">
         <h4>Start New Round</h4>
         <label for="snapshotId">Snapshot ID:</label>
@@ -113,6 +114,12 @@
         <h4>Distribute Prizes</h4>
         <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
       </div>
+      <!-- Emergency Pause Controls (optional) -->
+      <div class="mb-3">
+        <h4>Emergency Pause</h4>
+        <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
+        <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
+      </div>
     </div>
   </div>
   
@@ -126,11 +133,11 @@
     let userAddress;
     let lotteryContract;
     
-    // Scaling factor to convert human-readable token amounts into token units (18 decimals)
+    // Scaling factor to convert human-readable token amounts (whole tokens) into token units (18 decimals)
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Lottery contract address (v2.2 manual snapshot version)
-    const lotteryAddress = "0x54a6539300937eb9e14b9ef2b56aad84a07e87e0";
+    // New Lottery contract address (v2.2 manual snapshot version)
+    const lotteryAddress = "0xf8756348707e57467a541e5f59e775558de04347";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -146,7 +153,9 @@
       "function ticketPrice() view returns (uint256)",
       "function complementaryTicketPrice() view returns (uint256)",
       "function fixedPrize() view returns (uint256)",
-      "function getWinners() view returns (address[])"
+      "function getWinners() view returns (address[])",
+      "function pause() external",
+      "function unpause() external"
     ];
     
     // ADRIAN token contract address (for token approvals and snapshot)
@@ -255,13 +264,13 @@
       }
     });
     
-    // Admin: Generate Snapshot Button
+    // Admin: Generate Snapshot
     document.getElementById("generateSnapshotButton").addEventListener("click", async () => {
       try {
         const tokenContract = new ethers.Contract(tokenAddress, tokenSnapshotABI, signer);
         const tx = await tokenContract.snapshot();
         await tx.wait();
-        // Try to get the snapshot id using callStatic
+        // Retrieve the new snapshot id using callStatic
         const snapshotId = await tokenContract.callStatic.snapshot();
         document.getElementById("snapshotId").value = snapshotId.toString();
         alert("Snapshot generated successfully! Snapshot ID: " + snapshotId.toString());
@@ -282,6 +291,17 @@
         return;
       }
       try {
+        // Check if an active round exists
+        const currentRoundId = await lotteryContract.currentRoundId();
+        if (currentRoundId.gt(0)) {
+          const drawTimeVal = await lotteryContract.drawTime();
+          const winners = await lotteryContract.getWinners();
+          const currentBlock = await provider.getBlock("latest");
+          if (currentBlock.timestamp < drawTimeVal.toNumber() || winners.length === 0) {
+            alert("The current round is still active. Please finish it before starting a new round.");
+            return;
+          }
+        }
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketPrice, newComplTicketPrice, newFixedPrize);
         await tx.wait();
         alert("Lottery round started successfully! Snapshot ID: " + snapshotId);
@@ -367,6 +387,29 @@
       } catch (err) {
         console.error(err);
         alert("Error distributing prizes: " + err.message);
+      }
+    });
+    
+    // Admin: Emergency Pause and Unpause
+    document.getElementById("pauseButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.pause();
+        await tx.wait();
+        alert("Contract paused successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error pausing contract: " + err.message);
+      }
+    });
+    
+    document.getElementById("unpauseButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.unpause();
+        await tx.wait();
+        alert("Contract unpaused successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error unpausing contract: " + err.message);
       }
     });
   </script>
