@@ -2,131 +2,74 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>$ADRIAN Swap - Uniswap V4 Universal Router</title>
+  <title>Swap de Prueba con Debug - Universal Router V4</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #f8f9fa; }
-    #swapSection {
-      background: #222;
-      color: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      margin: 2rem auto;
-      max-width: 500px;
-      text-align: center;
-    }
-    .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiaz5u7jqbhlutesrmitkmkp63ukcacbppzub3d7kvqjjjpnkktnbi') no-repeat center center;
-      background-size: cover;
-      padding: 4rem 0;
-      color: #fff;
-      text-shadow: 0 0 5px #000;
-      text-align: center;
-    }
-  </style>
   <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, select, button { margin-bottom: 10px; }
+    pre { background: #eee; padding: 10px; max-height: 300px; overflow-y: auto; }
+  </style>
 </head>
 <body>
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container">
-      <h1>$ADRIAN Swap</h1>
-      <p class="lead">Compra o vende $ADRIAN contra ETH vía el Universal Router de Uniswap V4</p>
-    </div>
-  </section>
+  <h1>Swap de Prueba con Debug</h1>
+  <p id="walletStatus">Wallet no conectada.</p>
   
-  <!-- Swap Section -->
-  <div id="swapSection">
-    <p id="walletStatus">Wallet no conectada.</p>
-    
-    <!-- Selector para elegir swap: vender (ADRIAN ➜ ETH) o comprar (ETH ➜ ADRIAN) -->
-    <div class="mb-3">
-      <select id="swapDirection" class="form-select">
-        <option value="sell" selected>Vender $ADRIAN por ETH</option>
-        <option value="buy">Comprar $ADRIAN con ETH</option>
-      </select>
-    </div>
-    
-    <!-- Input de cantidad (para "sell": cantidad de ADRIAN; para "buy": cantidad de ETH a gastar) -->
-    <div class="mb-3">
-      <input type="number" id="swapAmount" class="form-control" placeholder="Ingresa la cantidad" min="0" step="any">
-    </div>
-    
-    <button id="swapBtn" class="btn btn-primary">Ejecutar Swap</button>
-    <p class="mt-3" id="swapStatus"></p>
-  </div>
+  <label for="swapDirection">Selecciona la dirección del swap:</label>
+  <select id="swapDirection">
+    <option value="sell" selected>Vender ADRIAN por ETH</option>
+    <option value="buy">Comprar ADRIAN con ETH</option>
+  </select>
+  <br>
   
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <label for="swapAmount">Cantidad (para "sell": ADRIAN, para "buy": ETH):</label>
+  <input type="number" id="swapAmount" placeholder="Cantidad" step="any" min="0">
+  <br>
+  
+  <button id="swapBtn">Ejecutar Swap</button>
+  
+  <h3>Debug Logs</h3>
+  <pre id="debugLog"></pre>
   
   <script>
-    /**************** Configuración ****************/
+    /**************** CONFIGURACIÓN ****************/
     // Direcciones conocidas
     const routerAddress = "0x6fF5693b99212Da76ad316178A184AB56D299b43"; // Universal Router V4
     const pairAddress = "0x95EBfcb1c6b345fdA69cF56C51E30421e5a35aeC"; // Contrato de la pareja ADRIAN/WETH
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Token ADRIAN
     const WETHAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";    // WETH (Mainnet)
     
-    // ABI mínimo del Universal Router V4 (función execute)
+    // ABI mínimo del Universal Router V4 (solo la función execute)
     const routerABI = [
       "function execute(tuple(address target, uint256 value, bytes data, bool allowFailure)[] calls, address to, uint256 deadline) external payable returns (bytes[] memory results)"
     ];
     
-    // ABI del par (tal como se proporcionó)
-    const pairABI = [ /* Aquí se inserta el ABI completo que proporcionaste */ 
-      {"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Mint","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount0Out","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1Out","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Swap","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"},
-      {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},
-      {"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"MINIMUM_LIQUIDITY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"burn","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint112","name":"_reserve0","type":"uint112"},{"internalType":"uint112","name":"_reserve1","type":"uint112"},{"internalType":"uint32","name":"_blockTimestampLast","type":"uint32"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"_token0","type":"address"},{"internalType":"address","name":"_token1","type":"address"}],"name":"initialize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"kLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"mint","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"price0CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"price1CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"skim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"uint256","name":"amount0Out","type":"uint256"},{"internalType":"uint256","name":"amount1Out","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"swap","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[],"name":"sync","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},
-      {"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}
+    // ABI mínimo del par (para token0, token1, getReserves y swap)
+    const pairABI = [
+      "function token0() view returns (address)",
+      "function token1() view returns (address)",
+      "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
+      "function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external"
     ];
     
-    // ABI ERC20 mínimo (para approve)
+    // ABI mínimo para ERC20 (aprobación y allowance)
     const erc20ABI = [
-      "function balanceOf(address account) view returns (uint256)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function approve(address spender, uint256 amount) returns (bool)"
+      "function approve(address spender, uint256 amount) returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
     ];
     
     let provider, signer, userAddress;
-    let routerContract, adrianTokenContract, pairContract;
-    // Variables para saber el orden de tokens en el par
-    let token0Address, token1Address;
+    let routerContract, pairContract, adrianTokenContract;
+    let token0, token1;
     
-    /**************** Funciones Auxiliares ****************/
-    // Conectar la wallet
+    const debugLogElem = document.getElementById("debugLog");
+    function logDebug(msg) {
+      console.log(msg);
+      debugLogElem.textContent += msg + "\n";
+    }
+    
+    /**************** CONEXIÓN DE WALLET ****************/
     async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -134,126 +77,130 @@
         signer = provider.getSigner();
         userAddress = await signer.getAddress();
         document.getElementById("walletStatus").innerText = "Wallet conectada: " + userAddress;
+        logDebug("Wallet conectada: " + userAddress);
+        
         // Instanciar contratos
         routerContract = new ethers.Contract(routerAddress, routerABI, signer);
-        adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
         pairContract = new ethers.Contract(pairAddress, pairABI, provider);
+        adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
+        
         // Consultar token0 y token1 del par
-        token0Address = (await pairContract.token0()).toLowerCase();
-        token1Address = (await pairContract.token1()).toLowerCase();
-        console.log("Token0:", token0Address, "Token1:", token1Address);
+        token0 = (await pairContract.token0()).toLowerCase();
+        token1 = (await pairContract.token1()).toLowerCase();
+        logDebug("token0: " + token0);
+        logDebug("token1: " + token1);
       } else {
-        alert("Por favor, instala MetaMask.");
+        alert("Instala MetaMask.");
       }
     }
     
+    /**************** FUNCIONES AUXILIARES ****************/
     // Función para calcular el monto de salida según la fórmula de Uniswap (fee 0.3%)
-    function computeAmountOut(amountIn, reserveIn, reserveOut) {
-      const feeNumerator = ethers.BigNumber.from(997);
-      const feeDenom = ethers.BigNumber.from(1000);
-      return amountIn.mul(feeNumerator).mul(reserveOut).div(reserveIn.mul(feeDenom).add(amountIn.mul(feeNumerator)));
+    function getAmountOut(amountIn, reserveIn, reserveOut) {
+      const amountInWithFee = amountIn.mul(997);
+      const numerator = amountInWithFee.mul(reserveOut);
+      const denominator = reserveIn.mul(1000).add(amountInWithFee);
+      return numerator.div(denominator);
     }
     
-    /**************** Función de Swap ****************/
+    /**************** FUNCION DE SWAP ****************/
     async function performSwap() {
       const direction = document.getElementById("swapDirection").value; // "sell" o "buy"
-      const amountValue = document.getElementById("swapAmount").value;
-      if (!amountValue || Number(amountValue) <= 0) {
-        document.getElementById("swapStatus").innerText = "Ingresa una cantidad válida.";
+      const swapAmount = document.getElementById("swapAmount").value;
+      if (!swapAmount || Number(swapAmount) <= 0) {
+        logDebug("Cantidad inválida");
         return;
       }
-      // Deadline a 20 minutos
+      // Deadline a 20 minutos desde ahora
       const deadline = Math.floor(Date.now() / 1000) + (20 * 60);
       
-      try {
-        // Primero, obtener las reservas del par
-        const reserves = await pairContract.getReserves();
-        const reserve0 = ethers.BigNumber.from(reserves._reserve0);
-        const reserve1 = ethers.BigNumber.from(reserves._reserve1);
+      let amountIn, expectedOut, amount0Out, amount1Out, valueToSend;
+      valueToSend = ethers.BigNumber.from(0);
+      
+      // Consultar reservas
+      const reserves = await pairContract.getReserves();
+      const reserve0 = ethers.BigNumber.from(reserves._reserve0);
+      const reserve1 = ethers.BigNumber.from(reserves._reserve1);
+      logDebug("Reserves: reserve0=" + reserve0.toString() + ", reserve1=" + reserve1.toString());
+      
+      if (direction === "sell") {
+        // Vender ADRIAN por ETH
+        amountIn = ethers.utils.parseUnits(swapAmount, 18);
+        logDebug("Sell: amountIn (ADRIAN): " + amountIn.toString());
         
-        let amountIn, expectedOut, amount0Out, amount1Out, callData, valueToSend;
-        // Por defecto, inicializamos sin enviar ETH
-        valueToSend = ethers.BigNumber.from(0);
-        
-        // En nuestro ejemplo asumiremos:
-        // Si token0 es ADRIAN y token1 es WETH, para "sell":
-        //   - Vender ADRIAN (token0) => se calcula output en WETH (token1)
-        // Para "buy":
-        //   - Comprar ADRIAN (token0) con ETH (input en WETH)
-        // (Si el orden fuera inverso, se invierten los roles)
-        if (direction === "sell") {
-          // Vender ADRIAN por ETH
-          amountIn = ethers.utils.parseUnits(amountValue, 18); // cantidad de ADRIAN
-          // Verificar y, si es necesario, aprobar el router para gastar ADRIAN
-          const allowance = await adrianTokenContract.allowance(userAddress, routerAddress);
-          if (allowance.lt(amountIn)) {
-            document.getElementById("swapStatus").innerText = "Aprobando tokens ADRIAN...";
-            const approveTx = await adrianTokenContract.approve(routerAddress, amountIn);
-            await approveTx.wait();
-          }
-          // Si ADRIAN es token0, se usa reserve0 como input y reserve1 para output; si es token1, se invierte
-          if (token0Address === adrianTokenAddress.toLowerCase()) {
-            expectedOut = computeAmountOut(amountIn, reserve0, reserve1);
-            // Para swap en par: se envía ADRIAN (input) y se espera salida de WETH
-            amount0Out = ethers.BigNumber.from(0);
-            amount1Out = expectedOut;
-          } else {
-            // En caso de que ADRIAN sea token1
-            expectedOut = computeAmountOut(amountIn, reserve1, reserve0);
-            amount0Out = expectedOut;
-            amount1Out = ethers.BigNumber.from(0);
-          }
-          valueToSend = ethers.BigNumber.from(0);
-        } else {
-          // Comprar ADRIAN con ETH
-          // En este caso, amountValue es ETH (en valor) a gastar
-          amountIn = ethers.utils.parseUnits(amountValue, 18); // ETH a invertir
-          valueToSend = amountIn; // se envía en la transacción
-          if (token0Address === adrianTokenAddress.toLowerCase()) {
-            // ADRIAN es token0, y ETH (WETH) es token1
-            expectedOut = computeAmountOut(amountIn, reserve1, reserve0);
-            amount0Out = expectedOut;
-            amount1Out = ethers.BigNumber.from(0);
-          } else {
-            // Si ADRIAN es token1, entonces output se calcula desde reserve0 a reserve1
-            expectedOut = computeAmountOut(amountIn, reserve0, reserve1);
-            amount0Out = ethers.BigNumber.from(0);
-            amount1Out = expectedOut;
-          }
+        // Aprobar tokens ADRIAN al router, si es necesario
+        const allowance = await adrianTokenContract.allowance(userAddress, routerAddress);
+        logDebug("Allowance: " + allowance.toString());
+        if (allowance.lt(amountIn)) {
+          logDebug("Aprobando tokens ADRIAN...");
+          const approveTx = await adrianTokenContract.approve(routerAddress, ethers.constants.MaxUint256);
+          await approveTx.wait();
+          logDebug("Tokens aprobados.");
         }
-        console.log("Amount In:", amountIn.toString(), "Expected Out:", expectedOut.toString());
         
-        // Codificar la llamada al contrato de la pareja: función swap(uint256 amount0Out, uint256 amount1Out, address to, bytes data)
-        callData = pairContract.interface.encodeFunctionData("swap", [
-          amount0Out, amount1Out, userAddress, "0x"
-        ]);
-        
-        // Construir el objeto de call para el Universal Router
-        const callObject = {
-          target: pairAddress,
-          value: valueToSend,
-          data: callData,
-          allowFailure: false
-        };
-        
-        // Llamar a execute del router con el array de calls
-        document.getElementById("swapStatus").innerText = "Ejecutando swap...";
+        // Si ADRIAN es token0, se vende token0 para obtener token1 (WETH)
+        if (token0 === adrianTokenAddress.toLowerCase()) {
+          expectedOut = getAmountOut(amountIn, reserve0, reserve1);
+          amount0Out = ethers.BigNumber.from(0);
+          amount1Out = expectedOut;
+          logDebug("Expected WETH out: " + expectedOut.toString());
+        } else {
+          // Si ADRIAN es token1
+          expectedOut = getAmountOut(amountIn, reserve1, reserve0);
+          amount0Out = expectedOut;
+          amount1Out = ethers.BigNumber.from(0);
+          logDebug("Expected WETH out: " + expectedOut.toString());
+        }
+      } else {
+        // Comprar ADRIAN con ETH
+        amountIn = ethers.utils.parseUnits(swapAmount, 18); // ETH a invertir
+        valueToSend = amountIn;
+        logDebug("Buy: amountIn (ETH): " + amountIn.toString());
+        if (token0 === adrianTokenAddress.toLowerCase()) {
+          expectedOut = getAmountOut(amountIn, reserve1, reserve0);
+          amount0Out = expectedOut;
+          amount1Out = ethers.BigNumber.from(0);
+          logDebug("Expected ADRIAN out: " + expectedOut.toString());
+        } else {
+          expectedOut = getAmountOut(amountIn, reserve0, reserve1);
+          amount0Out = ethers.BigNumber.from(0);
+          amount1Out = expectedOut;
+          logDebug("Expected ADRIAN out: " + expectedOut.toString());
+        }
+      }
+      
+      // Codificar la llamada al método swap del par
+      const swapData = pairContract.interface.encodeFunctionData("swap", [
+        amount0Out, amount1Out, userAddress, "0x"
+      ]);
+      logDebug("swapData: " + swapData);
+      
+      // Construir el objeto call para la función execute
+      const callObject = {
+        target: pairAddress,
+        value: valueToSend,
+        data: swapData,
+        allowFailure: false
+      };
+      logDebug("Call object: " + JSON.stringify(callObject));
+      
+      try {
+        logDebug("Ejecutando execute en el router...");
         const tx = await routerContract.execute([callObject], userAddress, deadline, {
           value: valueToSend,
           gasLimit: 600000
         });
-        await tx.wait();
-        document.getElementById("swapStatus").innerText = "Swap completado con éxito.";
+        logDebug("Tx enviada: " + tx.hash);
+        const receipt = await tx.wait();
+        logDebug("Tx confirmada. Receipt: " + JSON.stringify(receipt));
       } catch (error) {
-        console.error("Swap fallido:", error);
-        document.getElementById("swapStatus").innerText = "Swap fallido. Revisa la consola.";
+        logDebug("Error en execute: " + error);
+        console.error(error);
       }
     }
     
-    /**************** Eventos ****************/
+    /**************** EVENTOS ****************/
     document.getElementById("swapBtn").addEventListener("click", performSwap);
-    
-    // Conectar la wallet al cargar la página
     window.addEventListener("load", connectWallet);
   </script>
 </body>
