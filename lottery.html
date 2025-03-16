@@ -123,6 +123,12 @@
         <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
         <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
       </div>
+      <!-- Debug Info Section -->
+      <div class="mb-3">
+        <h4>Debug Info (Connected Wallet)</h4>
+        <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
+        <div id="debugInfo" class="mt-2"></div>
+      </div>
     </div>
   </div>
   
@@ -151,6 +157,7 @@
       "function drawWinners() external",
       "function distributePrizes() external",
       "function currentRoundId() view returns (uint256)",
+      "function currentSnapshotId() view returns (uint256)",
       "function claimDeadline() view returns (uint256)",
       "function drawTime() view returns (uint256)",
       "function ticketPrice() view returns (uint256)",
@@ -446,6 +453,33 @@
       } catch (err) {
         console.error(err);
         alert("Error unpausing contract: " + err.message);
+      }
+    });
+    
+    // Admin: Refresh Debug Info for connected wallet
+    document.getElementById("refreshDebugButton").addEventListener("click", async () => {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        if (roundId.eq(0)) {
+          document.getElementById("debugInfo").innerHTML = "<p>No active round.</p>";
+          return;
+        }
+        const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address, uint256) view returns (uint256)"], signer);
+        const snapshotId = await lotteryContract.currentSnapshotId();
+        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
+        const price = await lotteryContract.ticketPrice();
+        const allowedTickets = snapshotBalance.div(price.mul(SCALING));
+        const claimedTickets = await lotteryContract.ticketsPurchased(roundId, userAddress);
+        const totalTickets = await lotteryContract.totalTickets();
+        document.getElementById("debugInfo").innerHTML = `
+          <p><strong>Your Snapshot Balance:</strong> ${ethers.utils.formatUnits(snapshotBalance, 18)} tokens</p>
+          <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
+          <p><strong>Regular Tickets Claimed:</strong> ${claimedTickets.toString()}</p>
+          <p><strong>Total Tickets Claimed (all):</strong> ${totalTickets.toString()}</p>
+        `;
+      } catch (e) {
+        console.error(e);
+        document.getElementById("debugInfo").innerText = "Error loading debug info: " + e.message;
       }
     });
   </script>
