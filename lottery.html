@@ -53,7 +53,6 @@
     <!-- Previous Round Results Section -->
     <div class="section" id="previousRoundSection" style="display: none;">
       <h2>Previous Round Results</h2>
-      <button id="refreshPreviousRoundButton" class="btn btn-secondary mb-2">Refresh Previous Round Results</button>
       <div id="previousRoundInfo"></div>
     </div>
     
@@ -280,6 +279,18 @@
       }
     }
     
+    // Auto-refresh previous round results every 10 seconds if winners exist.
+    setInterval(async () => {
+      try {
+        const winners = await lotteryContract.getWinners();
+        if(winners.length > 0) {
+          updatePreviousRoundInfo();
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    }, 10000);
+    
     document.getElementById("connectWallet").addEventListener("click", async () => {
       await connectWallet();
       updateUserTicketInfo();
@@ -467,8 +478,7 @@
         const tx = await lotteryContract.drawWinners();
         await tx.wait();
         alert("Winners drawn successfully!");
-        // Refresh previous round info after drawing winners.
-        updatePreviousRoundInfo();
+        updatePreviousRoundInfo(); // Automatically update previous round info
       } catch (err) {
         console.error(err);
         alert("Error drawing winners: " + err.message);
@@ -533,48 +543,6 @@
         console.error(e);
         document.getElementById("debugInfo").innerText = "Error loading debug info: " + e.message;
       }
-    });
-    
-    // New: Refresh and show Previous Round Results
-    async function updatePreviousRoundInfo() {
-      try {
-        const winners = await lotteryContract.getWinners();
-        if(winners.length === 0) {
-          document.getElementById("previousRoundInfo").innerHTML = "<p>No previous round results available.</p>";
-          document.getElementById("previousRoundSection").style.display = "none";
-          return;
-        }
-        const roundId = await lotteryContract.currentRoundId();
-        const snapshotId = await lotteryContract.currentSnapshotId();
-        const roundStartTime = await lotteryContract.roundStartTime();
-        const claimDeadline = await lotteryContract.claimDeadline();
-        const drawTimeVal = await lotteryContract.drawTime();
-        const cost = await lotteryContract.ticketCost();
-        const ratio = await lotteryContract.ticketRatio();
-        const complPrice = await lotteryContract.complementaryTicketPrice();
-        const fixedPrizeVal = await lotteryContract.fixedPrize();
-        const totalTickets = await lotteryContract.totalTickets();
-        let info = `<p><strong>Round ID:</strong> ${roundId}</p>
-                    <p><strong>Snapshot ID:</strong> ${snapshotId}</p>
-                    <p><strong>Round Start Time:</strong> ${new Date(roundStartTime.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Claim Deadline:</strong> ${new Date(claimDeadline.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
-                    <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
-                    <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
-                    <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
-                    <p><strong>Total Tickets Purchased:</strong> ${totalTickets.toString()}</p>
-                    <p><strong>Winners:</strong> ${winners.join(", ")}</p>`;
-        document.getElementById("previousRoundInfo").innerHTML = info;
-        document.getElementById("previousRoundSection").style.display = "block";
-      } catch (error) {
-        console.error(error);
-        document.getElementById("previousRoundInfo").innerText = "Error loading previous round info: " + error.message;
-      }
-    }
-    
-    document.getElementById("refreshPreviousRoundButton").addEventListener("click", async () => {
-      updatePreviousRoundInfo();
     });
   </script>
 </body>
