@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Debug: Swap ADRIAN por ETH</title>
+  <title>Debug: Swap ADRIAN por ETH (Con gasLimit manual)</title>
   <!-- Cargando ethers.js desde un CDN comprobado -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>Debug: Swap ADRIAN por ETH</h1>
+  <h1>Debug: Swap ADRIAN por ETH (Con gasLimit manual)</h1>
   <button id="connectWalletButton">Conectar Wallet</button>
   <p id="walletStatus"></p>
 
@@ -145,6 +145,7 @@
         logDebug("Contrato router creado: " + routerContract.address);
 
         // Codificamos un comando "SWAP" (4 bytes)
+        // Nota: El comando podría necesitar ajustarse según la especificación exacta del router.
         const swapCommand = ethers.utils.hexDataSlice(ethers.utils.toUtf8Bytes("SWAP"), 0, 4);
         logDebug("swapCommand: " + swapCommand);
 
@@ -170,8 +171,11 @@
         const deadline = Math.floor(Date.now() / 1000) + (30 * 60);
         logDebug("Deadline: " + deadline);
 
-        // Ejecutar la transacción de swap
-        const tx = await routerContract.execute(swapCommand, inputs, deadline, { value: 0 });
+        // Se añade un gasLimit manual para evitar el error de estimación de gas.
+        const tx = await routerContract.execute(swapCommand, inputs, deadline, { 
+          value: 0, 
+          gasLimit: 1500000 
+        });
         logDebug("Transacción de swap enviada: " + tx.hash);
         await tx.wait();
         logDebug("Swap confirmado.");
