@@ -136,7 +136,6 @@
     let userAddress;
     let lotteryContract;
     
-    // Scaling factor (1e18)
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
     // New contract address for v3
@@ -246,7 +245,6 @@
     
     async function updatePreviousRoundInfo() {
       try {
-        // Only show previous round info if winners are drawn.
         const winners = await lotteryContract.getWinners();
         if(winners.length === 0) {
           document.getElementById("previousRoundInfo").innerHTML = "<p>No previous round results available.</p>";
@@ -257,7 +255,7 @@
         const snapshotId = await lotteryContract.currentSnapshotId();
         const roundStartTime = await lotteryContract.roundStartTime();
         const claimDeadline = await lotteryContract.claimDeadline();
-        const drawTime = await lotteryContract.drawTime();
+        const drawTimeVal = await lotteryContract.drawTime();
         const cost = await lotteryContract.ticketCost();
         const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
@@ -267,7 +265,7 @@
                     <p><strong>Snapshot ID:</strong> ${snapshotId}</p>
                     <p><strong>Round Start Time:</strong> ${new Date(roundStartTime.toNumber()*1000).toLocaleString()}</p>
                     <p><strong>Claim Deadline:</strong> ${new Date(claimDeadline.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Draw Time:</strong> ${new Date(drawTime.toNumber()*1000).toLocaleString()}</p>
+                    <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber()*1000).toLocaleString()}</p>
                     <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
                     <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
                     <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
@@ -469,7 +467,7 @@
         const tx = await lotteryContract.drawWinners();
         await tx.wait();
         alert("Winners drawn successfully!");
-        // After winners are drawn, refresh the previous round info section.
+        // Refresh previous round info after drawing winners.
         updatePreviousRoundInfo();
       } catch (err) {
         console.error(err);
@@ -537,7 +535,7 @@
       }
     });
     
-    // New: Update and show Previous Round Results (after winners are drawn)
+    // New: Refresh and show Previous Round Results
     async function updatePreviousRoundInfo() {
       try {
         const winners = await lotteryContract.getWinners();
@@ -550,7 +548,7 @@
         const snapshotId = await lotteryContract.currentSnapshotId();
         const roundStartTime = await lotteryContract.roundStartTime();
         const claimDeadline = await lotteryContract.claimDeadline();
-        const drawTime = await lotteryContract.drawTime();
+        const drawTimeVal = await lotteryContract.drawTime();
         const cost = await lotteryContract.ticketCost();
         const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
@@ -560,7 +558,7 @@
                     <p><strong>Snapshot ID:</strong> ${snapshotId}</p>
                     <p><strong>Round Start Time:</strong> ${new Date(roundStartTime.toNumber()*1000).toLocaleString()}</p>
                     <p><strong>Claim Deadline:</strong> ${new Date(claimDeadline.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Draw Time:</strong> ${new Date(drawTime.toNumber()*1000).toLocaleString()}</p>
+                    <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber()*1000).toLocaleString()}</p>
                     <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
                     <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
                     <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
