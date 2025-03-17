@@ -2,206 +2,151 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Swap de Prueba con Debug - Universal Router V4</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <title>Swap ADRIAN por ETH</title>
+  <!-- Incluir ethers.js desde un CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input, select, button { margin-bottom: 10px; }
-    pre { background: #eee; padding: 10px; max-height: 300px; overflow-y: auto; }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    input { padding: 5px; margin-left: 10px; }
+    button { padding: 10px 15px; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Swap de Prueba con Debug</h1>
-  <p id="walletStatus">Wallet no conectada.</p>
+  <h1>Swap ADRIAN por ETH</h1>
+  <button id="connectWalletButton">Conectar Wallet</button>
+  <p id="walletStatus"></p>
+
+  <div style="margin-top: 20px;">
+    <label for="amountInput">Cantidad de ADRIAN a swapear:</label>
+    <input type="number" id="amountInput" placeholder="1000">
+  </div>
   
-  <label for="swapDirection">Selecciona la dirección del swap:</label>
-  <select id="swapDirection">
-    <option value="sell" selected>Vender ADRIAN por ETH</option>
-    <option value="buy">Comprar ADRIAN con ETH</option>
-  </select>
-  <br>
+  <div style="margin-top: 20px;">
+    <button id="approveButton">Aprobar Token</button>
+  </div>
   
-  <label for="swapAmount">Cantidad (para "sell": ADRIAN, para "buy": ETH):</label>
-  <input type="number" id="swapAmount" placeholder="Cantidad" step="any" min="0">
-  <br>
+  <div style="margin-top: 20px;">
+    <button id="swapButton">Ejecutar Swap</button>
+  </div>
   
-  <button id="swapBtn">Ejecutar Swap</button>
-  
-  <h3>Debug Logs</h3>
-  <pre id="debugLog"></pre>
-  
+  <p id="statusMessage" style="margin-top: 20px;"></p>
+
   <script>
-    /**************** CONFIGURACIÓN ****************/
-    // Direcciones conocidas
-    const routerAddress = "0x6fF5693b99212Da76ad316178A184AB56D299b43"; // Universal Router V4
-    const pairAddress = "0x95EBfcb1c6b345fdA69cF56C51E30421e5a35aeC"; // Contrato de la pareja ADRIAN/WETH
-    const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Token ADRIAN
-    const WETHAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";    // WETH (Mainnet)
-    
-    // ABI mínimo del Universal Router V4 (solo la función execute)
-    const routerABI = [
-      "function execute(tuple(address target, uint256 value, bytes data, bool allowFailure)[] calls, address to, uint256 deadline) external payable returns (bytes[] memory results)"
+    let provider;
+    let signer;
+    let account;
+    let approved = false;
+
+    // --- Direcciones de contratos ---
+    const ADRIAN_TOKEN_ADDRESS = "0x7e99075ce287f1cf8cbcaaa6a1c7894e404fd7ea";
+    const UNISWAP_ROUTER_ADDRESS = "0x6fF5693b99212Da76ad316178A184AB56D299b43";
+
+    // --- ABI mínima para el token ADRIAN (funciones ERC-20 necesarias) ---
+    const ADRIAN_ABI = [
+      "function approve(address spender, uint256 amount) public returns (bool)",
+      "function decimals() public pure returns (uint8)"
     ];
-    
-    // ABI mínimo del par (para token0, token1, getReserves y swap)
-    const pairABI = [
-      "function token0() view returns (address)",
-      "function token1() view returns (address)",
-      "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
-      "function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external"
+
+    // --- ABI mínima para el Router de Uniswap V4 (función execute) ---
+    const ROUTER_ABI = [
+      "function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable"
     ];
-    
-    // ABI mínimo para ERC20 (aprobación y allowance)
-    const erc20ABI = [
-      "function approve(address spender, uint256 amount) returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)"
-    ];
-    
-    let provider, signer, userAddress;
-    let routerContract, pairContract, adrianTokenContract;
-    let token0, token1;
-    
-    const debugLogElem = document.getElementById("debugLog");
-    function logDebug(msg) {
-      console.log(msg);
-      debugLogElem.textContent += msg + "\n";
-    }
-    
-    /**************** CONEXIÓN DE WALLET ****************/
+
+    // Referencias a elementos HTML
+    const walletStatusEl = document.getElementById("walletStatus");
+    const statusMessageEl = document.getElementById("statusMessage");
+
     async function connectWallet() {
       if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        document.getElementById("walletStatus").innerText = "Wallet conectada: " + userAddress;
-        logDebug("Wallet conectada: " + userAddress);
-        
-        // Instanciar contratos
-        routerContract = new ethers.Contract(routerAddress, routerABI, signer);
-        pairContract = new ethers.Contract(pairAddress, pairABI, provider);
-        adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
-        
-        // Consultar token0 y token1 del par
-        token0 = (await pairContract.token0()).toLowerCase();
-        token1 = (await pairContract.token1()).toLowerCase();
-        logDebug("token0: " + token0);
-        logDebug("token1: " + token1);
+        try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          account = await signer.getAddress();
+          walletStatusEl.innerText = "Wallet conectada: " + account;
+          statusMessageEl.innerText = "";
+        } catch (error) {
+          console.error(error);
+          statusMessageEl.innerText = "Error al conectar la wallet";
+        }
       } else {
-        alert("Instala MetaMask.");
+        statusMessageEl.innerText = "Por favor, instala MetaMask";
       }
     }
-    
-    /**************** FUNCIONES AUXILIARES ****************/
-    // Función para calcular el monto de salida según la fórmula de Uniswap (fee 0.3%)
-    function getAmountOut(amountIn, reserveIn, reserveOut) {
-      const amountInWithFee = amountIn.mul(997);
-      const numerator = amountInWithFee.mul(reserveOut);
-      const denominator = reserveIn.mul(1000).add(amountInWithFee);
-      return numerator.div(denominator);
-    }
-    
-    /**************** FUNCION DE SWAP ****************/
-    async function performSwap() {
-      const direction = document.getElementById("swapDirection").value; // "sell" o "buy"
-      const swapAmount = document.getElementById("swapAmount").value;
-      if (!swapAmount || Number(swapAmount) <= 0) {
-        logDebug("Cantidad inválida");
+
+    async function approveToken() {
+      if (!signer) {
+        statusMessageEl.innerText = "Conecta la wallet primero";
         return;
       }
-      // Deadline a 20 minutos desde ahora
-      const deadline = Math.floor(Date.now() / 1000) + (20 * 60);
-      
-      let amountIn, expectedOut, amount0Out, amount1Out, valueToSend;
-      valueToSend = ethers.BigNumber.from(0);
-      
-      // Consultar reservas
-      const reserves = await pairContract.getReserves();
-      const reserve0 = ethers.BigNumber.from(reserves._reserve0);
-      const reserve1 = ethers.BigNumber.from(reserves._reserve1);
-      logDebug("Reserves: reserve0=" + reserve0.toString() + ", reserve1=" + reserve1.toString());
-      
-      if (direction === "sell") {
-        // Vender ADRIAN por ETH
-        amountIn = ethers.utils.parseUnits(swapAmount, 18);
-        logDebug("Sell: amountIn (ADRIAN): " + amountIn.toString());
-        
-        // Aprobar tokens ADRIAN al router, si es necesario
-        const allowance = await adrianTokenContract.allowance(userAddress, routerAddress);
-        logDebug("Allowance: " + allowance.toString());
-        if (allowance.lt(amountIn)) {
-          logDebug("Aprobando tokens ADRIAN...");
-          const approveTx = await adrianTokenContract.approve(routerAddress, ethers.constants.MaxUint256);
-          await approveTx.wait();
-          logDebug("Tokens aprobados.");
-        }
-        
-        // Si ADRIAN es token0, se vende token0 para obtener token1 (WETH)
-        if (token0 === adrianTokenAddress.toLowerCase()) {
-          expectedOut = getAmountOut(amountIn, reserve0, reserve1);
-          amount0Out = ethers.BigNumber.from(0);
-          amount1Out = expectedOut;
-          logDebug("Expected WETH out: " + expectedOut.toString());
-        } else {
-          // Si ADRIAN es token1
-          expectedOut = getAmountOut(amountIn, reserve1, reserve0);
-          amount0Out = expectedOut;
-          amount1Out = ethers.BigNumber.from(0);
-          logDebug("Expected WETH out: " + expectedOut.toString());
-        }
-      } else {
-        // Comprar ADRIAN con ETH
-        amountIn = ethers.utils.parseUnits(swapAmount, 18); // ETH a invertir
-        valueToSend = amountIn;
-        logDebug("Buy: amountIn (ETH): " + amountIn.toString());
-        if (token0 === adrianTokenAddress.toLowerCase()) {
-          expectedOut = getAmountOut(amountIn, reserve1, reserve0);
-          amount0Out = expectedOut;
-          amount1Out = ethers.BigNumber.from(0);
-          logDebug("Expected ADRIAN out: " + expectedOut.toString());
-        } else {
-          expectedOut = getAmountOut(amountIn, reserve0, reserve1);
-          amount0Out = ethers.BigNumber.from(0);
-          amount1Out = expectedOut;
-          logDebug("Expected ADRIAN out: " + expectedOut.toString());
-        }
-      }
-      
-      // Codificar la llamada al método swap del par
-      const swapData = pairContract.interface.encodeFunctionData("swap", [
-        amount0Out, amount1Out, userAddress, "0x"
-      ]);
-      logDebug("swapData: " + swapData);
-      
-      // Construir el objeto call para la función execute
-      const callObject = {
-        target: pairAddress,
-        value: valueToSend,
-        data: swapData,
-        allowFailure: false
-      };
-      logDebug("Call object: " + JSON.stringify(callObject));
-      
       try {
-        logDebug("Ejecutando execute en el router...");
-        const tx = await routerContract.execute([callObject], userAddress, deadline, {
-          value: valueToSend,
-          gasLimit: 600000
-        });
-        logDebug("Tx enviada: " + tx.hash);
-        const receipt = await tx.wait();
-        logDebug("Tx confirmada. Receipt: " + JSON.stringify(receipt));
+        statusMessageEl.innerText = "Aprobando token...";
+        const tokenContract = new ethers.Contract(ADRIAN_TOKEN_ADDRESS, ADRIAN_ABI, signer);
+        const decimals = await tokenContract.decimals();
+        const amountInput = document.getElementById("amountInput").value;
+        const parsedAmount = ethers.utils.parseUnits(amountInput, decimals);
+        const tx = await tokenContract.approve(UNISWAP_ROUTER_ADDRESS, parsedAmount);
+        await tx.wait();
+        statusMessageEl.innerText = "Token aprobado correctamente";
+        approved = true;
       } catch (error) {
-        logDebug("Error en execute: " + error);
         console.error(error);
+        statusMessageEl.innerText = "Error al aprobar el token";
       }
     }
-    
-    /**************** EVENTOS ****************/
-    document.getElementById("swapBtn").addEventListener("click", performSwap);
-    window.addEventListener("load", connectWallet);
+
+    async function swapTokens() {
+      if (!signer) {
+        statusMessageEl.innerText = "Conecta la wallet primero";
+        return;
+      }
+      if (!approved) {
+        statusMessageEl.innerText = "Aprueba el token antes de hacer el swap";
+        return;
+      }
+      try {
+        statusMessageEl.innerText = "Ejecutando swap...";
+        const routerContract = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, ROUTER_ABI, signer);
+
+        // --- Construcción del comando e inputs para el swap ---
+        // Se codifica un comando "SWAP" tomando los primeros 4 bytes de la cadena "SWAP"
+        const swapCommand = ethers.utils.hexDataSlice(ethers.utils.toUtf8Bytes("SWAP"), 0, 4);
+
+        // Obtener la cantidad de tokens a swapear y sus decimales
+        const tokenContract = new ethers.Contract(ADRIAN_TOKEN_ADDRESS, ADRIAN_ABI, signer);
+        const decimals = await tokenContract.decimals();
+        const amountInput = document.getElementById("amountInput").value;
+        const amountIn = ethers.utils.parseUnits(amountInput, decimals);
+
+        // Para este ejemplo se fija el mínimo recibido en 0.
+        // En producción debes calcular minAmountOut basado en el precio actual y tu tolerancia al slippage (5.50% en este caso)
+        const minAmountOut = 0;
+
+        // Codificar los parámetros del swap en un input:
+        // (tokenIn, tokenOut, amountIn, minAmountOut)
+        const inputEncoded = ethers.utils.defaultAbiCoder.encode(
+          ["address", "address", "uint256", "uint256"],
+          [ADRIAN_TOKEN_ADDRESS, ethers.constants.AddressZero, amountIn, minAmountOut]
+        );
+        const inputs = [inputEncoded];
+
+        // Establecer deadline: 30 minutos a partir de ahora
+        const deadline = Math.floor(Date.now() / 1000) + (30 * 60);
+
+        // Ejecutar la transacción de swap (sin enviar ETH adicional en este caso)
+        const tx = await routerContract.execute(swapCommand, inputs, deadline, { value: 0 });
+        await tx.wait();
+        statusMessageEl.innerText = "Swap ejecutado exitosamente!";
+      } catch (error) {
+        console.error(error);
+        statusMessageEl.innerText = "Error al ejecutar el swap";
+      }
+    }
+
+    // Asignar eventos a los botones
+    document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
+    document.getElementById("approveButton").addEventListener("click", approveToken);
+    document.getElementById("swapButton").addEventListener("click", swapTokens);
   </script>
 </body>
 </html>
