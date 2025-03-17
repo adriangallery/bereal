@@ -2,17 +2,18 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Swap ADRIAN por ETH</title>
-  <!-- Incluir ethers.js desde un CDN -->
+  <title>Debug: Swap ADRIAN por ETH</title>
+  <!-- Cargando ethers.js desde CDN -->
   <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
     input { padding: 5px; margin-left: 10px; }
     button { padding: 10px 15px; margin-top: 10px; }
+    #debugLogs { background-color: #f0f0f0; border: 1px solid #ccc; padding: 10px; max-height: 250px; overflow-y: scroll; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>Swap ADRIAN por ETH</h1>
+  <h1>Debug: Swap ADRIAN por ETH</h1>
   <button id="connectWalletButton">Conectar Wallet</button>
   <p id="walletStatus"></p>
 
@@ -30,11 +31,22 @@
   </div>
   
   <p id="statusMessage" style="margin-top: 20px;"></p>
+  
+  <h2>Debug Logs</h2>
+  <pre id="debugLogs"></pre>
 
   <script>
-    let provider;
-    let signer;
-    let account;
+    // Función para agregar logs de depuración
+    const debugLogs = document.getElementById('debugLogs');
+    function logDebug(message) {
+      const time = new Date().toISOString();
+      const logMessage = time + " - " + message;
+      console.log(logMessage);
+      debugLogs.textContent += logMessage + "\n";
+    }
+
+    // Variables globales
+    let provider, signer, account;
     let approved = false;
 
     // --- Direcciones de contratos ---
@@ -52,94 +64,114 @@
       "function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable"
     ];
 
-    // Referencias a elementos HTML
-    const walletStatusEl = document.getElementById("walletStatus");
-    const statusMessageEl = document.getElementById("statusMessage");
-
+    // Función para conectar la wallet
     async function connectWallet() {
+      logDebug("Iniciando conexión de wallet...");
       if (window.ethereum) {
         try {
           provider = new ethers.providers.Web3Provider(window.ethereum);
+          logDebug("Proveedor creado: " + provider);
           await provider.send("eth_requestAccounts", []);
+          logDebug("Solicitadas cuentas desde MetaMask");
           signer = provider.getSigner();
+          logDebug("Signer obtenido: " + signer);
           account = await signer.getAddress();
-          walletStatusEl.innerText = "Wallet conectada: " + account;
-          statusMessageEl.innerText = "";
+          logDebug("Dirección obtenida: " + account);
+          document.getElementById("walletStatus").innerText = "Wallet conectada: " + account;
+          document.getElementById("statusMessage").innerText = "";
         } catch (error) {
-          console.error(error);
-          statusMessageEl.innerText = "Error al conectar la wallet";
+          logDebug("Error en connectWallet: " + error.message);
+          document.getElementById("statusMessage").innerText = "Error al conectar la wallet: " + error.message;
         }
       } else {
-        statusMessageEl.innerText = "Por favor, instala MetaMask";
+        logDebug("window.ethereum no está disponible.");
+        document.getElementById("statusMessage").innerText = "Por favor, instala MetaMask";
       }
     }
 
+    // Función para aprobar el token ADRIAN
     async function approveToken() {
       if (!signer) {
-        statusMessageEl.innerText = "Conecta la wallet primero";
+        document.getElementById("statusMessage").innerText = "Conecta la wallet primero";
+        logDebug("Aprobación fallida: wallet no conectada.");
         return;
       }
       try {
-        statusMessageEl.innerText = "Aprobando token...";
+        document.getElementById("statusMessage").innerText = "Aprobando token...";
+        logDebug("Iniciando aprobación del token ADRIAN");
         const tokenContract = new ethers.Contract(ADRIAN_TOKEN_ADDRESS, ADRIAN_ABI, signer);
+        logDebug("Contrato token creado: " + tokenContract.address);
         const decimals = await tokenContract.decimals();
+        logDebug("Decimales del token: " + decimals);
         const amountInput = document.getElementById("amountInput").value;
+        logDebug("Cantidad ingresada: " + amountInput);
         const parsedAmount = ethers.utils.parseUnits(amountInput, decimals);
+        logDebug("Cantidad parseada: " + parsedAmount.toString());
         const tx = await tokenContract.approve(UNISWAP_ROUTER_ADDRESS, parsedAmount);
+        logDebug("Transacción de aprobación enviada: " + tx.hash);
         await tx.wait();
-        statusMessageEl.innerText = "Token aprobado correctamente";
+        logDebug("Transacción de aprobación confirmada.");
+        document.getElementById("statusMessage").innerText = "Token aprobado correctamente";
         approved = true;
       } catch (error) {
-        console.error(error);
-        statusMessageEl.innerText = "Error al aprobar el token";
+        logDebug("Error en approveToken: " + error.message);
+        document.getElementById("statusMessage").innerText = "Error al aprobar el token: " + error.message;
       }
     }
 
+    // Función para ejecutar el swap ADRIAN por ETH
     async function swapTokens() {
       if (!signer) {
-        statusMessageEl.innerText = "Conecta la wallet primero";
+        document.getElementById("statusMessage").innerText = "Conecta la wallet primero";
+        logDebug("Swap fallido: wallet no conectada.");
         return;
       }
       if (!approved) {
-        statusMessageEl.innerText = "Aprueba el token antes de hacer el swap";
+        document.getElementById("statusMessage").innerText = "Aprueba el token antes de hacer el swap";
+        logDebug("Swap fallido: token no aprobado.");
         return;
       }
       try {
-        statusMessageEl.innerText = "Ejecutando swap...";
+        document.getElementById("statusMessage").innerText = "Ejecutando swap...";
+        logDebug("Iniciando swap de tokens");
         const routerContract = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, ROUTER_ABI, signer);
+        logDebug("Contrato router creado: " + routerContract.address);
 
-        // --- Construcción del comando e inputs para el swap ---
-        // Se codifica un comando "SWAP" tomando los primeros 4 bytes de la cadena "SWAP"
+        // Codificamos un comando "SWAP" (4 bytes)
         const swapCommand = ethers.utils.hexDataSlice(ethers.utils.toUtf8Bytes("SWAP"), 0, 4);
+        logDebug("swapCommand: " + swapCommand);
 
-        // Obtener la cantidad de tokens a swapear y sus decimales
+        // Preparar parámetros del swap
         const tokenContract = new ethers.Contract(ADRIAN_TOKEN_ADDRESS, ADRIAN_ABI, signer);
         const decimals = await tokenContract.decimals();
         const amountInput = document.getElementById("amountInput").value;
         const amountIn = ethers.utils.parseUnits(amountInput, decimals);
+        logDebug("Cantidad para swap (amountIn): " + amountIn.toString());
 
-        // Para este ejemplo se fija el mínimo recibido en 0.
-        // En producción debes calcular minAmountOut basado en el precio actual y tu tolerancia al slippage (5.50% en este caso)
+        // En este ejemplo, el mínimo recibido se fija en 0.
         const minAmountOut = 0;
 
-        // Codificar los parámetros del swap en un input:
-        // (tokenIn, tokenOut, amountIn, minAmountOut)
+        // Codificar parámetros (tokenIn, tokenOut, amountIn, minAmountOut)
         const inputEncoded = ethers.utils.defaultAbiCoder.encode(
           ["address", "address", "uint256", "uint256"],
           [ADRIAN_TOKEN_ADDRESS, ethers.constants.AddressZero, amountIn, minAmountOut]
         );
+        logDebug("inputEncoded: " + inputEncoded);
         const inputs = [inputEncoded];
 
-        // Establecer deadline: 30 minutos a partir de ahora
+        // Definir deadline: 30 minutos a partir del momento actual
         const deadline = Math.floor(Date.now() / 1000) + (30 * 60);
+        logDebug("Deadline: " + deadline);
 
-        // Ejecutar la transacción de swap (sin enviar ETH adicional en este caso)
+        // Ejecutar la transacción de swap
         const tx = await routerContract.execute(swapCommand, inputs, deadline, { value: 0 });
+        logDebug("Transacción de swap enviada: " + tx.hash);
         await tx.wait();
-        statusMessageEl.innerText = "Swap ejecutado exitosamente!";
+        logDebug("Swap confirmado.");
+        document.getElementById("statusMessage").innerText = "Swap ejecutado exitosamente!";
       } catch (error) {
-        console.error(error);
-        statusMessageEl.innerText = "Error al ejecutar el swap";
+        logDebug("Error en swapTokens: " + error.message);
+        document.getElementById("statusMessage").innerText = "Error al ejecutar el swap: " + error.message;
       }
     }
 
