@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Debug: Swap ADRIAN por ETH</title>
-  <!-- Cargando ethers.js desde CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <!-- Cargando ethers.js desde un CDN comprobado -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
     input { padding: 5px; margin-left: 10px; }
@@ -64,6 +64,13 @@
       "function execute(bytes commands, bytes[] inputs, uint256 deadline) external payable"
     ];
 
+    // Verificar que ethers está definido
+    if (typeof ethers === "undefined") {
+      logDebug("ERROR: ethers no está definido. Revisa la carga del script de ethers.js.");
+    } else {
+      logDebug("ethers cargado correctamente: " + ethers.version);
+    }
+
     // Función para conectar la wallet
     async function connectWallet() {
       logDebug("Iniciando conexión de wallet...");
@@ -74,7 +81,7 @@
           await provider.send("eth_requestAccounts", []);
           logDebug("Solicitadas cuentas desde MetaMask");
           signer = provider.getSigner();
-          logDebug("Signer obtenido: " + signer);
+          logDebug("Signer obtenido");
           account = await signer.getAddress();
           logDebug("Dirección obtenida: " + account);
           document.getElementById("walletStatus").innerText = "Wallet conectada: " + account;
