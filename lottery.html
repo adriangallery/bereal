@@ -25,6 +25,12 @@
       <div id="accountDisplay" class="mt-2"></div>
     </div>
     
+    <!-- Previous Round Winners Section -->
+    <div class="section" id="previousWinnersSection" style="display: none;">
+      <h2>Previous Round Winners</h2>
+      <div id="winnersInfo"></div>
+    </div>
+    
     <!-- User Functions Section -->
     <div class="section">
       <h2>User Functions</h2>
@@ -48,12 +54,6 @@
         <h4>Your Ticket Info</h4>
         <div id="userTicketInfo"></div>
       </div>
-    </div>
-    
-    <!-- Previous Round Results Section -->
-    <div class="section" id="previousRoundSection" style="display: none;">
-      <h2>Previous Round Results</h2>
-      <div id="previousRoundInfo"></div>
     </div>
     
     <!-- Admin Functions Section -->
@@ -137,7 +137,7 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // v3 Contract Address (updated ABI)
+    // v3 Contract Address
     const lotteryAddress = "0x5ee6d1e6f0d9c263d6d89ae4772061dc32a18068";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -183,8 +183,8 @@
           lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
           loadRoundInfo();
           updateUserTicketInfo();
-          // Automatically load previous round winners on wallet connect.
-          updatePreviousRoundInfo();
+          // Read winners from the previous round immediately after connection.
+          displayPreviousRoundWinners();
         } catch (error) {
           console.error("Error connecting wallet:", error);
           alert("Error connecting wallet: " + error.message);
@@ -244,48 +244,27 @@
       }
     }
     
-    async function updatePreviousRoundInfo() {
+    // Display winners from previous round (using getWinners)
+    async function displayPreviousRoundWinners() {
       try {
         const winners = await lotteryContract.getWinners();
-        // If no winners, hide the section.
+        const winnersDiv = document.getElementById("winnersInfo");
         if (winners.length === 0) {
-          document.getElementById("previousRoundInfo").innerHTML = "<p>No previous round results available.</p>";
-          document.getElementById("previousRoundSection").style.display = "none";
-          return;
+          winnersDiv.innerHTML = "<p>No winners from the previous round.</p>";
+          document.getElementById("previousWinnersSection").style.display = "none";
+        } else {
+          winnersDiv.innerHTML = `<p><strong>Previous Round Winners:</strong> ${winners.join(", ")}</p>`;
+          document.getElementById("previousWinnersSection").style.display = "block";
         }
-        const roundId = await lotteryContract.currentRoundId();
-        const snapshotId = await lotteryContract.currentSnapshotId();
-        const roundStartTime = await lotteryContract.roundStartTime();
-        const claimDeadline = await lotteryContract.claimDeadline();
-        const drawTimeVal = await lotteryContract.drawTime();
-        const cost = await lotteryContract.ticketCost();
-        const ratio = await lotteryContract.ticketRatio();
-        const complPrice = await lotteryContract.complementaryTicketPrice();
-        const fixedPrizeVal = await lotteryContract.fixedPrize();
-        const totalTickets = await lotteryContract.totalTickets();
-        let info = `<p><strong>Round ID:</strong> ${roundId}</p>
-                    <p><strong>Snapshot ID:</strong> ${snapshotId}</p>
-                    <p><strong>Round Start Time:</strong> ${new Date(roundStartTime.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Claim Deadline:</strong> ${new Date(claimDeadline.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber()*1000).toLocaleString()}</p>
-                    <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
-                    <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
-                    <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
-                    <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
-                    <p><strong>Total Tickets Purchased:</strong> ${totalTickets.toString()}</p>
-                    <p><strong>Winners:</strong> ${winners.join(", ")}</p>`;
-        document.getElementById("previousRoundInfo").innerHTML = info;
-        document.getElementById("previousRoundSection").style.display = "block";
       } catch (error) {
         console.error(error);
-        document.getElementById("previousRoundInfo").innerText = "Error loading previous round info: " + error.message;
+        document.getElementById("winnersInfo").innerText = "Error loading winners: " + error.message;
       }
     }
     
     document.getElementById("connectWallet").addEventListener("click", async () => {
       await connectWallet();
       updateUserTicketInfo();
-      updatePreviousRoundInfo(); // Call once upon connection
     });
     
     async function approveTokensIfNeeded(amount) {
@@ -470,8 +449,7 @@
         const tx = await lotteryContract.drawWinners();
         await tx.wait();
         alert("Winners drawn successfully!");
-        // Update previous round results automatically after drawing winners.
-        updatePreviousRoundInfo();
+        displayPreviousRoundWinners();
       } catch (err) {
         console.error(err);
         alert("Error drawing winners: " + err.message);
