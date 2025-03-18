@@ -57,7 +57,7 @@
     </div>
     
     <!-- Admin Functions Section -->
-    <div class="section admin-section">
+    <div class="section admin-section" id="adminSection">
       <h2>Admin Functions</h2>
       
       <!-- Start New Round -->
@@ -150,7 +150,8 @@
       "function getTotalRegularTickets() view returns (uint256)",
       "function getTotalComplementaryTickets() view returns (uint256)",
       "function regularTickets(uint256, address) view returns (uint256)",
-      "function complementaryTickets(uint256, address) view returns (uint256)"
+      "function complementaryTickets(uint256, address) view returns (uint256)",
+      "function owner() view returns (address)"
     ];
     
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
@@ -172,12 +173,26 @@
           loadRoundInfo();
           updateUserTicketInfo();
           displayPreviousRoundWinners();
+          checkIfOwner();
         } catch (error) {
           console.error("Error connecting wallet:", error);
           alert("Error connecting wallet: " + error.message);
         }
       } else {
         alert("Please install MetaMask!");
+      }
+    }
+    
+    // Verifica si la cuenta conectada es la propietaria y, en caso negativo, oculta la sección de admin.
+    async function checkIfOwner() {
+      try {
+        const contractOwner = await lotteryContract.owner();
+        if (userAddress.toLowerCase() !== contractOwner.toLowerCase()) {
+          document.getElementById("adminSection").style.display = "none";
+          console.log("Admin functions disabled: connected account is not the owner.");
+        }
+      } catch (error) {
+        console.error("Error checking owner:", error);
       }
     }
     
@@ -450,7 +465,7 @@
           <p><strong>Total Regular Tickets Claimed:</strong> ${totalRegular.toString()}</p>
           <p><strong>Total Complementary Tickets Claimed:</strong> ${totalComplementary.toString()}</p>
           <p><strong>Current Round ID:</strong> ${roundId.toString()}</p>
-          <p><em>Note: If NFT distribution is desired, ensure enough NFTs (of ERC721 and/or ERC1155) are deposited in the pool.</em></p>
+          <p><em>Note: If NFT distribution is desired, ensure enough NFTs (ERC721 and/or ERC1155) are deposited in the pool.</em></p>
         `;
       } catch (e) {
         console.error(e);
