@@ -63,7 +63,6 @@
       <!-- Start New Round -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <!-- Ya no se requiere ingresar ni generar el Snapshot ID -->
         <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
         <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
         <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
@@ -128,8 +127,8 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Actualizar a la dirección del contrato v4 deployado
-    const lotteryAddress = "0x4f0a85203c9415c3790ce248ffcbd0f6ffc8c550";
+    // Nuevo contrato v4
+    const lotteryAddress = "0xcee9473ef8b00da585aa24ef9306c8acc008993c";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -318,8 +317,14 @@
         alert("Please enter ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
         return;
       }
+      // Si se desea distribuir NFTs, confirmar que se tiene NFTCount depositados
+      if (parseInt(nftCount) > 0) {
+        if(!confirm("You are attempting to distribute " + nftCount + " NFT(s). Ensure that you have deposited at least " + nftCount + " NFT(s) into the pool. Proceed?")) {
+          return;
+        }
+      }
       try {
-        // Verificar que si hay una ronda activa, esta ya finalizó.
+        // Si hay una ronda activa, se verifica que ya haya finalizado.
         const currentRoundId = await lotteryContract.currentRoundId();
         if (!currentRoundId.eq(0)) {
           const drawTimeVal = await lotteryContract.drawTime();
@@ -421,7 +426,7 @@
       }
     });
     
-    // Debug Log: display detailed info about user's tickets and round state.
+    // Debug Log: muestra información detallada sobre el usuario, sus tickets y estado de la ronda.
     document.getElementById("refreshDebugButton").addEventListener("click", async () => {
       try {
         const roundId = await lotteryContract.currentRoundId();
@@ -445,6 +450,7 @@
           <p><strong>Total Regular Tickets Claimed:</strong> ${totalRegular.toString()}</p>
           <p><strong>Total Complementary Tickets Claimed:</strong> ${totalComplementary.toString()}</p>
           <p><strong>Current Round ID:</strong> ${roundId.toString()}</p>
+          <p><em>Note: If NFT distribution is desired, ensure enough NFTs (of ERC721 and/or ERC1155) are deposited in the pool.</em></p>
         `;
       } catch (e) {
         console.error(e);
