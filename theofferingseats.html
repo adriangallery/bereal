@@ -72,12 +72,6 @@
       <h1>THE OFFERING</h1>
       <p>
         Not everyone will claim it. But those who do, will be remembered.<br><br>
-        GENESIS holders, your path has led you here. THE OFFERING is not a reward—it is a choice.<br>
-        A symbol of commitment, a mark of those willing to stake 33K $ADRIAN for something greater.<br><br>
-        🔥 No limit. No utility. No guarantees.<br>
-        🌀 Just a record of those who made The Offering.<br><br>
-        Be real. Be willing. Be part of The Offering. 🚀🔥<br>
-        <small>Starts in 1 day – Lasts for a week</small>
       </p>
     </div>
   </section>
@@ -86,7 +80,7 @@
   <div class="container" id="explanation">
     <h3>Seat Claim Requirements & Distribution</h3>
     <p>
-      To claim an active seat and be eligible to receive ADRIAN tokens, you must hold both:
+      To claim an active seat and be eligible to receive ADRIAN tokens, your wallet must hold both:
       <ul>
         <li>At least <strong>2 THE OFFERING</strong> NFTs (token id 15)</li>
         <li>At least <strong>1 GENESIS</strong> NFT (token id 1)</li>
@@ -100,6 +94,8 @@
   <div class="container my-5" id="claimSection">
     <h2 class="text-center">Claim Your Seat & Distribute Tokens</h2>
     <p id="walletStatus" class="text-center">Wallet not connected.</p>
+    <!-- Seat status indicator -->
+    <p id="seatStatus" class="text-center">Seat Status: Not claimed</p>
     <!-- Displayed when the wallet is connected -->
     <div id="claimInfo" style="display: none;">
       <div class="mb-3">
@@ -140,7 +136,8 @@
     const claimContractABI = [
       "function claimSeat() public",
       "function distributeTokens() public",
-      "function getStats() view returns (uint256 totalHolders, uint256 activeHolders, uint256 tokensAvailable)"
+      "function getStats() view returns (uint256 totalHolders, uint256 activeHolders, uint256 tokensAvailable)",
+      "function seatClaimed(address) view returns (bool)"
     ];
 
     let provider, signer, claimContract, userAddress;
@@ -155,6 +152,7 @@
         document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
         document.getElementById("claimInfo").style.display = "block";
         refreshInfo();
+        refreshSeatStatus();
       } else {
         alert("Please install MetaMask.");
       }
@@ -175,6 +173,16 @@
       }
     }
 
+    async function refreshSeatStatus() {
+      try {
+        const claimed = await claimContract.seatClaimed(userAddress);
+        document.getElementById("seatStatus").innerText = claimed ? "Seat Status: Claimed" : "Seat Status: Not claimed";
+      } catch (error) {
+        console.error("Error checking seat status:", error);
+        document.getElementById("seatStatus").innerText = "Seat Status: Error";
+      }
+    }
+
     async function claimSeat() {
       document.getElementById("statusMessage").innerText = "Processing seat claim...";
       try {
@@ -182,6 +190,7 @@
         await tx.wait();
         document.getElementById("statusMessage").innerText = "Seat claimed successfully!";
         refreshInfo();
+        refreshSeatStatus();
       } catch (error) {
         console.error("Claim Seat failed:", error);
         document.getElementById("statusMessage").innerText = "Claim Seat failed: " + (error.data?.message || error.message);
