@@ -208,6 +208,10 @@
         const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
         const fixedPrizeVal = await lotteryContract.fixedPrize();
+        // Obtener totales de tickets
+        const totalRegular = await lotteryContract.getTotalRegularTickets();
+        const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
+        
         const infoDiv = document.getElementById("roundInfo");
         infoDiv.innerHTML = `
           <p><strong>Current Round ID:</strong> ${roundId}</p>
@@ -217,6 +221,8 @@
           <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
           <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
           <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
+          <p><strong>Total Regular Tickets Purchased:</strong> ${totalRegular.toString()}</p>
+          <p><strong>Total Complementary Tickets Purchased:</strong> ${totalComplementary.toString()}</p>
         `;
       } catch (err) {
         console.error(err);
