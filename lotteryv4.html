@@ -161,11 +161,12 @@
     // Dirección del token ADRIAN
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function snapshot() external returns (uint256)",
-      "event Snapshot(uint256 id)"
-    ];
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function snapshot() external returns (uint256)",
+  "function balanceOfAt(address account, uint256 snapshotId) view returns (uint256)",
+  "event Snapshot(uint256 id)"
+];
     
     async function connectWallet() {
       if (window.ethereum) {
