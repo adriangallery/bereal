@@ -63,16 +63,19 @@
       <!-- Start New Round -->
       <div class="mb-3">
         <h4>Start New Round</h4>
+        <!-- Aquí el owner debe obtener el snapshotId manualmente (por ejemplo, desde el contrato del token) -->
+        <label for="snapshotId">Snapshot ID:</label>
+        <input type="number" id="snapshotId" class="form-control" placeholder="Enter snapshot id" step="any">
         <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
         <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
         <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
-        <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 100" step="any">
+        <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 10" step="any">
         <label for="newComplTicketPrice">Complementary Ticket Price (tokens):</label>
-        <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 50" step="any">
+        <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
         <label for="newFixedPrize">Fixed Prize Amount (tokens):</label>
-        <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 100000" step="any">
+        <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 1000" step="any">
         <label for="newNFTCount">NFT Count to Distribute (0, 1, 2, or 3):</label>
-        <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 2" min="0" max="3">
+        <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 0" min="0" max="3">
         <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round</button>
       </div>
       
@@ -127,12 +130,12 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Nuevo contrato v4
-    const lotteryAddress = "0xcee9473ef8b00da585aa24ef9306c8acc008993c";
+    // Nueva dirección del contrato v4
+    const lotteryAddress = "0x4334b547447a49003c915ee68a8586a3891343b8";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
-      "function startLotteryRound(uint256 newTicketCost, uint256 newTicketRatio, uint256 newComplTicketPrice, uint256 newFixedPrize, uint256 nftCount) external",
+      "function startLotteryRound(uint256 snapshotId, uint256 newTicketCost, uint256 newTicketRatio, uint256 newComplTicketPrice, uint256 newFixedPrize, uint256 nftCount) external",
       "function updatePrizePercentages(uint256 _p1, uint256 _p2, uint256 _p3) external",
       "function emergencyWithdrawNFT(address nftContract, uint256 tokenId) external",
       "function pause() external",
@@ -323,13 +326,14 @@
     });
     
     document.getElementById("startRoundButton").addEventListener("click", async () => {
+      const snapshotId = document.getElementById("snapshotId").value;
       const newTicketRatio = document.getElementById("newTicketRatio").value;
       const newTicketCost = document.getElementById("newTicketCost").value;
       const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
       const newFixedPrize = document.getElementById("newFixedPrize").value;
       const nftCount = document.getElementById("newNFTCount").value || "0";
-      if (!newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
-        alert("Please enter ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
+      if (!snapshotId || !newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter snapshot id, ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
         return;
       }
       // Si se desea distribuir NFTs, confirmar que se tiene NFTCount depositados
@@ -350,7 +354,7 @@
             return;
           }
         }
-        const tx = await lotteryContract.startLotteryRound(newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
+        const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
         await tx.wait();
         alert("Lottery round started successfully!");
         loadRoundInfo();
