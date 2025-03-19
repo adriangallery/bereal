@@ -60,12 +60,10 @@
     <div class="section admin-section" id="adminSection">
       <h2>Admin Functions</h2>
       
-      <!-- Start New Round -->
+      <!-- Start New Round: se genera el snapshot automáticamente -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <!-- El owner debe obtener el snapshotId manualmente (por ejemplo, llamando a snapshot() del token ADRIAN) -->
-        <label for="snapshotId">Snapshot ID:</label>
-        <input type="number" id="snapshotId" class="form-control" placeholder="Enter snapshot id" step="any">
+        <!-- No se pide el snapshot ID manualmente -->
         <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
         <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
         <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
@@ -127,11 +125,12 @@
     let signer;
     let userAddress;
     let lotteryContract;
+    let tokenContract;
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Nueva dirección del contrato v4
-    const lotteryAddress = "0x8e764e39b898b8a8c904914e4ed40226ad54bb65";
+    // Nueva dirección del contrato de Lottery (actualizada)
+    const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -155,15 +154,18 @@
       "function getTotalComplementaryTickets() view returns (uint256)",
       "function regularTickets(uint256, address) view returns (uint256)",
       "function complementaryTickets(uint256, address) view returns (uint256)",
-      "function owner() view returns (address)"
+      "function owner() view returns (address)",
+      "function roundSnapshot(uint256 roundId) view returns (uint256)"
     ];
     
+    // Dirección del token ADRIAN
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)"
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function snapshot() external returns (uint256)",
+      "event Snapshot(uint256 id)"
     ];
-    const tokenSnapshotABI = [ "function snapshot() external returns (uint256)" ];
     
     async function connectWallet() {
       if (window.ethereum) {
@@ -174,6 +176,7 @@
           userAddress = await signer.getAddress();
           document.getElementById("accountDisplay").innerText = "Connected: " + userAddress;
           lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
           loadRoundInfo();
           updateUserTicketInfo();
           displayPreviousRoundWinners();
@@ -187,7 +190,6 @@
       }
     }
     
-    // Verifica si la cuenta conectada es la propietaria y, en caso negativo, oculta la sección de admin.
     async function checkIfOwner() {
       try {
         const contractOwner = await lotteryContract.owner();
@@ -209,7 +211,6 @@
         const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
         const fixedPrizeVal = await lotteryContract.fixedPrize();
-        // Totales de tickets
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         
@@ -237,8 +238,8 @@
           document.getElementById("userTicketInfo").innerHTML = "<p>No active round.</p>";
           return;
         }
-        const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address, uint256) view returns (uint256)"], signer);
-        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, roundId);
+        const snapshotId = await lotteryContract.roundSnapshot(roundId);
+        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
         const ratio = await lotteryContract.ticketRatio();
         const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
@@ -282,10 +283,10 @@
     });
     
     async function approveTokensIfNeeded(amount) {
-      const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-      const currentAllowance = await tokenContract.allowance(userAddress, lotteryAddress);
+      const tokenInstance = new ethers.Contract(tokenAddress, erc20ABI, signer);
+      const currentAllowance = await tokenInstance.allowance(userAddress, lotteryAddress);
       if (currentAllowance.lt(amount)) {
-        const tx = await tokenContract.approve(lotteryAddress, amount);
+        const tx = await tokenInstance.approve(lotteryAddress, amount);
         await tx.wait();
       }
     }
@@ -332,15 +333,15 @@
       }
     });
     
+    // Función para iniciar nueva ronda: se genera automáticamente el snapshot y se activa la ronda.
     document.getElementById("startRoundButton").addEventListener("click", async () => {
-      const snapshotId = document.getElementById("snapshotId").value;
       const newTicketRatio = document.getElementById("newTicketRatio").value;
       const newTicketCost = document.getElementById("newTicketCost").value;
       const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
       const newFixedPrize = document.getElementById("newFixedPrize").value;
       const nftCount = document.getElementById("newNFTCount").value || "0";
-      if (!snapshotId || !newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
-        alert("Please enter snapshot id, ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
+      if (!newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
         return;
       }
       if (parseInt(nftCount) > 0) {
@@ -349,19 +350,24 @@
         }
       }
       try {
-        const currentRoundId = await lotteryContract.currentRoundId();
-        if (!currentRoundId.eq(0)) {
-          const drawTimeVal = await lotteryContract.drawTime();
-          const winners = await lotteryContract.getWinners();
-          const currentBlock = await provider.getBlock("latest");
-          if (currentBlock.timestamp < drawTimeVal.toNumber() || winners.length === 0) {
-            alert("The current round is still active. Please finish it before starting a new round.");
-            return;
+        // Llamar a snapshot() del token ADRIAN para generar el snapshot automáticamente.
+        const snapshotTx = await tokenContract.snapshot();
+        const snapshotReceipt = await snapshotTx.wait();
+        let snapshotId;
+        for (let event of snapshotReceipt.events) {
+          if (event.event === "Snapshot") {
+            snapshotId = event.args.id;
+            break;
           }
         }
+        if (!snapshotId) {
+          alert("Failed to retrieve snapshot id.");
+          return;
+        }
+        // Iniciar la nueva ronda con el snapshotId obtenido y los demás parámetros.
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
         await tx.wait();
-        alert("Lottery round started successfully!");
+        alert("Lottery round started successfully with snapshot id " + snapshotId.toString() + "!");
         loadRoundInfo();
         updateUserTicketInfo();
       } catch (err) {
@@ -450,7 +456,6 @@
       }
     });
     
-    // Debug Log: muestra información detallada sobre el usuario, sus tickets y estado de la ronda.
     document.getElementById("refreshDebugButton").addEventListener("click", async () => {
       try {
         const roundId = await lotteryContract.currentRoundId();
@@ -458,8 +463,9 @@
           document.getElementById("debugInfo").innerHTML = "<p>No active round.</p>";
           return;
         }
-        const tokenContract = new ethers.Contract(tokenAddress, ["function balanceOfAt(address, uint256) view returns (uint256)"], signer);
-        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, roundId);
+        const snapshotId = await lotteryContract.roundSnapshot(roundId);
+        const tokenInst = new ethers.Contract(tokenAddress, erc20ABI, signer);
+        const snapshotBalance = await tokenInst.balanceOfAt(userAddress, snapshotId);
         const ratio = await lotteryContract.ticketRatio();
         const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
