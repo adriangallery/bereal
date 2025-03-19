@@ -39,6 +39,15 @@
     .hero p {
       font-size: 1.5rem;
     }
+    /* Explanation Section */
+    #explanation {
+      background: #fff;
+      color: #333;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 2rem 0;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
   </style>
   <!-- Ethers.js UMD (v5) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
@@ -72,6 +81,20 @@
       </p>
     </div>
   </section>
+
+  <!-- Explanation Section -->
+  <div class="container" id="explanation">
+    <h3>Seat Claim Requirements & Distribution</h3>
+    <p>
+      To claim an active seat and be eligible to receive ADRIAN tokens, you must hold both:
+      <ul>
+        <li>At least <strong>2 THE OFFERING</strong> NFTs (token id 15)</li>
+        <li>At least <strong>1 GENESIS</strong> NFT (token id 1)</li>
+      </ul>
+      The distribution of ADRIAN tokens is proportional to the number of THE OFFERING NFTs you hold.
+      For example, if one wallet holds 2 THE OFFERING tokens and another holds 1, the total weight is 3, and the wallet with 2 tokens will receive approximately 66.67% of the distribution.
+    </p>
+  </div>
 
   <!-- Claim Section -->
   <div class="container my-5" id="claimSection">
@@ -112,8 +135,8 @@
 
   <!-- Contract Interaction Script -->
   <script>
-    // Nuevo contrato: 0x5a0daf767ced36b05788f577e5bf5206f637a5ec
-    const claimContractAddress = "0x5a0daf767ced36b05788f577e5bf5206f637a5ec";
+    // New contract address with updated requirements
+    const claimContractAddress = "0x80d088af3a53820e43ce80e30d12b919ce1aaf8b";
     const claimContractABI = [
       "function claimSeat() public",
       "function distributeTokens() public",
@@ -139,7 +162,7 @@
 
     async function refreshInfo() {
       try {
-        // Get claim statistics.
+        // Get contract statistics
         const stats = await claimContract.getStats();
         document.getElementById("totalHolders").innerText = stats.totalHolders;
         document.getElementById("activeSeats").innerText = stats.activeHolders;
