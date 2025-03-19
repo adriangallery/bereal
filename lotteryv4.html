@@ -74,7 +74,7 @@
         <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 1000" step="any">
         <label for="newNFTCount">NFT Count to Distribute (0, 1, 2, or 3):</label>
         <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 0" min="0" max="3">
-        <button id="startRoundButton" class="btn btn-danger mt-2">Start New Round</button>
+        <button id="startRoundButton" class="btn btn-danger mt-2">Generate Snapshot & Start New Round</button>
       </div>
       
       <!-- Update Prize Percentages -->
@@ -129,7 +129,7 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Nueva dirección del contrato de Lottery (actualizada)
+    // Nueva dirección del contrato de Lottery (asegúrate de actualizarla si cambia)
     const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -333,7 +333,7 @@
       }
     });
     
-    // Función para iniciar nueva ronda: se genera automáticamente el snapshot y se activa la ronda.
+    // Botón para generar automáticamente el snapshot y arrancar la nueva ronda
     document.getElementById("startRoundButton").addEventListener("click", async () => {
       const newTicketRatio = document.getElementById("newTicketRatio").value;
       const newTicketCost = document.getElementById("newTicketCost").value;
@@ -350,21 +350,12 @@
         }
       }
       try {
-        // Llamar a snapshot() del token ADRIAN para generar el snapshot automáticamente.
+        // Usamos callStatic.snapshot() para predecir el snapshot id que se generará
+        const snapshotId = await tokenContract.callStatic.snapshot();
+        // Ejecutar la transacción real para generar el snapshot
         const snapshotTx = await tokenContract.snapshot();
-        const snapshotReceipt = await snapshotTx.wait();
-        let snapshotId;
-        for (let event of snapshotReceipt.events) {
-          if (event.event === "Snapshot") {
-            snapshotId = event.args.id;
-            break;
-          }
-        }
-        if (!snapshotId) {
-          alert("Failed to retrieve snapshot id.");
-          return;
-        }
-        // Iniciar la nueva ronda con el snapshotId obtenido y los demás parámetros.
+        await snapshotTx.wait();
+        // Iniciar la nueva ronda pasando el snapshot id obtenido
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
         await tx.wait();
         alert("Lottery round started successfully with snapshot id " + snapshotId.toString() + "!");
