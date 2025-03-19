@@ -7,16 +7,40 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    body { background-color: #f7f7f7; margin: 0; padding: 20px; }
-    .container { max-width: 800px; margin: auto; }
-    .section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .admin-section { border: 2px solid #f44336; }
-    label { margin-top: 10px; font-weight: bold; }
-    .input-group .form-control { flex: 1 1 auto; }
+    /* El body ya no tiene padding para que el menú ocupe todo el ancho */
+    body {
+      background-color: #f7f7f7;
+      margin: 0;
+    }
+    /* Contenedor general para el contenido principal con padding independiente */
+    .content-container {
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    .section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .admin-section {
+      border: 2px solid #f44336;
+    }
+    label {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .input-group .form-control {
+      flex: 1 1 auto;
+    }
   </style>
 </head>
 <body>
-  <!-- Menu (Header) -->
+  <!-- Menu (Header) sin padding -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
@@ -28,101 +52,110 @@
   </script>
   <script src="components/menu2.js"></script>
   
-  <div class="container">
-    <h1 class="mb-4">ADRIAN Lottery v4 Frontend</h1>
-    
-    <!-- Wallet Status (controlado por el menú) -->
-    <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
-    
-    <!-- Previous Round Winners Section -->
-    <div class="section" id="previousWinnersSection" style="display: none;">
-      <h2>Previous Round Winners</h2>
-      <div id="winnersInfo"></div>
-    </div>
-    
-    <!-- User Functions Section -->
-    <div class="section">
-      <h2>User Functions</h2>
-      <div class="mb-3">
-        <h4>Buy Regular Tickets</h4>
-        <label for="numRegularTickets">Number of Regular Tickets:</label>
-        <input type="number" id="numRegularTickets" class="form-control" placeholder="Enter quantity" min="1">
-        <button id="claimTicketsButton" class="btn btn-success mt-2">Buy Regular Tickets</button>
-      </div>
-      <div class="mb-3">
-        <h4>Buy Complementary Tickets</h4>
-        <label for="numComplTickets">Number of Complementary Tickets:</label>
-        <input type="number" id="numComplTickets" class="form-control" placeholder="Enter quantity" min="1">
-        <button id="buyComplTicketsButton" class="btn btn-success mt-2">Buy Complementary Tickets</button>
-      </div>
-      <div class="mb-3">
-        <h4>Current Round Info</h4>
-        <div id="roundInfo"></div>
-      </div>
-      <div class="mb-3">
-        <h4>Your Ticket Info</h4>
-        <div id="userTicketInfo"></div>
-      </div>
-    </div>
-    
-    <!-- Admin Functions Section -->
-    <div class="section admin-section" id="adminSection">
-      <h2>Admin Functions</h2>
+  <!-- Contenedor de contenido principal con padding independiente -->
+  <div class="content-container">
+    <div class="container">
+      <h1 class="mb-4">ADRIAN Lottery v4 Frontend</h1>
       
-      <!-- Start New Round: se genera el snapshot automáticamente -->
-      <div class="mb-3">
-        <h4>Start New Round</h4>
-        <!-- No se pide el snapshot ID manualmente -->
-        <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
-        <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
-        <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
-        <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 10" step="any">
-        <label for="newComplTicketPrice">Complementary Ticket Price (tokens):</label>
-        <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
-        <label for="newFixedPrize">Fixed Prize Amount (tokens):</label>
-        <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 1000" step="any">
-        <label for="newNFTCount">NFT Count to Distribute (0, 1, 2, or 3):</label>
-        <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 0" min="0" max="3">
-        <button id="startRoundButton" class="btn btn-danger mt-2">Generate Snapshot & Start New Round</button>
+      <!-- Wallet Status (controlado por el menú) -->
+      <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
+      
+      <!-- Previous Round Winners Section -->
+      <div class="section" id="previousWinnersSection" style="display: none;">
+        <h2>Previous Round Winners</h2>
+        <div id="winnersInfo"></div>
       </div>
       
-      <!-- Update Prize Percentages -->
-      <div class="mb-3">
-        <h4>Update Prize Percentages</h4>
-        <label for="updateP1Input">Winner 1 Percentage:</label>
-        <input type="number" id="updateP1Input" class="form-control" placeholder="e.g., 80" step="any">
-        <label for="updateP2Input">Winner 2 Percentage:</label>
-        <input type="number" id="updateP2Input" class="form-control" placeholder="e.g., 15" step="any">
-        <label for="updateP3Input">Winner 3 Percentage:</label>
-        <input type="number" id="updateP3Input" class="form-control" placeholder="e.g., 5" step="any">
-        <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
+      <!-- Previous Round Winners with Prizes Section -->
+      <div class="section" id="previousWinnersPrizesSection" style="display: none;">
+        <h2>Previous Round Winners &amp; Prizes</h2>
+        <div id="winnersPrizesInfo"></div>
       </div>
       
-      <!-- Force Finish, Draw Winners, Distribute Prizes -->
-      <div class="mb-3">
-        <h4>Force Finish Round</h4>
-        <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
-      </div>
-      <div class="mb-3">
-        <h4>Draw Winners</h4>
-        <button id="drawWinnersButton" class="btn btn-secondary">Draw Winners</button>
-      </div>
-      <div class="mb-3">
-        <h4>Distribute Prizes</h4>
-        <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
-      </div>
-      <!-- Emergency Pause Controls -->
-      <div class="mb-3">
-        <h4>Emergency Pause</h4>
-        <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
-        <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
+      <!-- User Functions Section -->
+      <div class="section">
+        <h2>User Functions</h2>
+        <div class="mb-3">
+          <h4>Buy Regular Tickets</h4>
+          <label for="numRegularTickets">Number of Regular Tickets:</label>
+          <input type="number" id="numRegularTickets" class="form-control" placeholder="Enter quantity" min="1">
+          <button id="claimTicketsButton" class="btn btn-success mt-2">Buy Regular Tickets</button>
+        </div>
+        <div class="mb-3">
+          <h4>Buy Complementary Tickets</h4>
+          <label for="numComplTickets">Number of Complementary Tickets:</label>
+          <input type="number" id="numComplTickets" class="form-control" placeholder="Enter quantity" min="1">
+          <button id="buyComplTicketsButton" class="btn btn-success mt-2">Buy Complementary Tickets</button>
+        </div>
+        <div class="mb-3">
+          <h4>Current Round Info</h4>
+          <div id="roundInfo"></div>
+        </div>
+        <div class="mb-3">
+          <h4>Your Ticket Info</h4>
+          <div id="userTicketInfo"></div>
+        </div>
       </div>
       
-      <!-- Debug Info Section -->
-      <div class="mb-3">
-        <h4>Debug Info (Connected Wallet)</h4>
-        <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
-        <div id="debugInfo" class="mt-2"></div>
+      <!-- Admin Functions Section -->
+      <div class="section admin-section" id="adminSection">
+        <h2>Admin Functions</h2>
+        
+        <!-- Start New Round: se genera el snapshot automáticamente -->
+        <div class="mb-3">
+          <h4>Start New Round</h4>
+          <!-- No se pide el snapshot ID manualmente -->
+          <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
+          <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
+          <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
+          <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 10" step="any">
+          <label for="newComplTicketPrice">Complementary Ticket Price (tokens):</label>
+          <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
+          <label for="newFixedPrize">Fixed Prize Amount (tokens):</label>
+          <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 1000" step="any">
+          <label for="newNFTCount">NFT Count to Distribute (0, 1, 2, or 3):</label>
+          <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 0" min="0" max="3">
+          <button id="startRoundButton" class="btn btn-danger mt-2">Generate Snapshot &amp; Start New Round</button>
+        </div>
+        
+        <!-- Update Prize Percentages -->
+        <div class="mb-3">
+          <h4>Update Prize Percentages</h4>
+          <label for="updateP1Input">Winner 1 Percentage:</label>
+          <input type="number" id="updateP1Input" class="form-control" placeholder="e.g., 80" step="any">
+          <label for="updateP2Input">Winner 2 Percentage:</label>
+          <input type="number" id="updateP2Input" class="form-control" placeholder="e.g., 15" step="any">
+          <label for="updateP3Input">Winner 3 Percentage:</label>
+          <input type="number" id="updateP3Input" class="form-control" placeholder="e.g., 5" step="any">
+          <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
+        </div>
+        
+        <!-- Force Finish, Draw Winners, Distribute Prizes -->
+        <div class="mb-3">
+          <h4>Force Finish Round</h4>
+          <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
+        </div>
+        <div class="mb-3">
+          <h4>Draw Winners</h4>
+          <button id="drawWinnersButton" class="btn btn-secondary">Draw Winners</button>
+        </div>
+        <div class="mb-3">
+          <h4>Distribute Prizes</h4>
+          <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
+        </div>
+        <!-- Emergency Pause Controls -->
+        <div class="mb-3">
+          <h4>Emergency Pause</h4>
+          <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
+          <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
+        </div>
+        
+        <!-- Debug Info Section -->
+        <div class="mb-3">
+          <h4>Debug Info (Connected Wallet)</h4>
+          <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
+          <div id="debugInfo" class="mt-2"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -192,6 +225,7 @@
           loadRoundInfo();
           updateUserTicketInfo();
           displayPreviousRoundWinners();
+          displayPreviousWinnersWithPrizes();
           checkIfOwner();
         } catch (error) {
           console.error("Error connecting wallet:", error);
@@ -289,6 +323,33 @@
       }
     }
     
+    // Función para mostrar ganadores con sus premios
+    async function displayPreviousWinnersWithPrizes() {
+      try {
+        const winners = await lotteryContract.getWinners();
+        const prizesDiv = document.getElementById("winnersPrizesInfo");
+        if (winners.length === 0) {
+          prizesDiv.innerHTML = "<p>No winners from the previous round.</p>";
+          document.getElementById("previousWinnersPrizesSection").style.display = "none";
+          return;
+        }
+        // Suponiendo que la distribución es fija: 80%, 15% y 5%
+        const percentages = [80, 15, 5];
+        const fixedPrize = await lotteryContract.fixedPrize();
+        let html = "<ul>";
+        for (let i = 0; i < winners.length && i < percentages.length; i++) {
+          const prize = fixedPrize.mul(percentages[i]).div(100);
+          html += `<li><strong>Winner ${i+1}:</strong> ${winners[i]} - Prize: ${prize.toString()} tokens</li>`;
+        }
+        html += "</ul>";
+        prizesDiv.innerHTML = html;
+        document.getElementById("previousWinnersPrizesSection").style.display = "block";
+      } catch (error) {
+        console.error("Error loading winners with prizes:", error);
+        document.getElementById("winnersPrizesInfo").innerText = "Error loading winners/prizes: " + error.message;
+      }
+    }
+    
     document.getElementById("claimTicketsButton").addEventListener("click", async () => {
       const numTickets = document.getElementById("numRegularTickets").value;
       if (!numTickets || numTickets <= 0) {
@@ -331,7 +392,7 @@
       }
     });
     
-    // Botón para generar automáticamente el snapshot y arrancar la nueva ronda
+    // Botón para generar el snapshot y arrancar la nueva ronda
     document.getElementById("startRoundButton").addEventListener("click", async () => {
       const newTicketRatio = document.getElementById("newTicketRatio").value;
       const newTicketCost = document.getElementById("newTicketCost").value;
@@ -348,12 +409,9 @@
         }
       }
       try {
-        // Usamos callStatic.snapshot() para predecir el snapshot id que se generará
         const snapshotId = await tokenContract.callStatic.snapshot();
-        // Ejecutar la transacción real para generar el snapshot
         const snapshotTx = await tokenContract.snapshot();
         await snapshotTx.wait();
-        // Iniciar la nueva ronda pasando el snapshot id obtenido
         const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
         await tx.wait();
         alert("Lottery round started successfully with snapshot id " + snapshotId.toString() + "!");
@@ -405,6 +463,7 @@
         await tx.wait();
         alert("Winners drawn successfully!");
         displayPreviousRoundWinners();
+        displayPreviousWinnersWithPrizes();
       } catch (err) {
         console.error(err);
         alert("Error drawing winners: " + err.message);
@@ -498,6 +557,7 @@
       loadRoundInfo();
       updateUserTicketInfo();
       displayPreviousRoundWinners();
+      displayPreviousWinnersWithPrizes();
       checkIfOwner();
     };
     
