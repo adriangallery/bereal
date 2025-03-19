@@ -63,7 +63,7 @@
       <!-- Start New Round -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <!-- Aquí el owner debe obtener el snapshotId manualmente (por ejemplo, desde el contrato del token) -->
+        <!-- El owner debe obtener el snapshotId manualmente (por ejemplo, desde el contrato del token) -->
         <label for="snapshotId">Snapshot ID:</label>
         <input type="number" id="snapshotId" class="form-control" placeholder="Enter snapshot id" step="any">
         <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
@@ -131,7 +131,7 @@
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
     // Nueva dirección del contrato v4
-    const lotteryAddress = "0x4334b547447a49003c915ee68a8586a3891343b8";
+    const lotteryAddress = "0x61dcaa2a2cfae877d0ac54b852602ed62a71375a";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -140,6 +140,7 @@
       "function emergencyWithdrawNFT(address nftContract, uint256 tokenId) external",
       "function pause() external",
       "function unpause() external",
+      "function forceFinishRound() external",
       "function drawWinners() external",
       "function distributePrizes() external",
       "function getWinners() view returns (address[])",
@@ -349,7 +350,7 @@
         }
       }
       try {
-        // Si hay una ronda activa, se verifica que ya haya finalizado.
+        // Verificar si hay una ronda activa.
         const currentRoundId = await lotteryContract.currentRoundId();
         if (!currentRoundId.eq(0)) {
           const drawTimeVal = await lotteryContract.drawTime();
