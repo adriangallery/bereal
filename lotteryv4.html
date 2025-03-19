@@ -63,7 +63,7 @@
       <!-- Start New Round -->
       <div class="mb-3">
         <h4>Start New Round</h4>
-        <!-- El owner debe obtener el snapshotId manualmente (por ejemplo, desde el contrato del token) -->
+        <!-- El owner debe obtener el snapshotId manualmente (por ejemplo, llamando a snapshot() del token ADRIAN) -->
         <label for="snapshotId">Snapshot ID:</label>
         <input type="number" id="snapshotId" class="form-control" placeholder="Enter snapshot id" step="any">
         <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
@@ -131,7 +131,7 @@
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
     // Nueva dirección del contrato v4
-    const lotteryAddress = "0x61dcaa2a2cfae877d0ac54b852602ed62a71375a";
+    const lotteryAddress = "0x8e764e39b898b8a8c904914e4ed40226ad54bb65";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
       "function buyComplementaryTickets(uint256 numTickets) external",
@@ -209,7 +209,7 @@
         const ratio = await lotteryContract.ticketRatio();
         const complPrice = await lotteryContract.complementaryTicketPrice();
         const fixedPrizeVal = await lotteryContract.fixedPrize();
-        // Obtener totales de tickets
+        // Totales de tickets
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         
@@ -343,14 +343,12 @@
         alert("Please enter snapshot id, ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
         return;
       }
-      // Si se desea distribuir NFTs, confirmar que se tiene NFTCount depositados
       if (parseInt(nftCount) > 0) {
         if(!confirm("You are attempting to distribute " + nftCount + " NFT(s). Ensure that you have deposited at least " + nftCount + " NFT(s) into the pool. Proceed?")) {
           return;
         }
       }
       try {
-        // Verificar si hay una ronda activa.
         const currentRoundId = await lotteryContract.currentRoundId();
         if (!currentRoundId.eq(0)) {
           const drawTimeVal = await lotteryContract.drawTime();
