@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Adrian Gallery Loyalty Dashboard</title>
-  <!-- Load ethers.js from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <!-- Use the UMD build of ethers.js to avoid module errors -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -84,6 +84,7 @@
   <script>
     // Contract address for LoyaltyAchievements
     const contractAddress = "0xe19212002d335704dcc9f3e90390223e9934ff0c";
+
     // Minimal ABI for our demo (read functions and claim function)
     const loyaltyABI = [
       {
@@ -186,6 +187,7 @@
           loadUserData();
         } catch (error) {
           console.error("Wallet connection error:", error);
+          alert("Wallet connection error: " + error.message);
         }
       } else {
         alert("Please install MetaMask!");
@@ -201,7 +203,7 @@
 
         // Get highest claimed tier
         const highestTier = await contract.getHighestClaimedTier(userAddress);
-        document.getElementById("highestTier").innerText = highestTier.toString();
+        document.getElementById("highestTier").innerText = highestTier.toString() === "0" ? "None" : highestTier.toString();
 
         // Get next claimable tier
         const nextTierData = await contract.getNextClaimableTier(userAddress);
@@ -236,7 +238,6 @@
         for (let i = 0; i < tierIds.length; i++) {
           const tierId = tierIds[i];
           const tierInfo = await contract.getTierInfo(tierId);
-          // For demo purposes, determine status based on next claimable tier and highest claimed tier.
           let status = "Locked";
           const nextData = await contract.getNextClaimableTier(userAddress);
           if (nextData.exists && nextData.nextTierId.toString() === tierId.toString()) {
