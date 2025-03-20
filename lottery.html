@@ -13,7 +13,7 @@
       background-color: #f7f7f7;
       margin: 0;
     }
-    /* Contenedor general para el contenido principal */
+    /* Contenedor general para el contenido principal con padding independiente */
     .content-container {
       padding: 20px;
     }
@@ -69,6 +69,7 @@
       
       <!-- Sección de User Functions (sin título) -->
       <div class="section">
+        <!-- Botones y controles para el usuario -->
         <div class="mb-3">
           <h4>Buy Regular Tickets</h4>
           <label for="numRegularTickets">Number of Regular Tickets:</label>
@@ -125,7 +126,7 @@
           <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
         </div>
         
-        <!-- Otros controles de administración -->
+        <!-- Other Admin Controls -->
         <div class="mb-3">
           <h4>Force Finish Round</h4>
           <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
@@ -138,14 +139,14 @@
           <h4>Distribute Prizes</h4>
           <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
         </div>
-        <!-- Controles de emergencia -->
+        <!-- Emergency Pause Controls -->
         <div class="mb-3">
           <h4>Emergency Pause</h4>
           <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
           <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
         </div>
         
-        <!-- Sección de Debug Info -->
+        <!-- Debug Info Section -->
         <div class="mb-3">
           <h4>Debug Info (Connected Wallet)</h4>
           <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
@@ -175,9 +176,50 @@
     let lotteryContract;
     let tokenContract;
     
-    // Función de formateo sin aplicar decimales extra (ya que el contrato devuelve valores sin 1e18)
+    const SCALING = ethers.BigNumber.from("1000000000000000000");
+    
+    // Dirección del contrato de Lottery (actualiza si es necesario)
+    const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
+    const lotteryABI = [
+      "function claimTickets(uint256 numTickets) external",
+      "function buyComplementaryTickets(uint256 numTickets) external",
+      "function startLotteryRound(uint256 snapshotId, uint256 newTicketCost, uint256 newTicketRatio, uint256 newComplTicketPrice, uint256 newFixedPrize, uint256 nftCount) external",
+      "function updatePrizePercentages(uint256 _p1, uint256 _p2, uint256 _p3) external",
+      "function emergencyWithdrawNFT(address nftContract, uint256 tokenId) external",
+      "function pause() external",
+      "function unpause() external",
+      "function forceFinishRound() external",
+      "function drawWinners() external",
+      "function distributePrizes() external",
+      "function getWinners() view returns (address[])",
+      "function currentRoundId() view returns (uint256)",
+      "function claimDeadline() view returns (uint256)",
+      "function drawTime() view returns (uint256)",
+      "function ticketCost() view returns (uint256)",
+      "function ticketRatio() view returns (uint256)",
+      "function complementaryTicketPrice() view returns (uint256)",
+      "function fixedPrize() view returns (uint256)",
+      "function getTotalRegularTickets() view returns (uint256)",
+      "function getTotalComplementaryTickets() view returns (uint256)",
+      "function regularTickets(uint256, address) view returns (uint256)",
+      "function complementaryTickets(uint256, address) view returns (uint256)",
+      "function owner() view returns (address)",
+      "function roundSnapshot(uint256 roundId) view returns (uint256)"
+    ];
+    
+    // Dirección del token ADRIAN
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function snapshot() external returns (uint256)",
+      "function balanceOfAt(address account, uint256 snapshotId) view returns (uint256)",
+      "event Snapshot(uint256 id)"
+    ];
+    
+    // Función para formatear cantidades de token: 1,000.12 $ADRIAN
     function formatTokenAmount(amount) {
-      const num = parseFloat(amount.toString());
+      const num = parseFloat(ethers.utils.formatUnits(amount, 18));
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
@@ -187,7 +229,7 @@
       return address.substring(0, 6) + "..." + address.substring(address.length - 4);
     }
     
-    // Función de conexión
+    // Función de conexión (se mantiene para otros contextos)
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -236,10 +278,6 @@
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         
-        console.log("Ticket Cost:", cost.toString());
-        console.log("Complementary Ticket Price:", complPrice.toString());
-        console.log("Fixed Prize:", fixedPrizeVal.toString());
-        
         const infoDiv = document.getElementById("currentRoundInfo");
         infoDiv.innerHTML = `
           <p><strong>Total Regular Tickets Purchased:</strong> ${totalRegular.toString()}</p>
@@ -251,9 +289,10 @@
           <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
           <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
         `;
+        // Mostrar la sección de current round info
         document.getElementById("currentRoundSection").style.display = "block";
       } catch (err) {
-        console.error("Error in loadRoundInfo:", err);
+        console.error(err);
       }
     }
     
@@ -267,7 +306,7 @@
         const snapshotId = await lotteryContract.roundSnapshot(roundId);
         const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
         const ratio = await lotteryContract.ticketRatio();
-        const allowedTickets = snapshotBalance.div(ratio);
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
         const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
         const totalClaimed = regularClaimed.add(complementaryClaimed);
@@ -294,6 +333,7 @@
           winnersDiv.innerHTML = "<p>No winners from the previous round.</p>";
           document.getElementById("previousWinnersSection").style.display = "none";
         } else {
+          // Se muestran las direcciones comprimidas
           const shortened = winners.map(addr => shortenAddress(addr));
           winnersDiv.innerHTML = `<p>${shortened.join(", ")}</p>`;
           document.getElementById("previousWinnersSection").style.display = "block";
@@ -312,7 +352,7 @@
       }
       try {
         const cost = await lotteryContract.ticketCost();
-        const totalCost = cost.mul(numTickets);
+        const totalCost = cost.mul(numTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
         const tx = await lotteryContract.claimTickets(numTickets);
         await tx.wait();
@@ -333,7 +373,7 @@
       }
       try {
         const complPrice = await lotteryContract.complementaryTicketPrice();
-        const totalCost = complPrice.mul(numComplTickets);
+        const totalCost = complPrice.mul(numComplTickets).mul(SCALING);
         await approveTokensIfNeeded(totalCost);
         const tx = await lotteryContract.buyComplementaryTickets(numComplTickets);
         await tx.wait();
@@ -346,6 +386,7 @@
       }
     });
     
+    // Botón para generar el snapshot y arrancar la nueva ronda
     document.getElementById("startRoundButton").addEventListener("click", async () => {
       const newTicketRatio = document.getElementById("newTicketRatio").value;
       const newTicketCost = document.getElementById("newTicketCost").value;
@@ -467,7 +508,7 @@
         const tokenInst = new ethers.Contract(tokenAddress, erc20ABI, signer);
         const snapshotBalance = await tokenInst.balanceOfAt(userAddress, snapshotId);
         const ratio = await lotteryContract.ticketRatio();
-        const allowedTickets = snapshotBalance.div(ratio);
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
         const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
         const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
         const totalRegular = await lotteryContract.getTotalRegularTickets();
@@ -496,7 +537,7 @@
       }
     }
     
-    // Callbacks para conexión/desconexión vía menu2.js
+    // Callback cuando se conecta el wallet vía el menú (definido en menu2.js)
     window.onMenuWalletConnected = async function() {
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
