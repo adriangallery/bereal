@@ -226,10 +226,15 @@
       "event Snapshot(uint256 id)"
     ];
     
-    // Función para formatear cantidades de token: 1,000.12 $ADRIAN  
-    // Se asume que el contrato devuelve valores ya escalados
+    // Para los valores ya escalados (ticket cost, complementary price, fixed prize)
     function formatTokenAmount(amount) {
       const num = parseFloat(amount.toString());
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
+    }
+    
+    // Para el Snapshot Balance (necesita dividir por 10^18)
+    function formatSnapshotBalance(amount) {
+      const num = parseFloat(ethers.utils.formatUnits(amount, 18));
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
@@ -364,7 +369,7 @@
         document.getElementById("numRegularTickets").value = availableTickets.toString();
         
         document.getElementById("userTicketInfo").innerHTML = `
-          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
+          <p><strong>Your Snapshot Balance:</strong> ${formatSnapshotBalance(snapshotBalance)}</p>
           <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
           <p><strong>Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
           <p><strong>Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
@@ -571,7 +576,7 @@
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         document.getElementById("debugInfo").innerHTML = `
-          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
+          <p><strong>Your Snapshot Balance:</strong> ${formatSnapshotBalance(snapshotBalance)}</p>
           <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
           <p><strong>Your Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
           <p><strong>Your Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
