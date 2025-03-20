@@ -126,7 +126,7 @@
           <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
         </div>
         
-        <!-- Other Admin Controls -->
+        <!-- Otros controles de administración -->
         <div class="mb-3">
           <h4>Force Finish Round</h4>
           <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
@@ -139,14 +139,14 @@
           <h4>Distribute Prizes</h4>
           <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
         </div>
-        <!-- Emergency Pause Controls -->
+        <!-- Controles de emergencia -->
         <div class="mb-3">
           <h4>Emergency Pause</h4>
           <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
           <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
         </div>
         
-        <!-- Debug Info Section -->
+        <!-- Sección de Debug Info -->
         <div class="mb-3">
           <h4>Debug Info (Connected Wallet)</h4>
           <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
@@ -219,8 +219,7 @@
     
     // Función para formatear cantidades de token: 1,000.12 $ADRIAN
     function formatTokenAmount(amount) {
-      // Convertimos directamente el BigNumber a string sin aplicar 18 decimales
-      const num = parseFloat(amount.toString());
+      const num = parseFloat(ethers.utils.formatUnits(amount, 18));
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
@@ -311,6 +310,10 @@
         const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
         const totalClaimed = regularClaimed.add(complementaryClaimed);
         const availableTickets = allowedTickets.sub(regularClaimed);
+        // Actualizamos el input con el máximo disponible y su valor por defecto
+        document.getElementById("numRegularTickets").setAttribute("max", availableTickets.toString());
+        document.getElementById("numRegularTickets").value = availableTickets.toString();
+        
         document.getElementById("userTicketInfo").innerHTML = `
           <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
           <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
@@ -344,9 +347,14 @@
     }
     
     document.getElementById("claimTicketsButton").addEventListener("click", async () => {
-      const numTickets = document.getElementById("numRegularTickets").value;
+      const numTickets = parseInt(document.getElementById("numRegularTickets").value);
+      const maxTickets = parseInt(document.getElementById("numRegularTickets").getAttribute("max"));
       if (!numTickets || numTickets <= 0) {
         alert("Enter a valid number of regular tickets.");
+        return;
+      }
+      if (numTickets > maxTickets) {
+        alert("You cannot buy more tickets than available (" + maxTickets + ").");
         return;
       }
       try {
