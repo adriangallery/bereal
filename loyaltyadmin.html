@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Administración - Loyalty Achievements</title>
+  <!-- Usamos la versión UMD de ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e9e9e9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .section {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 1rem;
+    }
+    h2 {
+      margin-bottom: 0.5rem;
+    }
+    form {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .result {
+      margin-top: 0.5rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Panel de Administración - Loyalty Achievements</h1>
+    <button id="connectWalletButton">Conectar Wallet</button>
+    <p id="walletAddress"></p>
+  </header>
+  <div class="container">
+    <!-- Actualizar Lore -->
+    <div class="section" id="update-lore">
+      <h2>Actualizar Lore del Proyecto</h2>
+      <form id="updateLoreForm">
+        <label for="loreInput">Nuevo Lore:</label>
+        <textarea id="loreInput" rows="3" placeholder="Ingresa el nuevo lore"></textarea>
+        <button type="submit">Actualizar Lore</button>
+      </form>
+      <div id="updateLoreResult" class="result"></div>
+    </div>
+    <!-- Agregar Nivel (Tier) -->
+    <div class="section" id="add-tier">
+      <h2>Agregar Nivel (Tier)</h2>
+      <form id="addTierForm">
+        <label for="tierIdAdd">ID del Nivel:</label>
+        <input type="number" id="tierIdAdd" placeholder="Ej: 1" required>
+        <label for="thresholdAdd">Umbral de Puntos:</label>
+        <input type="number" id="thresholdAdd" placeholder="Ej: 1000" required>
+        <label for="tierNameAdd">Nombre del Nivel:</label>
+        <input type="text" id="tierNameAdd" placeholder="Ej: Bronze" required>
+        <label for="rewardEventIdAdd">ID del Evento de Recompensa:</label>
+        <input type="number" id="rewardEventIdAdd" placeholder="Ej: 101" required>
+        <label for="descriptionAdd">Descripción:</label>
+        <textarea id="descriptionAdd" rows="2" placeholder="Descripción del nivel" required></textarea>
+        <button type="submit">Agregar Nivel</button>
+      </form>
+      <div id="addTierResult" class="result"></div>
+    </div>
+    <!-- Actualizar Nivel -->
+    <div class="section" id="update-tier">
+      <h2>Actualizar Nivel (Tier)</h2>
+      <form id="updateTierForm">
+        <label for="tierIdUpdate">ID del Nivel:</label>
+        <input type="number" id="tierIdUpdate" placeholder="Ej: 1" required>
+        <label for="thresholdUpdate">Nuevo Umbral de Puntos:</label>
+        <input type="number" id="thresholdUpdate" placeholder="Ej: 1500" required>
+        <label for="tierNameUpdate">Nuevo Nombre del Nivel:</label>
+        <input type="text" id="tierNameUpdate" placeholder="Ej: Silver" required>
+        <label for="rewardEventIdUpdate">Nuevo ID del Evento de Recompensa:</label>
+        <input type="number" id="rewardEventIdUpdate" placeholder="Ej: 102" required>
+        <label for="descriptionUpdate">Nueva Descripción:</label>
+        <textarea id="descriptionUpdate" rows="2" placeholder="Nueva descripción del nivel" required></textarea>
+        <button type="submit">Actualizar Nivel</button>
+      </form>
+      <div id="updateTierResult" class="result"></div>
+    </div>
+    <!-- Otorgar Puntos Manualmente -->
+    <div class="section" id="award-points">
+      <h2>Otorgar Puntos Manualmente</h2>
+      <form id="awardPointsForm">
+        <label for="awardAddress">Dirección del Usuario:</label>
+        <input type="text" id="awardAddress" placeholder="0x..." required>
+        <label for="awardAmount">Cantidad de Puntos:</label>
+        <input type="number" id="awardAmount" placeholder="Ej: 500" required>
+        <button type="submit">Otorgar Puntos</button>
+      </form>
+      <div id="awardPointsResult" class="result"></div>
+    </div>
+    <!-- Actualizar Tasas de Conversión -->
+    <div class="section" id="update-conversion">
+      <h2>Actualizar Tasas de Conversión</h2>
+      <form id="updateConversionForm">
+        <label for="burnRateInput">Tasa de Quemado:</label>
+        <input type="number" id="burnRateInput" placeholder="Puntos por token quemado" required>
+        <label for="spendRateInput">Tasa de Gasto:</label>
+        <input type="number" id="spendRateInput" placeholder="Puntos por token gastado" required>
+        <label for="transferRateInput">Tasa de Transferencia:</label>
+        <input type="number" id="transferRateInput" placeholder="Puntos por token transferido" required>
+        <button type="submit">Actualizar Tasas</button>
+      </form>
+      <div id="updateConversionResult" class="result"></div>
+    </div>
+    <!-- Agregar Dirección Autorizada -->
+    <div class="section" id="add-caller">
+      <h2>Agregar Dirección Autorizada</h2>
+      <form id="addCallerForm">
+        <label for="callerAddressAdd">Dirección:</label>
+        <input type="text" id="callerAddressAdd" placeholder="0x..." required>
+        <button type="submit">Agregar</button>
+      </form>
+      <div id="addCallerResult" class="result"></div>
+    </div>
+    <!-- Remover Dirección Autorizada -->
+    <div class="section" id="remove-caller">
+      <h2>Remover Dirección Autorizada</h2>
+      <form id="removeCallerForm">
+        <label for="callerAddressRemove">Dirección:</label>
+        <input type="text" id="callerAddressRemove" placeholder="0x..." required>
+        <button type="submit">Remover</button>
+      </form>
+      <div id="removeCallerResult" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    // Dirección del contrato LoyaltyAchievements
+    const contractAddress = "0xb8190acc79e8ddf42a5cd5ddc819cbb5b0c5374f";
+    // ABI mínimo para funciones administrativas
+    const loyaltyABI = [
+      {
+        "inputs": [{"internalType": "string","name": "newLore","type": "string"}],
+        "name": "updateProjectLore",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256","name": "tierId","type": "uint256"},
+          {"internalType": "uint256","name": "threshold","type": "uint256"},
+          {"internalType": "string","name": "tierName","type": "string"},
+          {"internalType": "uint256","name": "rewardEventId","type": "uint256"},
+          {"internalType": "string","name": "description","type": "string"}
+        ],
+        "name": "addTier",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256","name": "tierId","type": "uint256"},
+          {"internalType": "uint256","name": "threshold","type": "uint256"},
+          {"internalType": "string","name": "tierName","type": "string"},
+          {"internalType": "uint256","name": "rewardEventId","type": "uint256"},
+          {"internalType": "string","name": "description","type": "string"}
+        ],
+        "name": "updateTier",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "address","name": "user","type": "address"},
+          {"internalType": "uint256","name": "amount","type": "uint256"}
+        ],
+        "name": "awardPoints",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256","name": "_burnRate","type": "uint256"},
+          {"internalType": "uint256","name": "_spendRate","type": "uint256"},
+          {"internalType": "uint256","name": "_transferRate","type": "uint256"}
+        ],
+        "name": "updateConversionRates",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "address","name": "caller","type": "address"}],
+        "name": "addAuthorizedCaller",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [{"internalType": "address","name": "caller","type": "address"}],
+        "name": "removeAuthorizedCaller",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+
+    let provider;
+    let signer;
+    let contract;
+    let userAddress;
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAddress = await signer.getAddress();
+          document.getElementById("walletAddress").innerText = "Wallet conectada: " + userAddress;
+          contract = new ethers.Contract(contractAddress, loyaltyABI, signer);
+        } catch (error) {
+          console.error("Error al conectar wallet:", error);
+          alert("Error al conectar wallet: " + error.message);
+        }
+      } else {
+        alert("Por favor, instala MetaMask!");
+      }
+    }
+
+    // Asignar listener al botón de conectar wallet
+    document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
+
+    // Actualizar Lore del Proyecto
+    document.getElementById("updateLoreForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newLore = document.getElementById("loreInput").value;
+      try {
+        const tx = await contract.updateProjectLore(newLore);
+        await tx.wait();
+        document.getElementById("updateLoreResult").innerText = "Lore actualizado correctamente.";
+      } catch (error) {
+        console.error("Error al actualizar lore:", error);
+        document.getElementById("updateLoreResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Agregar un nuevo Tier
+    document.getElementById("addTierForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const tierId = document.getElementById("tierIdAdd").value;
+      const threshold = document.getElementById("thresholdAdd").value;
+      const tierName = document.getElementById("tierNameAdd").value;
+      const rewardEventId = document.getElementById("rewardEventIdAdd").value;
+      const description = document.getElementById("descriptionAdd").value;
+      try {
+        const tx = await contract.addTier(tierId, threshold, tierName, rewardEventId, description);
+        await tx.wait();
+        document.getElementById("addTierResult").innerText = "Nivel agregado correctamente.";
+      } catch (error) {
+        console.error("Error al agregar nivel:", error);
+        document.getElementById("addTierResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Actualizar un Tier existente
+    document.getElementById("updateTierForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const tierId = document.getElementById("tierIdUpdate").value;
+      const threshold = document.getElementById("thresholdUpdate").value;
+      const tierName = document.getElementById("tierNameUpdate").value;
+      const rewardEventId = document.getElementById("rewardEventIdUpdate").value;
+      const description = document.getElementById("descriptionUpdate").value;
+      try {
+        const tx = await contract.updateTier(tierId, threshold, tierName, rewardEventId, description);
+        await tx.wait();
+        document.getElementById("updateTierResult").innerText = "Nivel actualizado correctamente.";
+      } catch (error) {
+        console.error("Error al actualizar nivel:", error);
+        document.getElementById("updateTierResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Otorgar puntos manualmente a un usuario
+    document.getElementById("awardPointsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const user = document.getElementById("awardAddress").value;
+      const amount = document.getElementById("awardAmount").value;
+      try {
+        const tx = await contract.awardPoints(user, amount);
+        await tx.wait();
+        document.getElementById("awardPointsResult").innerText = "Puntos otorgados correctamente.";
+      } catch (error) {
+        console.error("Error al otorgar puntos:", error);
+        document.getElementById("awardPointsResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Actualizar tasas de conversión
+    document.getElementById("updateConversionForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const burnRate = document.getElementById("burnRateInput").value;
+      const spendRate = document.getElementById("spendRateInput").value;
+      const transferRate = document.getElementById("transferRateInput").value;
+      try {
+        const tx = await contract.updateConversionRates(burnRate, spendRate, transferRate);
+        await tx.wait();
+        document.getElementById("updateConversionResult").innerText = "Tasas actualizadas correctamente.";
+      } catch (error) {
+        console.error("Error al actualizar tasas:", error);
+        document.getElementById("updateConversionResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Agregar dirección autorizada
+    document.getElementById("addCallerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const caller = document.getElementById("callerAddressAdd").value;
+      try {
+        const tx = await contract.addAuthorizedCaller(caller);
+        await tx.wait();
+        document.getElementById("addCallerResult").innerText = "Dirección autorizada agregada.";
+      } catch (error) {
+        console.error("Error al agregar dirección autorizada:", error);
+        document.getElementById("addCallerResult").innerText = "Error: " + error.message;
+      }
+    });
+
+    // Remover dirección autorizada
+    document.getElementById("removeCallerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const caller = document.getElementById("callerAddressRemove").value;
+      try {
+        const tx = await contract.removeAuthorizedCaller(caller);
+        await tx.wait();
+        document.getElementById("removeCallerResult").innerText = "Dirección autorizada removida.";
+      } catch (error) {
+        console.error("Error al remover dirección autorizada:", error);
+        document.getElementById("removeCallerResult").innerText = "Error: " + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
