@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Adrian Gallery Loyalty Dashboard</title>
+  <!-- Load ethers.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
       background: #f4f4f4;
       color: #333;
+      margin: 0;
+      padding: 0;
     }
     header {
       background: #222;
@@ -26,32 +29,6 @@
     .section {
       margin-bottom: 2rem;
     }
-    h2 {
-      border-bottom: 2px solid #ddd;
-      padding-bottom: 0.5rem;
-    }
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 1rem;
-    }
-    .stat {
-      text-align: center;
-    }
-    .progress-bar {
-      background: #ddd;
-      border-radius: 5px;
-      overflow: hidden;
-      height: 20px;
-      margin-bottom: 0.5rem;
-    }
-    .progress {
-      height: 100%;
-      background: #4caf50;
-      text-align: center;
-      line-height: 20px;
-      color: #fff;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -64,116 +41,246 @@
       padding: 0.75rem;
       text-align: left;
     }
+    button {
+      padding: 0.75rem 1.5rem;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Adrian Gallery Loyalty Dashboard</h1>
+    <button id="connectWalletButton">Connect Wallet</button>
+    <p id="walletAddress"></p>
   </header>
 
   <div class="container">
-    <!-- Project Lore Section -->
-    <div class="section" id="project-lore">
-      <h2>Project Lore</h2>
-      <p>
-        In the digital expanse of Adrian Gallery, where art, technology, and cryptographic mysticism intertwine,
-        only those who truly commit are marked. This ecosystem rewards genuine engagement, risk, and sacrifice.
-      </p>
-    </div>
-
     <!-- User Stats Section -->
     <div class="section" id="user-stats">
       <h2>Your Stats</h2>
-      <div class="stats">
-        <div class="stat">
-          <h3>Total Points</h3>
-          <p id="total-points">1500</p>
-        </div>
-        <div class="stat">
-          <h3>Highest Claimed Tier</h3>
-          <p id="highest-tier">Ascension</p>
-        </div>
-        <div class="stat">
-          <h3>Next Claimable Tier</h3>
-          <p id="next-tier">Metamorph</p>
-        </div>
-      </div>
-      <div>
-        <h3>Progress to Next Tier</h3>
-        <div class="progress-bar">
-          <div class="progress" id="progress-bar" style="width: 75%;">75%</div>
-        </div>
-        <p>2000 points required for "Metamorph"</p>
-      </div>
+      <p>Total Points: <span id="totalPoints">0</span></p>
+      <p>Highest Claimed Tier: <span id="highestTier">None</span></p>
+      <p>Next Claimable Tier: <span id="nextTier">None</span></p>
+      <p id="userProgress"></p>
     </div>
 
-    <!-- Achievements/Tiers Section -->
+    <!-- Tiers Section -->
     <div class="section" id="tiers">
-      <h2>Your Achievement Tiers</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Tier ID</th>
-            <th>Tier Name</th>
-            <th>Threshold (Points)</th>
-            <th>Description</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Fake Data Rows -->
-          <tr>
-            <td>101</td>
-            <td>Ascension</td>
-            <td>1000</td>
-            <td>The first milestone. Your journey begins.</td>
-            <td>Claimed</td>
-          </tr>
-          <tr>
-            <td>102</td>
-            <td>Metamorph</td>
-            <td>2000</td>
-            <td>Evolution in progress, unlocking hidden potential.</td>
-            <td>Claimable</td>
-          </tr>
-          <tr>
-            <td>103</td>
-            <td>Trinity</td>
-            <td>3000</td>
-            <td>The next chapter awaits those who persist.</td>
-            <td>Locked</td>
-          </tr>
-        </tbody>
-      </table>
+      <h2>Achievement Tiers</h2>
+      <div id="tiersTable">Loading tiers...</div>
     </div>
 
     <!-- Actions Section -->
     <div class="section" id="actions">
-      <h2>Actions</h2>
-      <p>
-        To claim a reward, click the "Claim" button next to the corresponding tier on your dashboard.
-        Once claimed, the system will mint your exclusive NFT reward via Adrian Gallery.
-      </p>
-      <!-- In a real frontend, each row in the tiers table could have an associated Claim button. -->
-      <button onclick="alert('Claiming reward for tier: Metamorph')">Claim "Metamorph" Reward</button>
+      <h2>Claim Your Reward</h2>
+      <button id="claimButton">Claim Next Achievement</button>
     </div>
   </div>
 
   <script>
-    // Fake data simulation for demonstration purposes
-    // In a real integration, this data would be fetched from the blockchain using a library like ethers.js or web3.js.
+    // Contract address for LoyaltyAchievements
+    const contractAddress = "0xe19212002d335704dcc9f3e90390223e9934ff0c";
+    // Minimal ABI for our demo (read functions and claim function)
+    const loyaltyABI = [
+      {
+        "inputs": [
+          {"internalType": "address", "name": "user", "type": "address"},
+          {"internalType": "uint256", "name": "tierId", "type": "uint256"}
+        ],
+        "name": "getUserProgress",
+        "outputs": [
+          {"internalType": "uint256", "name": "currentPoints", "type": "uint256"},
+          {"internalType": "uint256", "name": "threshold", "type": "uint256"},
+          {"internalType": "uint256", "name": "progressPercentage", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getAllTierIds",
+        "outputs": [
+          {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256", "name": "tierId", "type": "uint256"}
+        ],
+        "name": "getTierInfo",
+        "outputs": [
+          {"internalType": "uint256", "name": "threshold", "type": "uint256"},
+          {"internalType": "uint256", "name": "rewardEventId", "type": "uint256"},
+          {"internalType": "string", "name": "tierName", "type": "string"},
+          {"internalType": "string", "name": "description", "type": "string"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "uint256", "name": "tierId", "type": "uint256"}
+        ],
+        "name": "claimAchievement",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "address", "name": "", "type": "address"}
+        ],
+        "name": "points",
+        "outputs": [
+          {"internalType": "uint256", "name": "", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "address", "name": "user", "type": "address"}
+        ],
+        "name": "getHighestClaimedTier",
+        "outputs": [
+          {"internalType": "uint256", "name": "highestTierId", "type": "uint256"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {"internalType": "address", "name": "user", "type": "address"}
+        ],
+        "name": "getNextClaimableTier",
+        "outputs": [
+          {"internalType": "uint256", "name": "nextTierId", "type": "uint256"},
+          {"internalType": "bool", "name": "exists", "type": "bool"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
 
-    // Example: Simulate updating progress bar based on points and threshold
-    const totalPoints = 1500;
-    const thresholdForNextTier = 2000;
-    const progressPercent = Math.min((totalPoints / thresholdForNextTier) * 100, 100);
-    document.getElementById('progress-bar').style.width = progressPercent + '%';
-    document.getElementById('progress-bar').textContent = Math.floor(progressPercent) + '%';
+    let provider;
+    let signer;
+    let contract;
+    let userAddress;
 
-    // Example: Setting user stats
-    document.getElementById('total-points').textContent = totalPoints;
-    document.getElementById('highest-tier').textContent = "Ascension";
-    document.getElementById('next-tier').textContent = "Metamorph";
+    // Connect wallet and initialize contract
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAddress = await signer.getAddress();
+          document.getElementById("walletAddress").innerText = "Connected: " + userAddress;
+          contract = new ethers.Contract(contractAddress, loyaltyABI, signer);
+          loadUserData();
+        } catch (error) {
+          console.error("Wallet connection error:", error);
+        }
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+
+    // Load user data from the contract
+    async function loadUserData() {
+      try {
+        // Get total points for the user
+        const userPoints = await contract.points(userAddress);
+        document.getElementById("totalPoints").innerText = userPoints.toString();
+
+        // Get highest claimed tier
+        const highestTier = await contract.getHighestClaimedTier(userAddress);
+        document.getElementById("highestTier").innerText = highestTier.toString();
+
+        // Get next claimable tier
+        const nextTierData = await contract.getNextClaimableTier(userAddress);
+        if (nextTierData.exists) {
+          document.getElementById("nextTier").innerText = nextTierData.nextTierId.toString();
+          const progressData = await contract.getUserProgress(userAddress, nextTierData.nextTierId);
+          document.getElementById("userProgress").innerText = 
+            "Progress: " + progressData.progressPercentage.toString() + "% (" +
+            progressData.currentPoints.toString() + " / " + progressData.threshold.toString() + ")";
+        } else {
+          document.getElementById("nextTier").innerText = "None";
+          document.getElementById("userProgress").innerText = "";
+        }
+        loadTiers();
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    }
+
+    // Load all achievement tiers and display them in a table
+    async function loadTiers() {
+      try {
+        const tierIds = await contract.getAllTierIds();
+        let tableHtml = `<table>
+          <tr>
+            <th>Tier ID</th>
+            <th>Tier Name</th>
+            <th>Threshold</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>`;
+        for (let i = 0; i < tierIds.length; i++) {
+          const tierId = tierIds[i];
+          const tierInfo = await contract.getTierInfo(tierId);
+          // For demo purposes, determine status based on next claimable tier and highest claimed tier.
+          let status = "Locked";
+          const nextData = await contract.getNextClaimableTier(userAddress);
+          if (nextData.exists && nextData.nextTierId.toString() === tierId.toString()) {
+            status = "Claimable";
+          }
+          const highestClaimed = await contract.getHighestClaimedTier(userAddress);
+          if (parseInt(tierId.toString()) <= parseInt(highestClaimed.toString()) && highestClaimed > 0) {
+            status = "Claimed";
+          }
+          tableHtml += `<tr>
+            <td>${tierId.toString()}</td>
+            <td>${tierInfo.tierName}</td>
+            <td>${tierInfo.threshold.toString()}</td>
+            <td>${tierInfo.description}</td>
+            <td>${status}</td>
+          </tr>`;
+        }
+        tableHtml += `</table>`;
+        document.getElementById("tiersTable").innerHTML = tableHtml;
+      } catch (error) {
+        console.error("Error loading tiers:", error);
+      }
+    }
+
+    // Claim the next achievement reward
+    async function claimAchievement() {
+      try {
+        const nextData = await contract.getNextClaimableTier(userAddress);
+        if (nextData.exists) {
+          const tx = await contract.claimAchievement(nextData.nextTierId);
+          await tx.wait();
+          alert("Achievement claimed for tier: " + nextData.nextTierId.toString());
+          loadUserData();
+        } else {
+          alert("No claimable tier available.");
+        }
+      } catch (error) {
+        console.error("Error claiming achievement:", error);
+        alert("Error claiming achievement: " + error.message);
+      }
+    }
+
+    document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
+    document.getElementById("claimButton").addEventListener("click", claimAchievement);
   </script>
 </body>
 </html>
