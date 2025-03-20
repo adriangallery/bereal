@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Adrian Gallery Loyalty Dashboard</title>
-  <!-- Use a known working UMD build of ethers.js -->
+  <title>Dashboard de Lealtad - Adrian Gallery</title>
+  <!-- Utilizamos la versión UMD de ethers.js para evitar problemas con módulos -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -53,39 +53,45 @@
 </head>
 <body>
   <header>
-    <h1>Adrian Gallery Loyalty Dashboard</h1>
-    <button id="connectWalletButton">Connect Wallet</button>
+    <h1>Dashboard de Lealtad - Adrian Gallery</h1>
+    <button id="connectWalletButton">Conectar Wallet</button>
     <p id="walletAddress"></p>
   </header>
 
   <div class="container">
-    <!-- User Stats Section -->
+    <!-- Sección del Lore -->
+    <div class="section" id="lore">
+      <h2>Lore del Proyecto</h2>
+      <p id="projectLore">Cargando lore...</p>
+    </div>
+
+    <!-- Sección de Estadísticas del Usuario -->
     <div class="section" id="user-stats">
-      <h2>Your Stats</h2>
-      <p>Total Points: <span id="totalPoints">0</span></p>
-      <p>Highest Claimed Tier: <span id="highestTier">None</span></p>
-      <p>Next Claimable Tier: <span id="nextTier">None</span></p>
+      <h2>Tus Estadísticas</h2>
+      <p>Total de Puntos: <span id="totalPoints">0</span></p>
+      <p>Nivel Más Alto Reclamado: <span id="highestTier">Ninguno</span></p>
+      <p>Siguiente Nivel Claimable: <span id="nextTier">Ninguno</span></p>
       <p id="userProgress"></p>
     </div>
 
-    <!-- Tiers Section -->
+    <!-- Sección de Niveles -->
     <div class="section" id="tiers">
-      <h2>Achievement Tiers</h2>
-      <div id="tiersTable">Loading tiers...</div>
+      <h2>Niveles Disponibles</h2>
+      <div id="tiersTable">Cargando niveles...</div>
     </div>
 
-    <!-- Actions Section -->
+    <!-- Sección de Acciones -->
     <div class="section" id="actions">
-      <h2>Claim Your Reward</h2>
-      <button id="claimButton">Claim Next Achievement</button>
+      <h2>Reclama Tu Recompensa</h2>
+      <button id="claimButton">Reclamar Próximo Nivel</button>
     </div>
   </div>
 
   <script>
-    // Contract address for LoyaltyAchievements
-    const contractAddress = "0xe19212002d335704dcc9f3e90390223e9934ff0c";
+    // Dirección del nuevo contrato LoyaltyAchievements
+    const contractAddress = "0xb8190acc79e8ddf42a5cd5ddc819cbb5b0c5374f";
 
-    // Minimal ABI for our demo (read functions and claim function)
+    // ABI mínimo para nuestro dashboard (incluye funciones de lectura y claim)
     const loyaltyABI = [
       {
         "inputs": [
@@ -166,6 +172,15 @@
         ],
         "stateMutability": "view",
         "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "projectLore",
+        "outputs": [
+          {"internalType": "string", "name": "", "type": "string"}
+        ],
+        "stateMutability": "view",
+        "type": "function"
       }
     ];
 
@@ -174,7 +189,7 @@
     let contract;
     let userAddress;
 
-    // Connect wallet and initialize contract
+    // Función para conectar la wallet usando MetaMask
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -182,70 +197,75 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
           signer = provider.getSigner();
           userAddress = await signer.getAddress();
-          document.getElementById("walletAddress").innerText = "Connected: " + userAddress;
+          document.getElementById("walletAddress").innerText = "Wallet conectada: " + userAddress;
           contract = new ethers.Contract(contractAddress, loyaltyABI, signer);
           loadUserData();
         } catch (error) {
-          console.error("Wallet connection error:", error);
-          alert("Wallet connection error: " + error.message);
+          console.error("Error de conexión:", error);
+          alert("Error de conexión: " + error.message);
         }
       } else {
-        alert("Please install MetaMask!");
+        alert("Por favor, instala MetaMask!");
       }
     }
 
-    // Load user data from the contract
+    // Función para cargar datos del usuario desde el contrato
     async function loadUserData() {
       try {
-        // Get total points for the user
+        // Cargar el lore del proyecto
+        const lore = await contract.projectLore();
+        document.getElementById("projectLore").innerText = lore;
+
+        // Obtener puntos totales del usuario
         const userPoints = await contract.points(userAddress);
         document.getElementById("totalPoints").innerText = userPoints.toString();
 
-        // Get highest claimed tier
+        // Obtener el nivel más alto reclamado
         const highestTier = await contract.getHighestClaimedTier(userAddress);
-        document.getElementById("highestTier").innerText = highestTier.toString() === "0" ? "None" : highestTier.toString();
+        document.getElementById("highestTier").innerText = highestTier.toString() === "0" ? "Ninguno" : highestTier.toString();
 
-        // Get next claimable tier
+        // Obtener el siguiente nivel claimable y mostrar progreso
         const nextTierData = await contract.getNextClaimableTier(userAddress);
         if (nextTierData.exists) {
           document.getElementById("nextTier").innerText = nextTierData.nextTierId.toString();
           const progressData = await contract.getUserProgress(userAddress, nextTierData.nextTierId);
-          document.getElementById("userProgress").innerText = 
-            "Progress: " + progressData.progressPercentage.toString() + "% (" +
+          document.getElementById("userProgress").innerText =
+            "Progreso: " + progressData.progressPercentage.toString() + "% (" +
             progressData.currentPoints.toString() + " / " + progressData.threshold.toString() + ")";
         } else {
-          document.getElementById("nextTier").innerText = "None";
+          document.getElementById("nextTier").innerText = "Ninguno";
           document.getElementById("userProgress").innerText = "";
         }
         loadTiers();
       } catch (error) {
-        console.error("Error loading user data:", error);
+        console.error("Error cargando datos de usuario:", error);
       }
     }
 
-    // Load all achievement tiers and display them in a table
+    // Función para cargar y mostrar todos los niveles (tiers) disponibles
     async function loadTiers() {
       try {
         const tierIds = await contract.getAllTierIds();
         let tableHtml = `<table>
           <tr>
-            <th>Tier ID</th>
-            <th>Tier Name</th>
-            <th>Threshold</th>
-            <th>Description</th>
-            <th>Status</th>
+            <th>ID Nivel</th>
+            <th>Nombre</th>
+            <th>Umbral</th>
+            <th>Descripción</th>
+            <th>Estado</th>
           </tr>`;
+        // Para cada tier, obtener su información y determinar su estado (Claimed, Claimable, Locked)
         for (let i = 0; i < tierIds.length; i++) {
           const tierId = tierIds[i];
           const tierInfo = await contract.getTierInfo(tierId);
-          let status = "Locked";
+          let status = "Bloqueado";
           const nextData = await contract.getNextClaimableTier(userAddress);
           if (nextData.exists && nextData.nextTierId.toString() === tierId.toString()) {
             status = "Claimable";
           }
           const highestClaimed = await contract.getHighestClaimedTier(userAddress);
           if (parseInt(tierId.toString()) <= parseInt(highestClaimed.toString()) && highestClaimed > 0) {
-            status = "Claimed";
+            status = "Reclamado";
           }
           tableHtml += `<tr>
             <td>${tierId.toString()}</td>
@@ -258,28 +278,29 @@
         tableHtml += `</table>`;
         document.getElementById("tiersTable").innerHTML = tableHtml;
       } catch (error) {
-        console.error("Error loading tiers:", error);
+        console.error("Error cargando niveles:", error);
       }
     }
 
-    // Claim the next achievement reward
+    // Función para reclamar la recompensa del siguiente nivel claimable
     async function claimAchievement() {
       try {
         const nextData = await contract.getNextClaimableTier(userAddress);
         if (nextData.exists) {
           const tx = await contract.claimAchievement(nextData.nextTierId);
           await tx.wait();
-          alert("Achievement claimed for tier: " + nextData.nextTierId.toString());
+          alert("Logro reclamado para el nivel: " + nextData.nextTierId.toString());
           loadUserData();
         } else {
-          alert("No claimable tier available.");
+          alert("No hay nivel claimable disponible.");
         }
       } catch (error) {
-        console.error("Error claiming achievement:", error);
-        alert("Error claiming achievement: " + error.message);
+        console.error("Error al reclamar logro:", error);
+        alert("Error al reclamar logro: " + error.message);
       }
     }
 
+    // Asignar listeners a los botones
     document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
     document.getElementById("claimButton").addEventListener("click", claimAchievement);
   </script>
