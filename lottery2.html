@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADRIAN Lottery v4 Frontend</title>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    /* El body ya no tiene padding para que el menú ocupe todo el ancho */
+    body {
+      background-color: #f7f7f7;
+      margin: 0;
+    }
+    /* Contenedor general para el contenido principal con padding independiente */
+    .content-container {
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    .section {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .admin-section {
+      border: 2px solid #f44336;
+    }
+    label {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .input-group .form-control {
+      flex: 1 1 auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Menu (Header) sin padding -->
+  <div id="menu-placeholder"></div>
+  <script>
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => { console.error('Error loading menu:', error); });
+  </script>
+  <script src="components/menu2.js"></script>
+  
+  <!-- Contenedor de contenido principal -->
+  <div class="content-container">
+    <div class="container">
+      <h1 class="mb-4">ADRIAN Lottery v4 Frontend</h1>
+      
+      <!-- Wallet Status (controlado por el menú) -->
+      <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
+      
+      <!-- Sección de Previous Round Winners -->
+      <div class="section" id="previousWinnersSection" style="display: none;">
+        <h2>Previous Round Winners</h2>
+        <div id="winnersInfo"></div>
+      </div>
+      
+      <!-- Sección de User Functions (sin título) -->
+      <div class="section">
+        <!-- Botones y controles para el usuario -->
+        <div class="mb-3">
+          <h4>Buy Regular Tickets</h4>
+          <label for="numRegularTickets">Number of Regular Tickets:</label>
+          <input type="number" id="numRegularTickets" class="form-control" placeholder="Enter quantity" min="1">
+          <button id="claimTicketsButton" class="btn btn-success mt-2">Buy Regular Tickets</button>
+        </div>
+        <div class="mb-3">
+          <h4>Buy Complementary Tickets</h4>
+          <label for="numComplTickets">Number of Complementary Tickets:</label>
+          <input type="number" id="numComplTickets" class="form-control" placeholder="Enter quantity" min="1">
+          <button id="buyComplTicketsButton" class="btn btn-success mt-2">Buy Complementary Tickets</button>
+        </div>
+        <div class="mb-3">
+          <h4>Your Ticket Info</h4>
+          <div id="userTicketInfo"></div>
+        </div>
+      </div>
+      
+      <!-- Nueva sección: Current Round Info -->
+      <div class="section" id="currentRoundSection" style="display: none;">
+        <h2>Current Round Info</h2>
+        <div id="currentRoundInfo"></div>
+      </div>
+      
+      <!-- Admin Functions Section -->
+      <div class="section admin-section" id="adminSection">
+        <h2>Admin Functions</h2>
+        
+        <!-- Start New Round -->
+        <div class="mb-3">
+          <h4>Start New Round</h4>
+          <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
+          <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
+          <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
+          <input type="number" id="newTicketCost" class="form-control" placeholder="e.g., 10" step="any">
+          <label for="newComplTicketPrice">Complementary Ticket Price (tokens):</label>
+          <input type="number" id="newComplTicketPrice" class="form-control" placeholder="e.g., 100" step="any">
+          <label for="newFixedPrize">Fixed Prize Amount (tokens):</label>
+          <input type="number" id="newFixedPrize" class="form-control" placeholder="e.g., 1000" step="any">
+          <label for="newNFTCount">NFT Count to Distribute (0, 1, 2, or 3):</label>
+          <input type="number" id="newNFTCount" class="form-control" placeholder="e.g., 0" min="0" max="3">
+          <button id="startRoundButton" class="btn btn-danger mt-2">Generate Snapshot &amp; Start New Round</button>
+        </div>
+        
+        <!-- Update Prize Percentages -->
+        <div class="mb-3">
+          <h4>Update Prize Percentages</h4>
+          <label for="updateP1Input">Winner 1 Percentage:</label>
+          <input type="number" id="updateP1Input" class="form-control" placeholder="e.g., 80" step="any">
+          <label for="updateP2Input">Winner 2 Percentage:</label>
+          <input type="number" id="updateP2Input" class="form-control" placeholder="e.g., 15" step="any">
+          <label for="updateP3Input">Winner 3 Percentage:</label>
+          <input type="number" id="updateP3Input" class="form-control" placeholder="e.g., 5" step="any">
+          <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
+        </div>
+        
+        <!-- Other Admin Controls -->
+        <div class="mb-3">
+          <h4>Force Finish Round</h4>
+          <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
+        </div>
+        <div class="mb-3">
+          <h4>Draw Winners</h4>
+          <button id="drawWinnersButton" class="btn btn-secondary">Draw Winners</button>
+        </div>
+        <div class="mb-3">
+          <h4>Distribute Prizes</h4>
+          <button id="distributePrizesButton" class="btn btn-secondary">Distribute Prizes</button>
+        </div>
+        <!-- Emergency Pause Controls -->
+        <div class="mb-3">
+          <h4>Emergency Pause</h4>
+          <button id="pauseButton" class="btn btn-dark">Pause Contract</button>
+          <button id="unpauseButton" class="btn btn-dark">Unpause Contract</button>
+        </div>
+        
+        <!-- Debug Info Section -->
+        <div class="mb-3">
+          <h4>Debug Info (Connected Wallet)</h4>
+          <button id="refreshDebugButton" class="btn btn-secondary">Refresh Debug Info</button>
+          <div id="debugInfo" class="mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    let provider;
+    let signer;
+    let userAddress;
+    let lotteryContract;
+    let tokenContract;
+    
+    const SCALING = ethers.BigNumber.from("1000000000000000000");
+    
+    // Dirección del contrato de Lottery (actualiza si es necesario)
+    const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
+    const lotteryABI = [
+      "function claimTickets(uint256 numTickets) external",
+      "function buyComplementaryTickets(uint256 numTickets) external",
+      "function startLotteryRound(uint256 snapshotId, uint256 newTicketCost, uint256 newTicketRatio, uint256 newComplTicketPrice, uint256 newFixedPrize, uint256 nftCount) external",
+      "function updatePrizePercentages(uint256 _p1, uint256 _p2, uint256 _p3) external",
+      "function emergencyWithdrawNFT(address nftContract, uint256 tokenId) external",
+      "function pause() external",
+      "function unpause() external",
+      "function forceFinishRound() external",
+      "function drawWinners() external",
+      "function distributePrizes() external",
+      "function getWinners() view returns (address[])",
+      "function currentRoundId() view returns (uint256)",
+      "function claimDeadline() view returns (uint256)",
+      "function drawTime() view returns (uint256)",
+      "function ticketCost() view returns (uint256)",
+      "function ticketRatio() view returns (uint256)",
+      "function complementaryTicketPrice() view returns (uint256)",
+      "function fixedPrize() view returns (uint256)",
+      "function getTotalRegularTickets() view returns (uint256)",
+      "function getTotalComplementaryTickets() view returns (uint256)",
+      "function regularTickets(uint256, address) view returns (uint256)",
+      "function complementaryTickets(uint256, address) view returns (uint256)",
+      "function owner() view returns (address)",
+      "function roundSnapshot(uint256 roundId) view returns (uint256)"
+    ];
+    
+    // Dirección del token ADRIAN
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    const erc20ABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function snapshot() external returns (uint256)",
+      "function balanceOfAt(address account, uint256 snapshotId) view returns (uint256)",
+      "event Snapshot(uint256 id)"
+    ];
+    
+    // Función para formatear cantidades de token: 1,000.12 $ADRIAN
+    function formatTokenAmount(amount) {
+      // Convertimos directamente el BigNumber a string sin aplicar 18 decimales
+      const num = parseFloat(amount.toString());
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
+    }
+    
+    // Función para comprimir (truncar) direcciones de wallet
+    function shortenAddress(address) {
+      if (!address) return "";
+      return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+    }
+    
+    // Función de conexión (se mantiene para otros contextos)
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          await provider.send("eth_requestAccounts", []);
+          signer = provider.getSigner();
+          userAddress = await signer.getAddress();
+          document.getElementById("walletStatus").innerText = "Connected: " + shortenAddress(userAddress);
+          lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
+          tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+          loadRoundInfo();
+          updateUserTicketInfo();
+          displayPreviousRoundWinners();
+          checkIfOwner();
+        } catch (error) {
+          console.error("Error connecting wallet:", error);
+          alert("Error connecting wallet: " + error.message);
+        }
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+    
+    async function checkIfOwner() {
+      try {
+        const contractOwner = await lotteryContract.owner();
+        if (userAddress.toLowerCase() !== contractOwner.toLowerCase()) {
+          document.getElementById("adminSection").style.display = "none";
+          console.log("Admin functions disabled: connected account is not the owner.");
+        }
+      } catch (error) {
+        console.error("Error checking owner:", error);
+      }
+    }
+    
+    // Función para cargar y reordenar la información del round actual
+    async function loadRoundInfo() {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        const deadline = await lotteryContract.claimDeadline();
+        const drawTimeVal = await lotteryContract.drawTime();
+        const cost = await lotteryContract.ticketCost();
+        const ratio = await lotteryContract.ticketRatio();
+        const complPrice = await lotteryContract.complementaryTicketPrice();
+        const fixedPrizeVal = await lotteryContract.fixedPrize();
+        const totalRegular = await lotteryContract.getTotalRegularTickets();
+        const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
+        
+        const infoDiv = document.getElementById("currentRoundInfo");
+        infoDiv.innerHTML = `
+          <p><strong>Total Regular Tickets Purchased:</strong> ${totalRegular.toString()}</p>
+          <p><strong>Total Complementary Tickets Purchased:</strong> ${totalComplementary.toString()}</p>
+          <p><strong>Regular Ticket Cost:</strong> ${formatTokenAmount(cost)}</p>
+          <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
+          <p><strong>Complementary Ticket Price:</strong> ${formatTokenAmount(complPrice)}</p>
+          <p><strong>Fixed Prize:</strong> ${formatTokenAmount(fixedPrizeVal)}</p>
+          <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
+          <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
+        `;
+        document.getElementById("currentRoundSection").style.display = "block";
+      } catch (err) {
+        console.error("Error in loadRoundInfo:", err);
+      }
+    }
+    
+    async function updateUserTicketInfo() {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        if (roundId.eq(0)) {
+          document.getElementById("userTicketInfo").innerHTML = "<p>No active round.</p>";
+          return;
+        }
+        const snapshotId = await lotteryContract.roundSnapshot(roundId);
+        const snapshotBalance = await tokenContract.balanceOfAt(userAddress, snapshotId);
+        const ratio = await lotteryContract.ticketRatio();
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
+        const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
+        const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
+        const totalClaimed = regularClaimed.add(complementaryClaimed);
+        const availableTickets = allowedTickets.sub(regularClaimed);
+        document.getElementById("userTicketInfo").innerHTML = `
+          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
+          <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
+          <p><strong>Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
+          <p><strong>Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
+          <p><strong>Total Tickets Claimed:</strong> ${totalClaimed.toString()}</p>
+          <p><strong>Available Regular Tickets to Claim:</strong> ${availableTickets.toString()}</p>
+        `;
+      } catch (e) {
+        console.error(e);
+        document.getElementById("userTicketInfo").innerText = "Error loading your ticket info: " + e.message;
+      }
+    }
+    
+    async function displayPreviousRoundWinners() {
+      try {
+        const winners = await lotteryContract.getWinners();
+        const winnersDiv = document.getElementById("winnersInfo");
+        if (winners.length === 0) {
+          winnersDiv.innerHTML = "<p>No winners from the previous round.</p>";
+          document.getElementById("previousWinnersSection").style.display = "none";
+        } else {
+          const shortened = winners.map(addr => shortenAddress(addr));
+          winnersDiv.innerHTML = `<p>${shortened.join(", ")}</p>`;
+          document.getElementById("previousWinnersSection").style.display = "block";
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById("winnersInfo").innerText = "Error loading winners: " + error.message;
+      }
+    }
+    
+    document.getElementById("claimTicketsButton").addEventListener("click", async () => {
+      const numTickets = document.getElementById("numRegularTickets").value;
+      if (!numTickets || numTickets <= 0) {
+        alert("Enter a valid number of regular tickets.");
+        return;
+      }
+      try {
+        const cost = await lotteryContract.ticketCost();
+        const totalCost = cost.mul(numTickets).mul(SCALING);
+        await approveTokensIfNeeded(totalCost);
+        const tx = await lotteryContract.claimTickets(numTickets);
+        await tx.wait();
+        alert("Regular tickets purchased successfully!");
+        loadRoundInfo();
+        updateUserTicketInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error buying regular tickets: " + err.message);
+      }
+    });
+    
+    document.getElementById("buyComplTicketsButton").addEventListener("click", async () => {
+      const numComplTickets = document.getElementById("numComplTickets").value;
+      if (!numComplTickets || numComplTickets <= 0) {
+        alert("Enter a valid number of complementary tickets.");
+        return;
+      }
+      try {
+        const complPrice = await lotteryContract.complementaryTicketPrice();
+        const totalCost = complPrice.mul(numComplTickets).mul(SCALING);
+        await approveTokensIfNeeded(totalCost);
+        const tx = await lotteryContract.buyComplementaryTickets(numComplTickets);
+        await tx.wait();
+        alert("Complementary tickets purchased successfully!");
+        loadRoundInfo();
+        updateUserTicketInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error buying complementary tickets: " + err.message);
+      }
+    });
+    
+    document.getElementById("startRoundButton").addEventListener("click", async () => {
+      const newTicketRatio = document.getElementById("newTicketRatio").value;
+      const newTicketCost = document.getElementById("newTicketCost").value;
+      const newComplTicketPrice = document.getElementById("newComplTicketPrice").value;
+      const newFixedPrize = document.getElementById("newFixedPrize").value;
+      const nftCount = document.getElementById("newNFTCount").value || "0";
+      if (!newTicketRatio || !newTicketCost || !newComplTicketPrice || !newFixedPrize) {
+        alert("Please enter ticket ratio, ticket cost, complementary ticket price, and fixed prize.");
+        return;
+      }
+      if (parseInt(nftCount) > 0) {
+        if(!confirm("You are attempting to distribute " + nftCount + " NFT(s). Ensure that you have deposited at least " + nftCount + " NFT(s) into the pool. Proceed?")) {
+          return;
+        }
+      }
+      try {
+        const snapshotId = await tokenContract.callStatic.snapshot();
+        const snapshotTx = await tokenContract.snapshot();
+        await snapshotTx.wait();
+        const tx = await lotteryContract.startLotteryRound(snapshotId, newTicketCost, newTicketRatio, newComplTicketPrice, newFixedPrize, nftCount);
+        await tx.wait();
+        alert("Lottery round started successfully with snapshot id " + snapshotId.toString() + "!");
+        loadRoundInfo();
+        updateUserTicketInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error starting round: " + err.message);
+      }
+    });
+    
+    document.getElementById("updatePrizePercentagesButton").addEventListener("click", async () => {
+      const p1 = document.getElementById("updateP1Input").value;
+      const p2 = document.getElementById("updateP2Input").value;
+      const p3 = document.getElementById("updateP3Input").value;
+      if (!p1 || !p2 || !p3) {
+        alert("Enter all three percentages.");
+        return;
+      }
+      if (parseInt(p1) + parseInt(p2) + parseInt(p3) !== 100) {
+        alert("The percentages must sum to 100.");
+        return;
+      }
+      try {
+        const tx = await lotteryContract.updatePrizePercentages(p1, p2, p3);
+        await tx.wait();
+        alert("Prize percentages updated successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error updating prize percentages: " + err.message);
+      }
+    });
+    
+    document.getElementById("forceFinishRoundButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.forceFinishRound();
+        await tx.wait();
+        alert("Round force-finished successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error force-finishing round: " + err.message);
+      }
+    });
+    
+    document.getElementById("drawWinnersButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.drawWinners();
+        await tx.wait();
+        alert("Winners drawn successfully!");
+        displayPreviousRoundWinners();
+      } catch (err) {
+        console.error(err);
+        alert("Error drawing winners: " + err.message);
+      }
+    });
+    
+    document.getElementById("distributePrizesButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.distributePrizes();
+        await tx.wait();
+        alert("Prizes distributed successfully!");
+        loadRoundInfo();
+      } catch (err) {
+        console.error(err);
+        alert("Error distributing prizes: " + err.message);
+      }
+    });
+    
+    document.getElementById("pauseButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.pause();
+        await tx.wait();
+        alert("Contract paused successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error pausing contract: " + err.message);
+      }
+    });
+    
+    document.getElementById("unpauseButton").addEventListener("click", async () => {
+      try {
+        const tx = await lotteryContract.unpause();
+        await tx.wait();
+        alert("Contract unpaused successfully!");
+      } catch (err) {
+        console.error(err);
+        alert("Error unpausing contract: " + err.message);
+      }
+    });
+    
+    document.getElementById("refreshDebugButton").addEventListener("click", async () => {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        if (roundId.eq(0)) {
+          document.getElementById("debugInfo").innerHTML = "<p>No active round.</p>";
+          return;
+        }
+        const snapshotId = await lotteryContract.roundSnapshot(roundId);
+        const tokenInst = new ethers.Contract(tokenAddress, erc20ABI, signer);
+        const snapshotBalance = await tokenInst.balanceOfAt(userAddress, snapshotId);
+        const ratio = await lotteryContract.ticketRatio();
+        const allowedTickets = snapshotBalance.div(ratio.mul(SCALING));
+        const regularClaimed = await lotteryContract.regularTickets(roundId, userAddress);
+        const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
+        const totalRegular = await lotteryContract.getTotalRegularTickets();
+        const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
+        document.getElementById("debugInfo").innerHTML = `
+          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
+          <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
+          <p><strong>Your Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
+          <p><strong>Your Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
+          <p><strong>Total Regular Tickets Claimed:</strong> ${totalRegular.toString()}</p>
+          <p><strong>Total Complementary Tickets Claimed:</strong> ${totalComplementary.toString()}</p>
+          <p><em>Note: If NFT distribution is desired, ensure enough NFTs (ERC721 and/or ERC1155) are deposited in the pool.</em></p>
+        `;
+      } catch (e) {
+        console.error(e);
+        document.getElementById("debugInfo").innerText = "Error loading debug info: " + e.message;
+      }
+    });
+    
+    async function approveTokensIfNeeded(amount) {
+      const tokenInstance = new ethers.Contract(tokenAddress, erc20ABI, signer);
+      const currentAllowance = await tokenInstance.allowance(userAddress, lotteryAddress);
+      if (currentAllowance.lt(amount)) {
+        const tx = await tokenInstance.approve(lotteryAddress, amount);
+        await tx.wait();
+      }
+    }
+    
+    // Callback cuando se conecta el wallet vía el menú (definido en menu2.js)
+    window.onMenuWalletConnected = async function() {
+      userAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      console.log("Wallet connected:", userAddress);
+      document.getElementById("walletStatus").innerText = "Connected: " + shortenAddress(userAddress);
+      lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
+      tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
+      loadRoundInfo();
+      updateUserTicketInfo();
+      displayPreviousRoundWinners();
+      checkIfOwner();
+    };
+    
+    window.onMenuWalletDisconnected = function() {
+      document.getElementById("walletStatus").innerText = "Wallet not connected. Connect via menu.";
+    };
+  </script>
+</body>
+</html>
