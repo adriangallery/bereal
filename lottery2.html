@@ -79,7 +79,6 @@
       
       <!-- Sección de User Functions (sin título) -->
       <div class="section">
-        <!-- Botones y controles para el usuario -->
         <div class="mb-3">
           <h4>Buy Regular Tickets</h4>
           <label for="numRegularTickets">Number of Regular Tickets:</label>
@@ -228,9 +227,9 @@
     ];
     
     // Función para formatear cantidades de token: 1,000.12 $ADRIAN  
-    // (Asumimos que el contrato devuelve los números ya escalados)
+    // Se asume que el contrato devuelve valores ya escalados
     function formatTokenAmount(amount) {
-      const num = parseFloat(ethers.utils.formatUnits(amount, 18));
+      const num = parseFloat(amount.toString());
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
     
@@ -240,7 +239,7 @@
       return address.substring(0, 6) + "..." + address.substring(address.length - 4);
     }
     
-    // Función para calcular combinatoria (C(n,k))
+    // Función para calcular la combinatoria C(n, k)
     function combination(n, k) {
       if (k > n) return 0;
       let result = 1;
@@ -250,23 +249,28 @@
       return result;
     }
     
-    // Función para actualizar la visualización de las odds
+    // Función para actualizar la visualización de las odds, incluyendo los tickets complementarios
     async function updateOdds() {
       try {
         const roundId = await lotteryContract.currentRoundId();
+        // Total de tickets = regulares + complementarios
         const totalRegular = parseInt((await lotteryContract.getTotalRegularTickets()).toString());
-        const userTickets = parseInt((await lotteryContract.regularTickets(roundId, userAddress)).toString());
+        const totalComplementary = parseInt((await lotteryContract.getTotalComplementaryTickets()).toString());
+        const totalTickets = totalRegular + totalComplementary;
+        // Tickets del usuario = regulares + complementarios
+        const userRegular = parseInt((await lotteryContract.regularTickets(roundId, userAddress)).toString());
+        const userComplementary = parseInt((await lotteryContract.complementaryTickets(roundId, userAddress)).toString());
+        const userTickets = userRegular + userComplementary;
         let odds;
-        if (totalRegular < 3) {
+        if (totalTickets < 3) {
           odds = userTickets > 0 ? 1 : 0;
         } else {
-          odds = 1 - (combination(totalRegular - userTickets, 3) / combination(totalRegular, 3));
+          odds = 1 - (combination(totalTickets - userTickets, 3) / combination(totalTickets, 3));
         }
         const percentage = (odds * 100).toFixed(2);
         document.getElementById("oddsProgress").style.width = percentage + "%";
         document.getElementById("oddsProgress").setAttribute("aria-valuenow", percentage);
         document.getElementById("oddsText").innerText = "Your odds to win at least one prize: " + percentage + "%";
-        // Mostrar la sección de odds si no estaba visible
         document.getElementById("oddsSection").style.display = "block";
       } catch (err) {
         console.error("Error updating odds:", err);
@@ -367,7 +371,7 @@
           <p><strong>Total Tickets Claimed:</strong> ${totalClaimed.toString()}</p>
           <p><strong>Available Regular Tickets to Claim:</strong> ${availableTickets.toString()}</p>
         `;
-        // Actualizamos las odds luego de actualizar los tickets del usuario
+        // Actualizamos las odds después de actualizar la info de tickets
         updateOdds();
       } catch (e) {
         console.error(e);
