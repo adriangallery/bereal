@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Adrian Gallery Loyalty Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f4f4;
+      color: #333;
+    }
+    header {
+      background: #222;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    h2 {
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 0.5rem;
+    }
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      text-align: center;
+    }
+    .progress-bar {
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      height: 20px;
+      margin-bottom: 0.5rem;
+    }
+    .progress {
+      height: 100%;
+      background: #4caf50;
+      text-align: center;
+      line-height: 20px;
+      color: #fff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Adrian Gallery Loyalty Dashboard</h1>
+  </header>
+
+  <div class="container">
+    <!-- Project Lore Section -->
+    <div class="section" id="project-lore">
+      <h2>Project Lore</h2>
+      <p>
+        In the digital expanse of Adrian Gallery, where art, technology, and cryptographic mysticism intertwine,
+        only those who truly commit are marked. This ecosystem rewards genuine engagement, risk, and sacrifice.
+      </p>
+    </div>
+
+    <!-- User Stats Section -->
+    <div class="section" id="user-stats">
+      <h2>Your Stats</h2>
+      <div class="stats">
+        <div class="stat">
+          <h3>Total Points</h3>
+          <p id="total-points">1500</p>
+        </div>
+        <div class="stat">
+          <h3>Highest Claimed Tier</h3>
+          <p id="highest-tier">Ascension</p>
+        </div>
+        <div class="stat">
+          <h3>Next Claimable Tier</h3>
+          <p id="next-tier">Metamorph</p>
+        </div>
+      </div>
+      <div>
+        <h3>Progress to Next Tier</h3>
+        <div class="progress-bar">
+          <div class="progress" id="progress-bar" style="width: 75%;">75%</div>
+        </div>
+        <p>2000 points required for "Metamorph"</p>
+      </div>
+    </div>
+
+    <!-- Achievements/Tiers Section -->
+    <div class="section" id="tiers">
+      <h2>Your Achievement Tiers</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Tier ID</th>
+            <th>Tier Name</th>
+            <th>Threshold (Points)</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Fake Data Rows -->
+          <tr>
+            <td>101</td>
+            <td>Ascension</td>
+            <td>1000</td>
+            <td>The first milestone. Your journey begins.</td>
+            <td>Claimed</td>
+          </tr>
+          <tr>
+            <td>102</td>
+            <td>Metamorph</td>
+            <td>2000</td>
+            <td>Evolution in progress, unlocking hidden potential.</td>
+            <td>Claimable</td>
+          </tr>
+          <tr>
+            <td>103</td>
+            <td>Trinity</td>
+            <td>3000</td>
+            <td>The next chapter awaits those who persist.</td>
+            <td>Locked</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="section" id="actions">
+      <h2>Actions</h2>
+      <p>
+        To claim a reward, click the "Claim" button next to the corresponding tier on your dashboard.
+        Once claimed, the system will mint your exclusive NFT reward via Adrian Gallery.
+      </p>
+      <!-- In a real frontend, each row in the tiers table could have an associated Claim button. -->
+      <button onclick="alert('Claiming reward for tier: Metamorph')">Claim "Metamorph" Reward</button>
+    </div>
+  </div>
+
+  <script>
+    // Fake data simulation for demonstration purposes
+    // In a real integration, this data would be fetched from the blockchain using a library like ethers.js or web3.js.
+
+    // Example: Simulate updating progress bar based on points and threshold
+    const totalPoints = 1500;
+    const thresholdForNextTier = 2000;
+    const progressPercent = Math.min((totalPoints / thresholdForNextTier) * 100, 100);
+    document.getElementById('progress-bar').style.width = progressPercent + '%';
+    document.getElementById('progress-bar').textContent = Math.floor(progressPercent) + '%';
+
+    // Example: Setting user stats
+    document.getElementById('total-points').textContent = totalPoints;
+    document.getElementById('highest-tier').textContent = "Ascension";
+    document.getElementById('next-tier').textContent = "Metamorph";
+  </script>
+</body>
+</html>
