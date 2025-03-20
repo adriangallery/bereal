@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ADRIAN Lottery v4 Frontend</title>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -52,7 +53,7 @@
   </script>
   <script src="components/menu2.js"></script>
   
-  <!-- Contenedor de contenido principal con padding independiente -->
+  <!-- Contenedor de contenido principal -->
   <div class="content-container">
     <div class="container">
       <h1 class="mb-4">ADRIAN Lottery v4 Frontend</h1>
@@ -60,15 +61,15 @@
       <!-- Wallet Status (controlado por el menú) -->
       <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
       
-      <!-- Previous Round Winners Section -->
+      <!-- Sección de Previous Round Winners -->
       <div class="section" id="previousWinnersSection" style="display: none;">
         <h2>Previous Round Winners</h2>
         <div id="winnersInfo"></div>
       </div>
       
-      <!-- User Functions Section -->
+      <!-- Sección de User Functions (sin título) -->
       <div class="section">
-        <h2>User Functions</h2>
+        <!-- Botones y controles para el usuario -->
         <div class="mb-3">
           <h4>Buy Regular Tickets</h4>
           <label for="numRegularTickets">Number of Regular Tickets:</label>
@@ -82,23 +83,24 @@
           <button id="buyComplTicketsButton" class="btn btn-success mt-2">Buy Complementary Tickets</button>
         </div>
         <div class="mb-3">
-          <h4>Current Round Info</h4>
-          <div id="roundInfo"></div>
-        </div>
-        <div class="mb-3">
           <h4>Your Ticket Info</h4>
           <div id="userTicketInfo"></div>
         </div>
+      </div>
+      
+      <!-- Nueva sección: Current Round Info -->
+      <div class="section" id="currentRoundSection" style="display: none;">
+        <h2>Current Round Info</h2>
+        <div id="currentRoundInfo"></div>
       </div>
       
       <!-- Admin Functions Section -->
       <div class="section admin-section" id="adminSection">
         <h2>Admin Functions</h2>
         
-        <!-- Start New Round: se genera el snapshot automáticamente -->
+        <!-- Start New Round -->
         <div class="mb-3">
           <h4>Start New Round</h4>
-          <!-- No se pide el snapshot ID manualmente -->
           <label for="newTicketRatio">Regular Ticket Ratio (tokens required per ticket):</label>
           <input type="number" id="newTicketRatio" class="form-control" placeholder="e.g., 1000000" step="any">
           <label for="newTicketCost">Regular Ticket Cost (tokens paid per ticket):</label>
@@ -124,7 +126,7 @@
           <button id="updatePrizePercentagesButton" class="btn btn-warning mt-2">Update Prize Percentages</button>
         </div>
         
-        <!-- Force Finish, Draw Winners, Distribute Prizes -->
+        <!-- Other Admin Controls -->
         <div class="mb-3">
           <h4>Force Finish Round</h4>
           <button id="forceFinishRoundButton" class="btn btn-danger">Force Finish Round</button>
@@ -154,6 +156,17 @@
     </div>
   </div>
   
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
@@ -165,7 +178,7 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Nueva dirección del contrato de Lottery (asegúrate de actualizarla si cambia)
+    // Dirección del contrato de Lottery (actualiza si es necesario)
     const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -204,7 +217,19 @@
       "event Snapshot(uint256 id)"
     ];
     
-    // Función de conexión original (no se usa directamente, se mantiene por si se requiere en otro contexto)
+    // Función para formatear cantidades de token: 1,000.12 $ADRIAN
+    function formatTokenAmount(amount) {
+      const num = parseFloat(ethers.utils.formatUnits(amount, 18));
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
+    }
+    
+    // Función para comprimir (truncar) direcciones de wallet
+    function shortenAddress(address) {
+      if (!address) return "";
+      return address.substring(0, 6) + "..." + address.substring(address.length - 4);
+    }
+    
+    // Función de conexión (se mantiene para otros contextos)
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -212,8 +237,7 @@
           await provider.send("eth_requestAccounts", []);
           signer = provider.getSigner();
           userAddress = await signer.getAddress();
-          // Actualizamos la UI
-          document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+          document.getElementById("walletStatus").innerText = "Connected: " + shortenAddress(userAddress);
           lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
           tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
           loadRoundInfo();
@@ -241,6 +265,7 @@
       }
     }
     
+    // Función para cargar y reordenar la información del round actual
     async function loadRoundInfo() {
       try {
         const roundId = await lotteryContract.currentRoundId();
@@ -253,18 +278,19 @@
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         
-        const infoDiv = document.getElementById("roundInfo");
+        const infoDiv = document.getElementById("currentRoundInfo");
         infoDiv.innerHTML = `
-          <p><strong>Current Round ID:</strong> ${roundId}</p>
-          <p><strong>Regular Ticket Cost:</strong> ${cost.toString()} tokens</p>
-          <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
-          <p><strong>Complementary Ticket Price:</strong> ${complPrice.toString()} tokens</p>
-          <p><strong>Fixed Prize:</strong> ${fixedPrizeVal.toString()} tokens</p>
-          <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
-          <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
           <p><strong>Total Regular Tickets Purchased:</strong> ${totalRegular.toString()}</p>
           <p><strong>Total Complementary Tickets Purchased:</strong> ${totalComplementary.toString()}</p>
+          <p><strong>Regular Ticket Cost:</strong> ${formatTokenAmount(cost)}</p>
+          <p><strong>Regular Ticket Ratio:</strong> ${ratio.toString()} tokens per ticket</p>
+          <p><strong>Complementary Ticket Price:</strong> ${formatTokenAmount(complPrice)}</p>
+          <p><strong>Fixed Prize:</strong> ${formatTokenAmount(fixedPrizeVal)}</p>
+          <p><strong>Claim Deadline:</strong> ${new Date(deadline.toNumber() * 1000).toLocaleString()}</p>
+          <p><strong>Draw Time:</strong> ${new Date(drawTimeVal.toNumber() * 1000).toLocaleString()}</p>
         `;
+        // Mostrar la sección de current round info
+        document.getElementById("currentRoundSection").style.display = "block";
       } catch (err) {
         console.error(err);
       }
@@ -286,7 +312,7 @@
         const totalClaimed = regularClaimed.add(complementaryClaimed);
         const availableTickets = allowedTickets.sub(regularClaimed);
         document.getElementById("userTicketInfo").innerHTML = `
-          <p><strong>Your Snapshot Balance:</strong> ${ethers.utils.formatUnits(snapshotBalance, 18)} tokens</p>
+          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
           <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
           <p><strong>Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
           <p><strong>Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
@@ -307,8 +333,9 @@
           winnersDiv.innerHTML = "<p>No winners from the previous round.</p>";
           document.getElementById("previousWinnersSection").style.display = "none";
         } else {
-          // Se remueve la repetición del título; solo se muestran las direcciones
-          winnersDiv.innerHTML = `<p>${winners.join(", ")}</p>`;
+          // Se muestran las direcciones comprimidas
+          const shortened = winners.map(addr => shortenAddress(addr));
+          winnersDiv.innerHTML = `<p>${shortened.join(", ")}</p>`;
           document.getElementById("previousWinnersSection").style.display = "block";
         }
       } catch (error) {
@@ -487,13 +514,12 @@
         const totalRegular = await lotteryContract.getTotalRegularTickets();
         const totalComplementary = await lotteryContract.getTotalComplementaryTickets();
         document.getElementById("debugInfo").innerHTML = `
-          <p><strong>Your Snapshot Balance:</strong> ${ethers.utils.formatUnits(snapshotBalance, 18)} tokens</p>
+          <p><strong>Your Snapshot Balance:</strong> ${formatTokenAmount(snapshotBalance)}</p>
           <p><strong>Allowed Regular Tickets:</strong> ${allowedTickets.toString()}</p>
           <p><strong>Your Regular Tickets Claimed:</strong> ${regularClaimed.toString()}</p>
           <p><strong>Your Complementary Tickets Claimed:</strong> ${complementaryClaimed.toString()}</p>
           <p><strong>Total Regular Tickets Claimed:</strong> ${totalRegular.toString()}</p>
           <p><strong>Total Complementary Tickets Claimed:</strong> ${totalComplementary.toString()}</p>
-          <p><strong>Current Round ID:</strong> ${roundId.toString()}</p>
           <p><em>Note: If NFT distribution is desired, ensure enough NFTs (ERC721 and/or ERC1155) are deposited in the pool.</em></p>
         `;
       } catch (e) {
@@ -517,7 +543,7 @@
       provider = window.menuProvider;
       signer = window.menuSigner;
       console.log("Wallet connected:", userAddress);
-      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+      document.getElementById("walletStatus").innerText = "Connected: " + shortenAddress(userAddress);
       lotteryContract = new ethers.Contract(lotteryAddress, lotteryABI, signer);
       tokenContract = new ethers.Contract(tokenAddress, erc20ABI, signer);
       loadRoundInfo();
