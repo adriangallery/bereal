@@ -61,6 +61,16 @@
       <!-- Wallet Status (controlado por el menú) -->
       <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
       
+      <!-- Nueva sección para Odds -->
+      <div class="section" id="oddsSection" style="display: none;">
+        <h2>Your Odds</h2>
+        <div class="progress">
+          <div id="oddsProgress" class="progress-bar" role="progressbar" style="width: 0%;" 
+               aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <p id="oddsText"></p>
+      </div>
+      
       <!-- Sección de Previous Round Winners -->
       <div class="section" id="previousWinnersSection" style="display: none;">
         <h2>Previous Round Winners</h2>
@@ -217,7 +227,8 @@
       "event Snapshot(uint256 id)"
     ];
     
-    // Función para formatear cantidades de token: 1,000.12 $ADRIAN
+    // Función para formatear cantidades de token: 1,000.12 $ADRIAN  
+    // (Asumimos que el contrato devuelve los números ya escalados)
     function formatTokenAmount(amount) {
       const num = parseFloat(ethers.utils.formatUnits(amount, 18));
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
@@ -229,7 +240,40 @@
       return address.substring(0, 6) + "..." + address.substring(address.length - 4);
     }
     
-    // Función de conexión (se mantiene para otros contextos)
+    // Función para calcular combinatoria (C(n,k))
+    function combination(n, k) {
+      if (k > n) return 0;
+      let result = 1;
+      for (let i = 1; i <= k; i++) {
+        result = result * (n - i + 1) / i;
+      }
+      return result;
+    }
+    
+    // Función para actualizar la visualización de las odds
+    async function updateOdds() {
+      try {
+        const roundId = await lotteryContract.currentRoundId();
+        const totalRegular = parseInt((await lotteryContract.getTotalRegularTickets()).toString());
+        const userTickets = parseInt((await lotteryContract.regularTickets(roundId, userAddress)).toString());
+        let odds;
+        if (totalRegular < 3) {
+          odds = userTickets > 0 ? 1 : 0;
+        } else {
+          odds = 1 - (combination(totalRegular - userTickets, 3) / combination(totalRegular, 3));
+        }
+        const percentage = (odds * 100).toFixed(2);
+        document.getElementById("oddsProgress").style.width = percentage + "%";
+        document.getElementById("oddsProgress").setAttribute("aria-valuenow", percentage);
+        document.getElementById("oddsText").innerText = "Your odds to win at least one prize: " + percentage + "%";
+        // Mostrar la sección de odds si no estaba visible
+        document.getElementById("oddsSection").style.display = "block";
+      } catch (err) {
+        console.error("Error updating odds:", err);
+      }
+    }
+    
+    // Función de conexión
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -310,6 +354,7 @@
         const complementaryClaimed = await lotteryContract.complementaryTickets(roundId, userAddress);
         const totalClaimed = regularClaimed.add(complementaryClaimed);
         const availableTickets = allowedTickets.sub(regularClaimed);
+        
         // Actualizamos el input con el máximo disponible y su valor por defecto
         document.getElementById("numRegularTickets").setAttribute("max", availableTickets.toString());
         document.getElementById("numRegularTickets").value = availableTickets.toString();
@@ -322,6 +367,8 @@
           <p><strong>Total Tickets Claimed:</strong> ${totalClaimed.toString()}</p>
           <p><strong>Available Regular Tickets to Claim:</strong> ${availableTickets.toString()}</p>
         `;
+        // Actualizamos las odds luego de actualizar los tickets del usuario
+        updateOdds();
       } catch (e) {
         console.error(e);
         document.getElementById("userTicketInfo").innerText = "Error loading your ticket info: " + e.message;
