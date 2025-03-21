@@ -192,19 +192,18 @@
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
     // Auction Contract ABI (adaptado al contrato actualizado)
- const auctionABI = [
-  "function bid(uint256 amount) external",
-  "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
-  "function auctionStartTime() view returns (uint256)",
-  "function auctionEndTime() view returns (uint256)",
-  "function getTimeRemaining() view returns (uint256)",
-  "function getBidsOf(address user) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
-  "function getTotalEffectiveValue(address user) view returns (uint256)",
-  "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
-  "function getBidderCount() view returns (uint256)",
-  "function bidders(uint256) view returns (address)",
-  "event TokensDeposited(address indexed bidder, uint256 amount, uint256 multiplier, uint256 timestamp)"
-];
+    const auctionABI = [
+      "function bid(uint256 amount) external",
+      "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function auctionStartTime() view returns (uint256)",
+      "function auctionEndTime() view returns (uint256)",
+      "function getBidsOf(address user) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
+      "function getTotalEffectiveValue(address user) view returns (uint256)",
+      "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
+      "function getBidderCount() view returns (uint256)",
+      "function bidders(uint256) view returns (address)",
+      "event TokensDeposited(address indexed bidder, uint256 amount, uint256 multiplier, uint256 timestamp)"
+    ];
     
     // Standard ERC20 ABI
     const tokenABI = [
@@ -329,9 +328,12 @@
     // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited
     async function updateAuctionStats() {
       try {
-        // Time remaining
-        const secondsRemaining = await auctionContract.getTimeRemaining();
-        let secs = secondsRemaining.toNumber();
+        // Usamos auctionEndTime para calcular el tiempo restante
+        const auctionEndTimeBN = await auctionContract.auctionEndTime();
+        const auctionEndTime = auctionEndTimeBN.toNumber();
+        const now = Math.floor(Date.now() / 1000);
+        const secondsRemaining = auctionEndTime > now ? auctionEndTime - now : 0;
+        let secs = secondsRemaining;
         const days = Math.floor(secs / 86400);
         secs %= 86400;
         const hours = Math.floor(secs / 3600);
