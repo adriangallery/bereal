@@ -248,7 +248,7 @@
         else if (multiplier === 150) multiplierText = "x1.5 multiplier!";
         else multiplierText = "x1 multiplier!";
         document.getElementById("currentMultiplierDisplay").innerText = "🔥 Right now your bid gets a " + multiplierText;
-        // Guardamos el multiplicador actual para el cálculo del max bid
+        // Guardamos el multiplicador actual para el cálculo del max bid y otras validaciones
         window.currentMultiplier = multiplier;
       } catch (error) {
         console.error("Error updating current multiplier:", error);
@@ -372,7 +372,7 @@
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
         }
         
-        // Total Tokens Deposited: leemos el balance del contrato en el token
+        // Total Tokens Deposited: se obtiene leyendo el balance del contrato en el token
         const totalDepositedBN = await tokenContract.balanceOf(auctionAddress);
         const totalDeposited = parseFloat(ethers.utils.formatUnits(totalDepositedBN, 18));
         document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toFixed(2) + " ADRIAN";
@@ -407,7 +407,7 @@
           // Para x1, no hay boost extra; mostramos mensaje fijo
           document.getElementById("boostTimerDisplay").innerText = "Boost " + boostType + " active. No extra boost.";
           document.getElementById("boostProgressBar").style.width = "100%";
-          document.getElementById("boostProgressBar").className = "progress-bar " + "boost-bar-x1";
+          document.getElementById("boostProgressBar").className = "progress-bar boost-bar-x1";
           return;
         }
         
@@ -461,13 +461,47 @@
     // Interaction Functions
     // ----------------------------
     
-    // Approve & Deposit
+    // Approve & Deposit: se agrega validación para evitar depósitos que no cumplan la condición de incremento
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
         alert("Please enter a valid amount");
         return;
       }
+      // Convertir el valor ingresado a número (tokens)
+      const depositAmount = parseFloat(amountInput);
+      // Obtener el multiplicador actual (por ejemplo, 200, 150 o 100)
+      const currentMultiplier = window.currentMultiplier || 100;
+      // Calcular el valor efectivo de este depósito
+      const depositEffective = depositAmount * (currentMultiplier / 100);
+      
+      // Obtener el total efectivo previo del usuario
+      let userPreviousEffectiveBN = await auctionContract.getTotalEffectiveValue(userAccount);
+      const userPreviousEffective = parseFloat(ethers.utils.formatUnits(userPreviousEffectiveBN, 18));
+      
+      // Calcular el nuevo total efectivo del usuario
+      const newTotalEffective = userPreviousEffective + depositEffective;
+      
+      // Obtener la puja efectiva global máxima
+      const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+      let globalHighestEffective = 0;
+      if (rankedUsers.length > 0) {
+        globalHighestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
+      }
+      
+      // Si el nuevo total efectivo supera la puja global, se requiere que sea al menos 10% mayor
+      if (globalHighestEffective > 0 && newTotalEffective > globalHighestEffective) {
+        const requiredEffective = globalHighestEffective * 1.1;
+        if (newTotalEffective < requiredEffective) {
+          alert("The deposit amount is insufficient to become the new highest bid.\n" +
+                "Your total effective bid (" + newTotalEffective.toFixed(2) + " ADRIAN) " +
+                "must be at least 10% higher than the current highest effective bid (" + globalHighestEffective.toFixed(2) + " ADRIAN).\n" +
+                "Required: " + requiredEffective.toFixed(2) + " ADRIAN.");
+          return;
+        }
+      }
+      
+      // Proceder con la aprobación y el depósito
       const amount = ethers.utils.parseUnits(amountInput, 18);
       try {
         const txApprove = await tokenContract.approve(auctionAddress, amount);
