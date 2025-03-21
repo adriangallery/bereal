@@ -83,7 +83,7 @@
   <div class="hero">
     <h1>$ADRIAN Auction</h1>
     <p>🏆 Top bidder wins TOMORROWMAN 1/1 piece</p>
-<p>🏅 Next 9 get a special participation reward</p>
+    <p>🏅 Next 9 get a special participation reward</p>
   </div>
   
   <!-- Main Auction Content -->
@@ -110,6 +110,11 @@
       <div class="card-header">Auction Stats</div>
       <div class="card-body">
         <p id="timeRemainingDisplay">Loading time remaining...</p>
+        <!-- Progress bar general para el tiempo restante -->
+        <div class="progress mt-2">
+          <div id="auctionTimeProgress" class="progress-bar" role="progressbar" style="width: 0%;">
+          </div>
+        </div>
         <p id="highestBidDisplay">Highest Bid: Loading...</p>
         <p id="totalDepositedDisplay">Total Tokens Deposited: Loading...</p>
       </div>
@@ -280,7 +285,7 @@
               multiplierStr = "x1";
               progressBarClass = "progress-bar-multiplier-1";
             }
-            // Usamos el valor efectivo para calcular el ancho de la barra (para fines de demo)
+            // Para fines de demo, usamos el valor efectivo para calcular el ancho de la barra
             let progressPercent = Math.min((effective / 10) * 100, 100);
             html += `
               <div class="mb-3">
@@ -338,7 +343,7 @@
       }
     }
     
-    // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited
+    // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited, además la progress bar de tiempo
     async function updateAuctionStats() {
       try {
         // Calcular tiempo restante a partir de auctionEndTime
@@ -346,6 +351,8 @@
         const auctionEndTime = auctionEndTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         const secondsRemaining = auctionEndTime > now ? auctionEndTime - now : 0;
+        
+        // Formatear el tiempo restante
         let secs = secondsRemaining;
         const days = Math.floor(secs / 86400);
         secs %= 86400;
@@ -353,15 +360,30 @@
         secs %= 3600;
         const minutes = Math.floor(secs / 60);
         const seconds = secs % 60;
-        let timeDisplay = "";
-        if (days > 0) {
-          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        } else {
-          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
-        }
+        let timeDisplay = (days > 0) ? `${days}d ${hours}h ${minutes}m ${seconds}s` : `${hours}h ${minutes}m ${seconds}s`;
         document.getElementById("timeRemainingDisplay").innerText = "Time Remaining: " + timeDisplay;
         
-        // Highest Bid (Effective): usamos el ranking (primer elemento)
+        // Actualizar progress bar general del tiempo restante
+        const auctionStartTimeBN = await auctionContract.auctionStartTime();
+        const auctionStartTime = auctionStartTimeBN.toNumber();
+        const totalDuration = auctionEndTime - auctionStartTime;
+        const progressPercentage = (secondsRemaining / totalDuration) * 100;
+        
+        // Cambiar color según el tiempo restante:
+        // Verde si > 2 días, Amarillo si entre 1 y 2 días, Rojo si < 1 día
+        let progressColor = "";
+        if (secondsRemaining > 2 * 86400) {
+          progressColor = "bg-success";
+        } else if (secondsRemaining > 86400) {
+          progressColor = "bg-warning";
+        } else {
+          progressColor = "bg-danger";
+        }
+        const auctionTimeProgress = document.getElementById("auctionTimeProgress");
+        auctionTimeProgress.style.width = `${progressPercentage.toFixed(2)}%`;
+        auctionTimeProgress.className = "progress-bar " + progressColor;
+        
+        // Highest Bid (Effective)
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
         if (rankedUsers.length > 0) {
           const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
@@ -398,11 +420,10 @@
         } else if (now <= auctionStartTime + 3 * 86400) {
           boostType = "x1.5";
           boostEnd = auctionStartTime + 3 * 86400;
-          totalPeriod = 3 * 86400 - 86400; // 2 days en segundos
+          totalPeriod = 3 * 86400 - 86400; // 2 días en segundos
           progressClass = "boost-bar-x1-5";
         } else {
           boostType = "x1";
-          // Para x1, no hay boost extra; mostramos mensaje fijo
           document.getElementById("boostTimerDisplay").innerText = "Boost " + boostType + " active. No extra boost.";
           document.getElementById("boostProgressBar").style.width = "100%";
           document.getElementById("boostProgressBar").className = "progress-bar boost-bar-x1";
@@ -410,12 +431,10 @@
         }
         
         const remaining = boostEnd - now;
-        // Formatear remaining en HH:MM:SS
         const hrs = Math.floor(remaining / 3600);
         const mins = Math.floor((remaining % 3600) / 60);
         const secs = remaining % 60;
         const formattedTime = `${hrs}h ${mins}m ${secs}s`;
-        // Calcular porcentaje
         const percentage = (remaining / totalPeriod) * 100;
         document.getElementById("boostTimerDisplay").innerText = `Boost ${boostType}: Time remaining: ${formattedTime}`;
         const boostBar = document.getElementById("boostProgressBar");
@@ -459,7 +478,7 @@
     // Interaction Functions
     // ----------------------------
     
-    // Approve & Deposit: se agrega validación para rechazar depósitos que no superen la puja máxima actual
+    // Approve & Deposit: se valida que la nueva puja efectiva supere la puja global actual
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -468,26 +487,21 @@
       }
       // Convertir el valor ingresado a número (tokens)
       const depositAmount = parseFloat(amountInput);
-      // Obtener el multiplicador actual (por ejemplo, 200, 150 o 100)
       const currentMultiplier = window.currentMultiplier || 100;
-      // Calcular el valor efectivo de este depósito
       const depositEffective = depositAmount * (currentMultiplier / 100);
       
-      // Obtener el total efectivo previo del usuario (convertido a número)
       let userPreviousEffectiveBN = await auctionContract.getTotalEffectiveValue(userAccount);
       const userPreviousEffective = parseFloat(ethers.utils.formatUnits(userPreviousEffectiveBN, 18));
       
-      // Calcular el nuevo total efectivo del usuario
       const newTotalEffective = userPreviousEffective + depositEffective;
       
-      // Obtener la puja efectiva global máxima (en número)
       const [rankedUsers, totals] = await auctionContract.getFinalRanking();
       let globalHighestEffective = 0;
       if (rankedUsers.length > 0) {
         globalHighestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
       }
       
-      // Si existe una puja y el nuevo total no supera la puja global, rechazar el depósito
+      // Si ya existe una puja y la nueva suma no supera la puja global, rechazar el depósito
       if (globalHighestEffective > 0 && newTotalEffective <= globalHighestEffective) {
         alert("Your deposit is too low.\n" +
               "Your total effective bid would be " + newTotalEffective.toFixed(2) + " ADRIAN, " +
@@ -495,7 +509,7 @@
         return;
       }
       
-      // Además, si el nuevo total efectivo intenta superar la puja global, exigir un incremento del 10%
+      // Además, si intenta convertirse en líder, debe ser al menos 10% mayor
       if (globalHighestEffective > 0 && newTotalEffective > globalHighestEffective) {
         const requiredEffective = globalHighestEffective * 1.1;
         if (newTotalEffective < requiredEffective) {
@@ -507,7 +521,6 @@
         }
       }
       
-      // Proceder con la aprobación y el depósito
       const amount = ethers.utils.parseUnits(amountInput, 18);
       try {
         const txApprove = await tokenContract.approve(auctionAddress, amount);
@@ -531,7 +544,6 @@
     // Max Bid (10% extra)
     async function maxBidDeposit() {
       try {
-        // Obtener el ranking para determinar la mayor puja efectiva global
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
         let highestEffective = ethers.BigNumber.from("0");
         if (totals.length > 0) {
@@ -539,25 +551,20 @@
         } else {
           highestEffective = ethers.utils.parseUnits("1", 18);
         }
-        // Obtener el total efectivo del usuario
         const bids = await auctionContract.getBidsOf(userAccount);
         let userEffective = ethers.BigNumber.from("0");
         bids.forEach(bid => {
           userEffective = userEffective.add(bid.effectiveValue);
         });
-        // Calcular el requerido: mayor + 10%
         const requiredEffective = highestEffective.add(highestEffective.div(10));
         if (userEffective.gte(requiredEffective)) {
           alert("Your current bid already meets or exceeds the required max bid.");
           return;
         }
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
-        // Usamos el multiplicador actual (calculado en tiempo real)
         const currentMultiplier = window.currentMultiplier || 100;
-        // Cálculo: depositNeeded = additionalEffectiveNeeded * 100 / currentMultiplier
         const depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
   
-        // Actualizamos el campo de entrada (opcional)
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
   
         const txApprove = await tokenContract.approve(auctionAddress, depositNeeded);
@@ -606,14 +613,11 @@
       userAccount = window.menuUserAccount;
       document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
       
-      // Instantiate contracts using the signer
       auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       
-      // Start listening for deposit events
       listenForDeposits();
       
-      // Initial updates
       updateCurrentMultiplier();
       updateAuctionStats();
       updateBoostTimer();
@@ -621,7 +625,6 @@
       updateUserBids();
       updateMyPosition();
       
-      // Schedule periodic updates
       setInterval(updateCurrentMultiplier, 5000);
       setInterval(updateAuctionStats, 15000);
       setInterval(updateBoostTimer, 5000);
