@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>$ADRIAN Auction V3</title>
+  <title>$ADRIAN Auction</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js v5 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -19,9 +20,12 @@
       background-color: #000;
       padding: 4rem 0;
       color: #fff;
-      text-shadow: 0 0 5px #000;
-      margin: 5px 0;
       text-align: center;
+      margin: 5px 0;
+    }
+    .hero h1 {
+      font-weight: bold;
+      margin: 5px 0;
     }
     .token-img {
       aspect-ratio: 4 / 3;
@@ -35,115 +39,136 @@
       padding: 1rem 0;
       border-top: 1px solid #ccc;
     }
-    .btn-anaglyph-blue {
+    .btn-custom {
       background-color: #007bff;
       border-color: #007bff;
       color: #fff;
     }
-    .btn-anaglyph-blue:hover {
+    .btn-custom:hover {
       background-color: #0069d9;
       border-color: #0062cc;
     }
-    .multiplier-x2 { background-color: #ffe600; }
-    .multiplier-x1_5 { background-color: #ffa500; }
-    .multiplier-x1 { background-color: #87ceeb; }
-    .bid-bar {
-      height: 20px;
-      border-radius: 10px;
+    /* Custom progress bar colors for bid multipliers */
+    .progress-bar-multiplier-2 {
+      background-color: #FFD700; /* bright yellow */
     }
-    .ranking-card {
-      background-color: #ffffff;
-      border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    .progress-bar-multiplier-1-5 {
+      background-color: orange;
+    }
+    .progress-bar-multiplier-1 {
+      background-color: #ADD8E6; /* light blue */
     }
   </style>
 </head>
 <body>
-  <!-- Menu -->
+  <!-- Menu (common component) -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
-      .catch(error => console.error('Error loading menu:', error));
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading menu:', error);
+      });
   </script>
+  <!-- Load wallet logic AFTER ethers.js is loaded -->
   <script src="components/menu2.js"></script>
-
+  
+  <!-- Hero Section -->
   <div class="hero">
-    <h1>$ADRIAN Auction V3</h1>
-    <p>🏆 Top bidder wins #0008 – AKASHI30 (1/1) + a piece of #0009 – AKASHI30 (10/10) | 🏅 Next 9 get a piece of #0004 – AKASHI30 (10/10)</p>
-    <p>💥 Earn more bidding early: Day 1 x2, Day 2-3 x1.5, Day 4-7 x1</p>
+    <h1>$ADRIAN Auction</h1>
+    <p>
+      🏆 Top bidder wins an exclusive prize &nbsp;|&nbsp;
+      🏅 Next 9 get a special reward
+    </p>
   </div>
-
+  
+  <!-- Main Auction Content -->
   <div class="container mt-4">
+    <!-- Connected Account Display -->
     <div class="text-center mb-4">
-      <p id="accountDisplay"></p>
+      <p id="accountDisplay" class="mt-2"></p>
     </div>
-
+    
+    <!-- (Optional) Token Images -->
     <div class="row mb-4">
       <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeib3vyjihcbxfwrb2kzszrlwg4ttix2aqy7zllcy3fnakv5hlbqfnm" class="img-fluid rounded token-img" alt="Token ID 3" loading="lazy">
+        <img src="https://example.com/token1.jpg" class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
       </div>
       <div class="col-6">
-        <img src="https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000" class="img-fluid rounded token-img" alt="Token ID 4" loading="lazy">
+        <img src="https://example.com/token2.jpg" class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
       </div>
     </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Time Remaining</div>
-          <div class="card-body">
-            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">Highest Bid</div>
-          <div class="card-body">
-            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    
+    <!-- Auction Stats Card -->
     <div class="card">
       <div class="card-header">Auction Stats</div>
       <div class="card-body">
-        <div id="auctionStatsDisplay">Loading auction stats...</div>
+        <p id="timeRemainingDisplay">Loading time remaining...</p>
+        <p id="highestBidDisplay">Highest Bid: Loading...</p>
+        <p id="totalDepositedDisplay">Total Tokens Deposited: Loading...</p>
       </div>
     </div>
-
+    
+    <!-- Final Ranking Card -->
+    <div class="card">
+      <div class="card-header">Final Ranking</div>
+      <div class="card-body" id="rankingDisplay">
+        Loading ranking...
+      </div>
+    </div>
+    
+    <!-- My Position Card -->
+    <div class="card">
+      <div class="card-header">
+        My Position
+        <button id="myPositionButton" class="btn btn-sm btn-custom float-end">Check My Position</button>
+      </div>
+      <div class="card-body" id="myPositionDisplay">
+        Not checked
+      </div>
+    </div>
+    
+    <!-- Place a Bid Card -->
     <div class="card">
       <div class="card-header">Place a Bid</div>
       <div class="card-body">
-        <div class="input-group mb-2">
+        <div class="mb-2">
           <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
-          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
         </div>
-        <div class="text-center">
-          <button id="maxBidButton" class="btn btn-anaglyph-blue">Max Bid (10% extra)</button>
+        <div class="mb-2 text-center">
+          <!-- Current Multiplier Display -->
+          <span id="currentMultiplierDisplay">Calculating current multiplier...</span>
+        </div>
+        <div class="d-grid gap-2">
+          <button id="approveDepositButton" class="btn btn-custom">Approve & Deposit</button>
+          <button id="maxBidButton" class="btn btn-custom">Max Bid (10% extra)</button>
         </div>
       </div>
     </div>
-
-    <div id="myBidsSection" class="mb-4"></div>
-    <h3 class="mb-3">🏆 Final Ranking</h3>
-    <div id="rankingSection"></div>
-
+    
+    <!-- User Bids Card -->
+    <div class="card">
+      <div class="card-header">Your Bids</div>
+      <div class="card-body" id="userBidsDisplay">
+        Loading your bids...
+      </div>
+    </div>
+    
+    <!-- Contract Information -->
     <div class="text-center mt-4">
       <p>
-        Contract Address: 
+        Auction Contract Address: 
         <a href="https://base.blockscout.com/address/0xA0eca5b75df60465607e02ebe43A1F087316c8d0" target="_blank">
           0xA0eca5b75df60465607e02ebe43A1F087316c8d0
         </a>
       </p>
     </div>
   </div>
-
+  
+  <!-- Footer (common component) -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
@@ -155,9 +180,367 @@
         console.error('Error loading footer:', error);
       });
   </script>
-
-  <!-- TODO: Agregar lógica JS combinada aquí abajo -->
-
+  
+  <!-- Auction JavaScript -->
+  <script>
+    // Global variables
+    let provider, signer, auctionContract, tokenContract;
+    let userAccount = "";
+    
+    // Contract addresses (update to new v3 address)
+    const auctionAddress = "0xA0eca5b75df60465607e02ebe43A1F087316c8d0";
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    
+    // Auction Contract ABI (v3)
+    const auctionABI = [
+      "function bid(uint256 amount) external",
+      "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+      "function auctionStartTime() view returns (uint256)",
+      "function auctionEndTime() view returns (uint256)",
+      "function getTimeRemaining() view returns (uint256)",
+      "function getBidsOf(address user) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
+      "function getTotalEffectiveValue(address user) view returns (uint256)",
+      "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
+      "function getBidderCount() view returns (uint256)",
+      "function bidders(uint256) view returns (address)"
+    ];
+    
+    // Standard ERC20 ABI
+    const tokenABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function balanceOf(address account) view returns (uint256)"
+    ];
+    
+    // ----------------------------
+    // UI Update Functions
+    // ----------------------------
+    
+    // 1. Update current multiplier (real-time)
+    async function updateCurrentMultiplier() {
+      try {
+        const startTimeBN = await auctionContract.auctionStartTime();
+        const auctionStartTime = startTimeBN.toNumber();
+        const now = Math.floor(Date.now() / 1000);
+        let multiplier = 100;
+        if (now <= auctionStartTime + 86400) {
+          multiplier = 200;
+        } else if (now <= auctionStartTime + 3 * 86400) {
+          multiplier = 150;
+        }
+        let multiplierText = "";
+        if (multiplier === 200) multiplierText = "x2 multiplier!";
+        else if (multiplier === 150) multiplierText = "x1.5 multiplier!";
+        else multiplierText = "x1 multiplier!";
+        document.getElementById("currentMultiplierDisplay").innerText = "🔥 Right now your bid gets a " + multiplierText;
+        // Store current multiplier for use in max bid calculation
+        window.currentMultiplier = multiplier;
+      } catch (error) {
+        console.error("Error updating current multiplier:", error);
+        document.getElementById("currentMultiplierDisplay").innerText = "Error calculating multiplier.";
+      }
+    }
+    
+    // 2. Update User Bids display
+    async function updateUserBids() {
+      if (!userAccount) return;
+      try {
+        const bids = await auctionContract.getBidsOf(userAccount);
+        let html = "";
+        if (bids.length === 0) {
+          html = "<p>No bids found.</p>";
+        } else {
+          bids.forEach(bid => {
+            // Convert BigNumbers to numbers/strings
+            const amount = parseFloat(ethers.utils.formatUnits(bid.amount, 18));
+            const effective = parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18));
+            const bidTime = new Date(bid.timestamp.toNumber() * 1000).toLocaleString();
+            let multiplierStr = "";
+            let progressBarClass = "";
+            if (bid.multiplier.toNumber() === 200) { 
+              multiplierStr = "x2";
+              progressBarClass = "progress-bar-multiplier-2";
+            } else if (bid.multiplier.toNumber() === 150) { 
+              multiplierStr = "x1.5";
+              progressBarClass = "progress-bar-multiplier-1-5";
+            } else {
+              multiplierStr = "x1";
+              progressBarClass = "progress-bar-multiplier-1";
+            }
+            // Use effective value as percentage for demo (max 100%)
+            let progressPercent = Math.min((effective / 10) * 100, 100); // Ajusta el divisor según sea necesario
+            html += `
+              <div class="mb-3">
+                <strong>Date:</strong> ${bidTime}<br>
+                <strong>Tokens Bid:</strong> ${amount} ADRIAN<br>
+                <strong>Multiplier:</strong> ${multiplierStr}<br>
+                <strong>Effective Value:</strong> ${effective} ADRIAN
+                <div class="progress mt-1">
+                  <div class="progress-bar ${progressBarClass}" role="progressbar" style="width: ${progressPercent}%;">
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+        }
+        document.getElementById("userBidsDisplay").innerHTML = html;
+      } catch (error) {
+        console.error("Error updating user bids:", error);
+        document.getElementById("userBidsDisplay").innerText = "Error loading bids.";
+      }
+    }
+    
+    // 3. Update Final Ranking display
+    async function updateRanking() {
+      try {
+        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let html = "";
+        if (rankedUsers.length === 0) {
+          html = "<p>No bids yet.</p>";
+        } else {
+          // Determine maximum effective value for progress bar scaling
+          let maxEffective = totals.reduce((max, current) => current.gt(max) ? current : max, totals[0]);
+          const maxEffectiveFloat = parseFloat(ethers.utils.formatUnits(maxEffective, 18));
+          rankedUsers.forEach(async (wallet, index) => {
+            const effective = totals[index];
+            const effectiveFloat = parseFloat(ethers.utils.formatUnits(effective, 18));
+            // Calculate percentage width relative to maxEffective
+            const percent = maxEffectiveFloat > 0 ? (effectiveFloat / maxEffectiveFloat * 100).toFixed(2) : 0;
+            // Abbreviate wallet (first 6 + ... + last 4)
+            const abbreviated = wallet.substring(0,6) + "..." + wallet.substring(wallet.length - 4);
+            html += `
+              <div class="mb-2">
+                <strong>${index + 1}. ${abbreviated}</strong> - ${effectiveFloat.toFixed(2)} ADRIAN
+                <div class="progress mt-1">
+                  <div class="progress-bar" role="progressbar" style="width: ${percent}%;">
+                  </div>
+                </div>
+              </div>
+            `;
+            document.getElementById("rankingDisplay").innerHTML = html;
+          });
+        }
+        document.getElementById("rankingDisplay").innerHTML = html;
+      } catch (error) {
+        console.error("Error updating ranking:", error);
+        document.getElementById("rankingDisplay").innerText = "Error loading ranking.";
+      }
+    }
+    
+    // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited
+    async function updateAuctionStats() {
+      try {
+        // Time remaining
+        const secondsRemaining = await auctionContract.getTimeRemaining();
+        let secs = secondsRemaining.toNumber();
+        const days = Math.floor(secs / 86400);
+        secs %= 86400;
+        const hours = Math.floor(secs / 3600);
+        secs %= 3600;
+        const minutes = Math.floor(secs / 60);
+        const seconds = secs % 60;
+        let timeDisplay = "";
+        if (days > 0) {
+          timeDisplay = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else {
+          timeDisplay = `${hours}h ${minutes}m ${seconds}s`;
+        }
+        document.getElementById("timeRemainingDisplay").innerText = "Time Remaining: " + timeDisplay;
+        
+        // Highest Bid: use ranking (first element)
+        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        if (rankedUsers.length > 0) {
+          const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
+          document.getElementById("highestBidDisplay").innerText = "Highest Bid (Effective): " + highestEffective.toFixed(2) + " ADRIAN";
+        } else {
+          document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
+        }
+        
+        // Total tokens deposited: loop through bidders and sum raw amounts
+        const bidderCountBN = await auctionContract.getBidderCount();
+        const bidderCount = bidderCountBN.toNumber();
+        let totalDepositedBN = ethers.BigNumber.from("0");
+        for (let i = 0; i < bidderCount; i++) {
+          const bidderAddress = await auctionContract.bidders(i);
+          const bids = await auctionContract.getBidsOf(bidderAddress);
+          bids.forEach(bid => {
+            totalDepositedBN = totalDepositedBN.add(bid.amount);
+          });
+        }
+        const totalDeposited = parseFloat(ethers.utils.formatUnits(totalDepositedBN, 18));
+        document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toFixed(2) + " ADRIAN";
+      } catch (error) {
+        console.error("Error updating auction stats:", error);
+      }
+    }
+    
+    // 5. Update My Position: determine user position from ranking and sum user's effective bids
+    async function updateMyPosition() {
+      if (!userAccount) {
+        document.getElementById("myPositionDisplay").innerText = "Not connected";
+        return;
+      }
+      try {
+        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let position = "N/A";
+        rankedUsers.forEach((wallet, index) => {
+          if (wallet.toLowerCase() === userAccount.toLowerCase()) {
+            position = index + 1;
+          }
+        });
+        // Sum user's effective bids
+        const bids = await auctionContract.getBidsOf(userAccount);
+        let userEffectiveBN = ethers.BigNumber.from("0");
+        bids.forEach(bid => {
+          userEffectiveBN = userEffectiveBN.add(bid.effectiveValue);
+        });
+        const userEffective = parseFloat(ethers.utils.formatUnits(userEffectiveBN, 18));
+        document.getElementById("myPositionDisplay").innerText =
+          `Your Position: ${position} - Your Total Bid (Effective): ${userEffective.toFixed(2)} ADRIAN`;
+      } catch (error) {
+        console.error("Error fetching your position:", error);
+        document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
+      }
+    }
+    
+    // ----------------------------
+    // Interaction Functions
+    // ----------------------------
+    
+    // Approve & Deposit
+    async function approveAndDeposit() {
+      const amountInput = document.getElementById("amountInput").value;
+      if (!amountInput || amountInput <= 0) {
+        alert("Please enter a valid amount");
+        return;
+      }
+      const amount = ethers.utils.parseUnits(amountInput, 18);
+      try {
+        const txApprove = await tokenContract.approve(auctionAddress, amount);
+        alert("Approval transaction sent. Please wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding to deposit.");
+        const txBid = await auctionContract.bid(amount);
+        alert("Bid transaction sent. Please wait for confirmation.");
+        await txBid.wait();
+        alert("Bid confirmed.");
+        updateAuctionStats();
+        updateRanking();
+        updateUserBids();
+        updateMyPosition();
+      } catch (error) {
+        console.error("Error during approve & deposit:", error);
+        alert("Error during approve & deposit. Check console for details.");
+      }
+    }
+    
+    // Max Bid (10% extra)
+    async function maxBidDeposit() {
+      try {
+        // Get ranking to determine the current highest effective bid
+        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let highestEffective = ethers.BigNumber.from("0");
+        if (totals.length > 0) {
+          highestEffective = totals[0];
+        } else {
+          // If no bids yet, set default minimum of 1 ADRIAN
+          highestEffective = ethers.utils.parseUnits("1", 18);
+        }
+        // Get user's current effective total
+        const bids = await auctionContract.getBidsOf(userAccount);
+        let userEffective = ethers.BigNumber.from("0");
+        bids.forEach(bid => {
+          userEffective = userEffective.add(bid.effectiveValue);
+        });
+        // Required effective = highest + 10%
+        const requiredEffective = highestEffective.add(highestEffective.div(10));
+        if (userEffective.gte(requiredEffective)) {
+          alert("Your current bid already meets or exceeds the required max bid.");
+          return;
+        }
+        const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
+        // Use current multiplier (from real-time calculation)
+        const currentMultiplier = window.currentMultiplier || 100;
+        // depositNeeded = additionalEffectiveNeeded * 100 / currentMultiplier
+        const depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
+  
+        // Optionally update input field
+        document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
+  
+        const txApprove = await tokenContract.approve(auctionAddress, depositNeeded);
+        alert("Approval transaction sent. Please wait for confirmation.");
+        await txApprove.wait();
+        alert("Approval confirmed. Proceeding with max bid.");
+  
+        const txBid = await auctionContract.bid(depositNeeded);
+        alert("Max bid transaction sent. Please wait for confirmation.");
+        await txBid.wait();
+        alert("Max bid confirmed.");
+  
+        updateAuctionStats();
+        updateRanking();
+        updateUserBids();
+        updateMyPosition();
+      } catch (error) {
+        console.error("Error during max bid deposit:", error);
+        alert("Error during max bid deposit. Check console for details.");
+      }
+    }
+    
+    // ----------------------------
+    // Event Listeners & Initialization
+    // ----------------------------
+    
+    document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
+    document.getElementById("maxBidButton").addEventListener("click", maxBidDeposit);
+    document.getElementById("myPositionButton").addEventListener("click", updateMyPosition);
+    
+    // Listen for TokensDeposited event to update UI in real time
+    function listenForDeposits() {
+      auctionContract.on("TokensDeposited", (bidder, amount, multiplier, timestamp) => {
+        console.log("New bid from:", bidder);
+        updateAuctionStats();
+        updateRanking();
+        updateUserBids();
+        updateMyPosition();
+      });
+    }
+    
+    // Callback when wallet is connected (from menu2.js)
+    window.onMenuWalletConnected = async function() {
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      userAccount = window.menuUserAccount;
+      document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
+      
+      // Instantiate contracts using the signer
+      auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
+      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+      
+      // Start listening for deposit events
+      listenForDeposits();
+      
+      // Initial updates
+      updateCurrentMultiplier();
+      updateAuctionStats();
+      updateRanking();
+      updateUserBids();
+      updateMyPosition();
+      
+      // Schedule periodic updates
+      setInterval(updateCurrentMultiplier, 5000);
+      setInterval(updateAuctionStats, 15000);
+      setInterval(updateRanking, 10000);
+      setInterval(updateUserBids, 10000);
+    };
+    
+    // (Optional) Callback for wallet disconnection
+    window.onMenuWalletDisconnected = function() {
+      document.getElementById("accountDisplay").innerText = "";
+    };
+  </script>
+  
+  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
