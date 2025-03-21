@@ -161,8 +161,8 @@
     <div class="text-center mt-4">
       <p>
         Auction Contract Address: 
-        <a href="https://base.blockscout.com/address/0xA0eca5b75df60465607e02ebe43A1F087316c8d0" target="_blank">
-          0xA0eca5b75df60465607e02ebe43A1F087316c8d0
+        <a href="https://base.blockscout.com/address/0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5" target="_blank">
+          0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5
         </a>
       </p>
     </div>
@@ -187,11 +187,11 @@
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    // Contract addresses (update to new v3 address)
-    const auctionAddress = "0xA0eca5b75df60465607e02ebe43A1F087316c8d0";
+    // Contract addresses
+    const auctionAddress = "0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // Auction Contract ABI (v3)
+    // Auction Contract ABI (adaptado al contrato actualizado)
     const auctionABI = [
       "function bid(uint256 amount) external",
       "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -233,7 +233,7 @@
         else if (multiplier === 150) multiplierText = "x1.5 multiplier!";
         else multiplierText = "x1 multiplier!";
         document.getElementById("currentMultiplierDisplay").innerText = "🔥 Right now your bid gets a " + multiplierText;
-        // Store current multiplier for use in max bid calculation
+        // Guardamos el multiplicador actual para el cálculo del max bid
         window.currentMultiplier = multiplier;
       } catch (error) {
         console.error("Error updating current multiplier:", error);
@@ -251,7 +251,7 @@
           html = "<p>No bids found.</p>";
         } else {
           bids.forEach(bid => {
-            // Convert BigNumbers to numbers/strings
+            // Convertir BigNumbers a números decimales
             const amount = parseFloat(ethers.utils.formatUnits(bid.amount, 18));
             const effective = parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18));
             const bidTime = new Date(bid.timestamp.toNumber() * 1000).toLocaleString();
@@ -267,8 +267,8 @@
               multiplierStr = "x1";
               progressBarClass = "progress-bar-multiplier-1";
             }
-            // Use effective value as percentage for demo (max 100%)
-            let progressPercent = Math.min((effective / 10) * 100, 100); // Ajusta el divisor según sea necesario
+            // Para fines de demostración, se usa el valor efectivo para calcular el ancho de la barra
+            let progressPercent = Math.min((effective / 10) * 100, 100);
             html += `
               <div class="mb-3">
                 <strong>Date:</strong> ${bidTime}<br>
@@ -298,15 +298,14 @@
         if (rankedUsers.length === 0) {
           html = "<p>No bids yet.</p>";
         } else {
-          // Determine maximum effective value for progress bar scaling
+          // Determinar el máximo total efectivo para escalar la barra de progreso
           let maxEffective = totals.reduce((max, current) => current.gt(max) ? current : max, totals[0]);
           const maxEffectiveFloat = parseFloat(ethers.utils.formatUnits(maxEffective, 18));
-          rankedUsers.forEach(async (wallet, index) => {
+          rankedUsers.forEach((wallet, index) => {
             const effective = totals[index];
             const effectiveFloat = parseFloat(ethers.utils.formatUnits(effective, 18));
-            // Calculate percentage width relative to maxEffective
             const percent = maxEffectiveFloat > 0 ? (effectiveFloat / maxEffectiveFloat * 100).toFixed(2) : 0;
-            // Abbreviate wallet (first 6 + ... + last 4)
+            // Abreviar wallet (primeros 6 y últimos 4 caracteres)
             const abbreviated = wallet.substring(0,6) + "..." + wallet.substring(wallet.length - 4);
             html += `
               <div class="mb-2">
@@ -317,7 +316,6 @@
                 </div>
               </div>
             `;
-            document.getElementById("rankingDisplay").innerHTML = html;
           });
         }
         document.getElementById("rankingDisplay").innerHTML = html;
@@ -347,7 +345,7 @@
         }
         document.getElementById("timeRemainingDisplay").innerText = "Time Remaining: " + timeDisplay;
         
-        // Highest Bid: use ranking (first element)
+        // Highest Bid (Effective): usamos el ranking (primer elemento)
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
         if (rankedUsers.length > 0) {
           const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
@@ -356,7 +354,7 @@
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
         }
         
-        // Total tokens deposited: loop through bidders and sum raw amounts
+        // Total tokens depositados: sumar las cantidades de todas las pujas de cada bidder
         const bidderCountBN = await auctionContract.getBidderCount();
         const bidderCount = bidderCountBN.toNumber();
         let totalDepositedBN = ethers.BigNumber.from("0");
@@ -374,7 +372,7 @@
       }
     }
     
-    // 5. Update My Position: determine user position from ranking and sum user's effective bids
+    // 5. Update My Position: determina la posición del usuario y suma sus pujas efectivas
     async function updateMyPosition() {
       if (!userAccount) {
         document.getElementById("myPositionDisplay").innerText = "Not connected";
@@ -388,7 +386,6 @@
             position = index + 1;
           }
         });
-        // Sum user's effective bids
         const bids = await auctionContract.getBidsOf(userAccount);
         let userEffectiveBN = ethers.BigNumber.from("0");
         bids.forEach(bid => {
@@ -437,34 +434,33 @@
     // Max Bid (10% extra)
     async function maxBidDeposit() {
       try {
-        // Get ranking to determine the current highest effective bid
+        // Obtener el ranking para determinar la mayor puja efectiva global
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
         let highestEffective = ethers.BigNumber.from("0");
         if (totals.length > 0) {
           highestEffective = totals[0];
         } else {
-          // If no bids yet, set default minimum of 1 ADRIAN
           highestEffective = ethers.utils.parseUnits("1", 18);
         }
-        // Get user's current effective total
+        // Obtener el total efectivo del usuario
         const bids = await auctionContract.getBidsOf(userAccount);
         let userEffective = ethers.BigNumber.from("0");
         bids.forEach(bid => {
           userEffective = userEffective.add(bid.effectiveValue);
         });
-        // Required effective = highest + 10%
+        // Calcular el requerido: mayor + 10%
         const requiredEffective = highestEffective.add(highestEffective.div(10));
         if (userEffective.gte(requiredEffective)) {
           alert("Your current bid already meets or exceeds the required max bid.");
           return;
         }
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
-        // Use current multiplier (from real-time calculation)
+        // Usamos el multiplicador actual (calculado en tiempo real)
         const currentMultiplier = window.currentMultiplier || 100;
-        // depositNeeded = additionalEffectiveNeeded * 100 / currentMultiplier
+        // Cálculo: depositNeeded = additionalEffectiveNeeded * 100 / currentMultiplier
         const depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
   
-        // Optionally update input field
+        // Actualizamos el campo de entrada (opcional)
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
   
         const txApprove = await tokenContract.approve(auctionAddress, depositNeeded);
