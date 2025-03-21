@@ -88,6 +88,9 @@
   
   <!-- Main Auction Content -->
   <div class="container mt-4">
+    <!-- Winner Section (inicialmente oculta) -->
+    <div id="winnerSection" class="mb-4 d-none"></div>
+    
     <!-- Connected Account Display -->
     <div class="text-center mb-4">
       <p id="accountDisplay" class="mt-2"></p>
@@ -341,7 +344,7 @@
       }
     }
     
-    // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited + progress bar para tiempo restante
+    // 4. Update Auction Stats: Time Remaining, Highest Bid, Total Tokens Deposited, y progress bar del tiempo
     async function updateAuctionStats() {
       try {
         const auctionEndTimeBN = await auctionContract.auctionEndTime();
@@ -437,7 +440,39 @@
       }
     }
     
-    // 6. Update My Position: determina la posición del usuario y suma sus pujas efectivas
+    // 6. Update Winner Section: si la subasta terminó, mostrar el ganador (wallet abreviada)
+    async function updateWinnerSection() {
+      try {
+        const auctionEndTimeBN = await auctionContract.auctionEndTime();
+        const auctionEndTime = auctionEndTimeBN.toNumber();
+        const now = Math.floor(Date.now() / 1000);
+        const winnerSection = document.getElementById("winnerSection");
+        if (now >= auctionEndTime) {
+          const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+          if (rankedUsers.length > 0) {
+            const winner = rankedUsers[0];
+            const abbreviated = winner.substring(0,6) + "..." + winner.substring(winner.length - 4);
+            winnerSection.innerHTML = `
+              <div class="card">
+                <div class="card-header">Winner</div>
+                <div class="card-body">
+                  <p>Winner: ${abbreviated}</p>
+                </div>
+              </div>
+            `;
+            winnerSection.classList.remove("d-none");
+          } else {
+            winnerSection.classList.add("d-none");
+          }
+        } else {
+          winnerSection.classList.add("d-none");
+        }
+      } catch (error) {
+        console.error("Error updating winner section:", error);
+      }
+    }
+    
+    // 7. Update My Position: determina la posición del usuario y suma sus pujas efectivas
     async function updateMyPosition() {
       if (!userAccount) {
         document.getElementById("myPositionDisplay").innerText = "Not connected";
@@ -612,12 +647,14 @@
       updateRanking();
       updateUserBids();
       updateMyPosition();
+      updateWinnerSection();
       
       setInterval(updateCurrentMultiplier, 5000);
       setInterval(updateAuctionStats, 15000);
       setInterval(updateBoostTimer, 5000);
       setInterval(updateRanking, 10000);
       setInterval(updateUserBids, 10000);
+      setInterval(updateWinnerSection, 10000);
     };
     
     window.onMenuWalletDisconnected = function() {
