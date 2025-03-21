@@ -461,7 +461,7 @@
     // Interaction Functions
     // ----------------------------
     
-    // Approve & Deposit: se agrega validación para evitar depósitos que no cumplan la condición de incremento
+    // Approve & Deposit: se agrega validación para rechazar depósitos que no superen la puja máxima actual
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -475,25 +475,33 @@
       // Calcular el valor efectivo de este depósito
       const depositEffective = depositAmount * (currentMultiplier / 100);
       
-      // Obtener el total efectivo previo del usuario
+      // Obtener el total efectivo previo del usuario (convertido a número)
       let userPreviousEffectiveBN = await auctionContract.getTotalEffectiveValue(userAccount);
       const userPreviousEffective = parseFloat(ethers.utils.formatUnits(userPreviousEffectiveBN, 18));
       
       // Calcular el nuevo total efectivo del usuario
       const newTotalEffective = userPreviousEffective + depositEffective;
       
-      // Obtener la puja efectiva global máxima
+      // Obtener la puja efectiva global máxima (en número)
       const [rankedUsers, totals] = await auctionContract.getFinalRanking();
       let globalHighestEffective = 0;
       if (rankedUsers.length > 0) {
         globalHighestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
       }
       
-      // Si el nuevo total efectivo supera la puja global, se requiere que sea al menos 10% mayor
+      // Si existe una puja y el nuevo total no supera la puja global, rechazar el depósito
+      if (globalHighestEffective > 0 && newTotalEffective <= globalHighestEffective) {
+        alert("Your deposit is too low.\n" +
+              "Your total effective bid would be " + newTotalEffective.toFixed(2) + " ADRIAN, " +
+              "but it must exceed the current highest effective bid of " + globalHighestEffective.toFixed(2) + " ADRIAN.");
+        return;
+      }
+      
+      // Además, si el nuevo total efectivo intenta superar la puja global, exigir un incremento del 10%
       if (globalHighestEffective > 0 && newTotalEffective > globalHighestEffective) {
         const requiredEffective = globalHighestEffective * 1.1;
         if (newTotalEffective < requiredEffective) {
-          alert("The deposit amount is insufficient to become the new highest bid.\n" +
+          alert("Your deposit is insufficient to become the new highest bid.\n" +
                 "Your total effective bid (" + newTotalEffective.toFixed(2) + " ADRIAN) " +
                 "must be at least 10% higher than the current highest effective bid (" + globalHighestEffective.toFixed(2) + " ADRIAN).\n" +
                 "Required: " + requiredEffective.toFixed(2) + " ADRIAN.");
