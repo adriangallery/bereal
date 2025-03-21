@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$ADRIAN Auction V3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #f0f4f8;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .hero {
+      background-color: #000;
+      color: #fff;
+      text-align: center;
+      padding: 2rem 0;
+    }
+    .multiplier-x2 { background-color: #ffe600; }
+    .multiplier-x1_5 { background-color: #ffa500; }
+    .multiplier-x1 { background-color: #87ceeb; }
+    .bid-bar {
+      height: 20px;
+      border-radius: 10px;
+    }
+    .ranking-card {
+      background-color: #ffffff;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>$ADRIAN Auction V3</h1>
+    <p>💥 Gana más pujas cuanto antes participes: Día 1 x2, Día 2-3 x1.5, Día 4-7 x1</p>
+  </div>
+
+  <div class="container mt-4">
+    <div class="text-center mb-4">
+      <button class="btn btn-primary" onclick="connectWallet()">Conectar Wallet</button>
+      <p id="accountDisplay"></p>
+    </div>
+
+    <div id="myBidsSection" class="mb-4"></div>
+    <h3 class="mb-3">🏆 Ranking Final</h3>
+    <div id="rankingSection"></div>
+  </div>
+
+  <script>
+    let provider, signer, auctionContract;
+    const auctionAddress = "0xa0eca5b75df60465607e02ebe43a1f087316c8d0";
+    const auctionABI = [
+      "function getBidsOf(address) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
+      "function getTotalEffectiveValue(address) view returns (uint256)",
+      "function getFinalRanking() view returns (address[] memory, uint256[] memory)"
+    ];
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        const user = await signer.getAddress();
+        document.getElementById("accountDisplay").innerText = `Connected as: ${user}`;
+
+        auctionContract = new ethers.Contract(auctionAddress, auctionABI, provider);
+
+        displayMyBids(user);
+        displayFinalRanking();
+      }
+    }
+
+    function getMultiplierLabel(multiplier) {
+      if (multiplier === 200) return 'x2';
+      if (multiplier === 150) return 'x1.5';
+      return 'x1';
+    }
+
+    function getBarClass(multiplier) {
+      if (multiplier === 200) return 'multiplier-x2';
+      if (multiplier === 150) return 'multiplier-x1_5';
+      return 'multiplier-x1';
+    }
+
+    async function displayMyBids(user) {
+      const bids = await auctionContract.getBidsOf(user);
+      let html = '<h3>📜 Mis Pujas</h3>';
+      if (bids.length === 0) {
+        html += '<p>No has realizado ninguna puja todavía.</p>';
+      } else {
+        html += '<ul class="list-group">';
+        bids.forEach(bid => {
+          const date = new Date(Number(bid.timestamp) * 1000);
+          html += `
+            <li class="list-group-item">
+              <strong>${ethers.utils.formatUnits(bid.amount, 18)} ADRIAN</strong> 
+              | Mult: <span class="badge bg-secondary">${getMultiplierLabel(Number(bid.multiplier))}</span>
+              | Efectivo: <strong>${ethers.utils.formatUnits(bid.effectiveValue, 18)}</strong>
+              <br><small>${date.toLocaleString()}</small>
+              <div class="bid-bar ${getBarClass(Number(bid.multiplier))}" style="width: ${Math.min(100, Number(bid.multiplier))}%"></div>
+            </li>`;
+        });
+        html += '</ul>';
+      }
+      document.getElementById("myBidsSection").innerHTML = html;
+    }
+
+    async function displayFinalRanking() {
+      const [users, totals] = await auctionContract.getFinalRanking();
+      let html = '';
+      for (let i = 0; i < users.length; i++) {
+        const short = users[i].slice(0, 6) + "..." + users[i].slice(-4);
+        html += `
+          <div class="ranking-card">
+            <strong>#${i + 1} - ${short}</strong><br>
+            Valor Efectivo: <span class="text-success">${ethers.utils.formatUnits(totals[i], 18)} ADRIAN</span>
+            <div class="progress mt-2">
+              <div class="progress-bar bg-success" style="width: 100%"></div>
+            </div>
+          </div>`;
+      }
+      document.getElementById("rankingSection").innerHTML = html;
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
