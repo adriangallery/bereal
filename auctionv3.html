@@ -48,14 +48,17 @@
       background-color: #0069d9;
       border-color: #0062cc;
     }
-    /* Custom progress bar colors for bid multipliers */
-    .progress-bar-multiplier-2 {
+    /* Custom progress bar colors for bid multipliers and boost timer */
+    .progress-bar-multiplier-2,
+    .boost-bar-x2 {
       background-color: #FFD700; /* bright yellow */
     }
-    .progress-bar-multiplier-1-5 {
+    .progress-bar-multiplier-1-5,
+    .boost-bar-x1-5 {
       background-color: orange;
     }
-    .progress-bar-multiplier-1 {
+    .progress-bar-multiplier-1,
+    .boost-bar-x1 {
       background-color: #ADD8E6; /* light blue */
     }
   </style>
@@ -92,13 +95,15 @@
       <p id="accountDisplay" class="mt-2"></p>
     </div>
     
-    <!-- (Optional) Token Images -->
+    <!-- Token Images Row (imágenes actualizadas) -->
     <div class="row mb-4">
       <div class="col-6">
-        <img src="https://example.com/token1.jpg" class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeidz2fd3ad5ctqlfk2e4ibtsg6xutngsddjkrvtrn2w56gntfr64ji" 
+             class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
       </div>
       <div class="col-6">
-        <img src="https://example.com/token2.jpg" class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiaz5u7jqbhlutesrmitkmkp63ukcacbppzub3d7kvqjjjpnkktnbi" 
+             class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
       </div>
     </div>
     
@@ -109,6 +114,18 @@
         <p id="timeRemainingDisplay">Loading time remaining...</p>
         <p id="highestBidDisplay">Highest Bid: Loading...</p>
         <p id="totalDepositedDisplay">Total Tokens Deposited: Loading...</p>
+      </div>
+    </div>
+    
+    <!-- Boost Timer Card -->
+    <div class="card">
+      <div class="card-header">Current Boost Timer</div>
+      <div class="card-body">
+        <div id="boostTimerDisplay">Calculating boost timer...</div>
+        <div class="progress mt-2">
+          <div id="boostProgressBar" class="progress-bar" role="progressbar" style="width: 0%;">
+          </div>
+        </div>
       </div>
     </div>
     
@@ -200,8 +217,6 @@
       "function getBidsOf(address user) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
       "function getTotalEffectiveValue(address user) view returns (uint256)",
       "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
-      "function getBidderCount() view returns (uint256)",
-      "function bidders(uint256) view returns (address)",
       "event TokensDeposited(address indexed bidder, uint256 amount, uint256 multiplier, uint256 timestamp)"
     ];
     
@@ -267,7 +282,7 @@
               multiplierStr = "x1";
               progressBarClass = "progress-bar-multiplier-1";
             }
-            // Para fines de demostración, se usa el valor efectivo para calcular el ancho de la barra
+            // Usamos el valor efectivo para calcular el ancho de la barra (para fines de demo)
             let progressPercent = Math.min((effective / 10) * 100, 100);
             html += `
               <div class="mb-3">
@@ -328,7 +343,7 @@
     // 4. Update Auction Stats: Time Remaining, Highest Bid and Total Tokens Deposited
     async function updateAuctionStats() {
       try {
-        // Usamos auctionEndTime para calcular el tiempo restante
+        // Calcular tiempo restante a partir de auctionEndTime
         const auctionEndTimeBN = await auctionContract.auctionEndTime();
         const auctionEndTime = auctionEndTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
@@ -357,17 +372,8 @@
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
         }
         
-        // Total tokens depositados: sumar las cantidades de todas las pujas de cada bidder
-        const bidderCountBN = await auctionContract.getBidderCount();
-        const bidderCount = bidderCountBN.toNumber();
-        let totalDepositedBN = ethers.BigNumber.from("0");
-        for (let i = 0; i < bidderCount; i++) {
-          const bidderAddress = await auctionContract.bidders(i);
-          const bids = await auctionContract.getBidsOf(bidderAddress);
-          bids.forEach(bid => {
-            totalDepositedBN = totalDepositedBN.add(bid.amount);
-          });
-        }
+        // Total Tokens Deposited: leemos el balance del contrato en el token
+        const totalDepositedBN = await tokenContract.balanceOf(auctionAddress);
         const totalDeposited = parseFloat(ethers.utils.formatUnits(totalDepositedBN, 18));
         document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toFixed(2) + " ADRIAN";
       } catch (error) {
@@ -375,7 +381,55 @@
       }
     }
     
-    // 5. Update My Position: determina la posición del usuario y suma sus pujas efectivas
+    // 5. Update Boost Timer: muestra el boost activo y la cuenta regresiva para su finalización
+    async function updateBoostTimer() {
+      try {
+        const startTimeBN = await auctionContract.auctionStartTime();
+        const auctionStartTime = startTimeBN.toNumber();
+        const now = Math.floor(Date.now() / 1000);
+        
+        let boostType = "";
+        let boostEnd = 0;
+        let totalPeriod = 0;
+        let progressClass = "";
+        if (now <= auctionStartTime + 86400) {
+          boostType = "x2";
+          boostEnd = auctionStartTime + 86400;
+          totalPeriod = 86400;
+          progressClass = "boost-bar-x2";
+        } else if (now <= auctionStartTime + 3 * 86400) {
+          boostType = "x1.5";
+          boostEnd = auctionStartTime + 3 * 86400;
+          totalPeriod = 3 * 86400 - 86400; // 2 days en segundos
+          progressClass = "boost-bar-x1-5";
+        } else {
+          boostType = "x1";
+          // Para x1, no hay boost extra; mostramos mensaje fijo
+          document.getElementById("boostTimerDisplay").innerText = "Boost " + boostType + " active. No extra boost.";
+          document.getElementById("boostProgressBar").style.width = "100%";
+          document.getElementById("boostProgressBar").className = "progress-bar " + "boost-bar-x1";
+          return;
+        }
+        
+        const remaining = boostEnd - now;
+        // Formatear remaining en HH:MM:SS
+        const hrs = Math.floor(remaining / 3600);
+        const mins = Math.floor((remaining % 3600) / 60);
+        const secs = remaining % 60;
+        const formattedTime = `${hrs}h ${mins}m ${secs}s`;
+        // Calcular porcentaje
+        const percentage = (remaining / totalPeriod) * 100;
+        document.getElementById("boostTimerDisplay").innerText = `Boost ${boostType}: Time remaining: ${formattedTime}`;
+        const boostBar = document.getElementById("boostProgressBar");
+        boostBar.style.width = `${percentage}%`;
+        boostBar.className = "progress-bar " + progressClass;
+      } catch (error) {
+        console.error("Error updating boost timer:", error);
+        document.getElementById("boostTimerDisplay").innerText = "Error calculating boost timer.";
+      }
+    }
+    
+    // 6. Update My Position: determina la posición del usuario y suma sus pujas efectivas
     async function updateMyPosition() {
       if (!userAccount) {
         document.getElementById("myPositionDisplay").innerText = "Not connected";
@@ -522,6 +576,7 @@
       // Initial updates
       updateCurrentMultiplier();
       updateAuctionStats();
+      updateBoostTimer();
       updateRanking();
       updateUserBids();
       updateMyPosition();
@@ -529,6 +584,7 @@
       // Schedule periodic updates
       setInterval(updateCurrentMultiplier, 5000);
       setInterval(updateAuctionStats, 15000);
+      setInterval(updateBoostTimer, 5000);
       setInterval(updateRanking, 10000);
       setInterval(updateUserBids, 10000);
     };
