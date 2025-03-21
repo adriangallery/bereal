@@ -9,14 +9,40 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
-      background-color: #f0f4f8;
-      font-family: 'Segoe UI', sans-serif;
+      background-color: #f8f9fa;
+    }
+    .navbar-brand {
+      font-weight: bold;
+      font-size: 1.5rem;
     }
     .hero {
       background-color: #000;
+      padding: 4rem 0;
       color: #fff;
+      text-shadow: 0 0 5px #000;
+      margin: 5px 0;
       text-align: center;
-      padding: 2rem 0;
+    }
+    .token-img {
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+    .card {
+      margin-bottom: 1.5rem;
+    }
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 0;
+      border-top: 1px solid #ccc;
+    }
+    .btn-anaglyph-blue {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: #fff;
+    }
+    .btn-anaglyph-blue:hover {
+      background-color: #0069d9;
+      border-color: #0062cc;
     }
     .multiplier-x2 { background-color: #ffe600; }
     .multiplier-x1_5 { background-color: #ffa500; }
@@ -47,6 +73,7 @@
 
   <div class="hero">
     <h1>$ADRIAN Auction V3</h1>
+    <p>🏆 Top bidder wins #0008 – AKASHI30 (1/1) + a piece of #0009 – AKASHI30 (10/10) | 🏅 Next 9 get a piece of #0004 – AKASHI30 (10/10)</p>
     <p>💥 Earn more bidding early: Day 1 x2, Day 2-3 x1.5, Day 4-7 x1</p>
   </div>
 
@@ -55,96 +82,81 @@
       <p id="accountDisplay"></p>
     </div>
 
+    <div class="row mb-4">
+      <div class="col-6">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeib3vyjihcbxfwrb2kzszrlwg4ttix2aqy7zllcy3fnakv5hlbqfnm" class="img-fluid rounded token-img" alt="Token ID 3" loading="lazy">
+      </div>
+      <div class="col-6">
+        <img src="https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000" class="img-fluid rounded token-img" alt="Token ID 4" loading="lazy">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Time Remaining</div>
+          <div class="card-body">
+            <p id="timeRemainingDisplay" class="card-text">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">Highest Bid</div>
+          <div class="card-body">
+            <p class="card-text">The highest bid so far is: <span id="highestBidDisplay">0</span> ADRIAN</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Auction Stats</div>
+      <div class="card-body">
+        <div id="auctionStatsDisplay">Loading auction stats...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Place a Bid</div>
+      <div class="card-body">
+        <div class="input-group mb-2">
+          <input type="number" id="amountInput" class="form-control" placeholder="Amount of ADRIAN">
+          <button id="approveDepositButton" class="btn btn-anaglyph-blue">Approve & Deposit</button>
+        </div>
+        <div class="text-center">
+          <button id="maxBidButton" class="btn btn-anaglyph-blue">Max Bid (10% extra)</button>
+        </div>
+      </div>
+    </div>
+
     <div id="myBidsSection" class="mb-4"></div>
     <h3 class="mb-3">🏆 Final Ranking</h3>
     <div id="rankingSection"></div>
+
+    <div class="text-center mt-4">
+      <p>
+        Contract Address: 
+        <a href="https://base.blockscout.com/address/0xA0eca5b75df60465607e02ebe43A1F087316c8d0" target="_blank">
+          0xA0eca5b75df60465607e02ebe43A1F087316c8d0
+        </a>
+      </p>
+    </div>
   </div>
 
-  <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
-      .catch(error => console.error('Error loading footer:', error));
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error loading footer:', error);
+      });
   </script>
 
-  <script>
-    let provider, signer, auctionContract, userAccount;
-    const auctionAddress = "0xA0eca5b75df60465607e02ebe43A1F087316c8d0";
-    const auctionABI = [
-      "function getBidsOf(address) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
-      "function getTotalEffectiveValue(address) view returns (uint256)",
-      "function getFinalRanking() view returns (address[] memory, uint256[] memory)"
-    ];
-
-    function getMultiplierLabel(multiplier) {
-      if (multiplier === 200) return 'x2';
-      if (multiplier === 150) return 'x1.5';
-      return 'x1';
-    }
-
-    function getBarClass(multiplier) {
-      if (multiplier === 200) return 'multiplier-x2';
-      if (multiplier === 150) return 'multiplier-x1_5';
-      return 'multiplier-x1';
-    }
-
-    async function displayMyBids(user) {
-      const bids = await auctionContract.getBidsOf(user);
-      let html = '<h3>📜 My Bids</h3>';
-      if (bids.length === 0) {
-        html += '<p>You have not placed any bids yet.</p>';
-      } else {
-        html += '<ul class="list-group">';
-        bids.forEach(bid => {
-          const date = new Date(Number(bid.timestamp) * 1000);
-          html += `
-            <li class="list-group-item">
-              <strong>${ethers.utils.formatUnits(bid.amount, 18)} ADRIAN</strong> 
-              | Mult: <span class="badge bg-secondary">${getMultiplierLabel(Number(bid.multiplier))}</span>
-              | Effective: <strong>${ethers.utils.formatUnits(bid.effectiveValue, 18)}</strong>
-              <br><small>${date.toLocaleString()}</small>
-              <div class="bid-bar ${getBarClass(Number(bid.multiplier))}" style="width: ${Math.min(100, Number(bid.multiplier))}%"></div>
-            </li>`;
-        });
-        html += '</ul>';
-      }
-      document.getElementById("myBidsSection").innerHTML = html;
-    }
-
-    async function displayFinalRanking() {
-      const [users, totals] = await auctionContract.getFinalRanking();
-      let html = '';
-      for (let i = 0; i < users.length; i++) {
-        const short = users[i].slice(0, 6) + "..." + users[i].slice(-4);
-        html += `
-          <div class="ranking-card">
-            <strong>#${i + 1} - ${short}</strong><br>
-            Effective Value: <span class="text-success">${ethers.utils.formatUnits(totals[i], 18)} ADRIAN</span>
-            <div class="progress mt-2">
-              <div class="progress-bar bg-success" style="width: 100%"></div>
-            </div>
-          </div>`;
-      }
-      document.getElementById("rankingSection").innerHTML = html;
-    }
-
-    window.onMenuWalletConnected = async function () {
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      userAccount = window.menuUserAccount;
-      document.getElementById("accountDisplay").innerText = "Connected: " + userAccount;
-      auctionContract = new ethers.Contract(auctionAddress, auctionABI, provider);
-      await displayMyBids(userAccount);
-      await displayFinalRanking();
-    }
-
-    window.onMenuWalletDisconnected = function () {
-      document.getElementById("accountDisplay").innerText = "";
-      document.getElementById("myBidsSection").innerHTML = "";
-    }
-  </script>
+  <!-- TODO: Agregar lógica JS combinada aquí abajo -->
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
