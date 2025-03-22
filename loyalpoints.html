@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>ADRIANloyalty Debug Panel</title>
-  <!-- Cargamos ethers.js (versión UMD 5.7.2) -->
+  <!-- Load ethers.js (UMD version 5.7.2) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -73,20 +73,22 @@
   </header>
 
   <div class="container">
-    <!-- Área de Log -->
+    <!-- Debug Log Section -->
     <div class="section">
       <h2>Debug Log</h2>
       <div id="log"></div>
     </div>
 
-    <!-- Sección de Funciones de Usuario (Import & Claim en un solo botón) -->
+    <!-- User Functions Section: Single button to import events & claim points -->
     <div class="section">
       <h2>User Functions</h2>
-      <p>This button will import ADRIAN Token Transfer events from the last 2 days (approx. 13,300 blocks) and then claim points.</p>
+      <p>
+        This button will import ADRIAN Token Transfer events from the last 5 days (approx. 33,230 blocks) and then claim points.
+      </p>
       <button id="importClaimButton">Import & Claim Points</button>
     </div>
 
-    <!-- Sección de Funciones del Owner -->
+    <!-- Owner Functions Section -->
     <div class="section">
       <h2>Owner Functions</h2>
       <!-- Set NFT Parameters -->
@@ -138,11 +140,11 @@
   </div>
 
   <script>
-    // Contrato ADRIANloyalty address y ADRIAN token address (ya definidos)
+    // Addresses
     const loyaltyAddress = "0xd49f50630b1c0879081420db09a05fea57fce758";
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-    // ABI para ADRIANloyalty (incluye funciones de usuario y owner, incluyendo getter de transactionFee)
+    // ABI for ADRIANloyalty contract (includes all functions)
     const loyaltyABI = [
       // recordEvent(address user, string eventType, uint256 amount)
       {
@@ -268,7 +270,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // Getter for transactionFee (public variable)
+      // Getter for transactionFee
       {
         "inputs": [],
         "name": "transactionFee",
@@ -280,13 +282,13 @@
       }
     ];
 
-    // ABI mínima para ERC20: allowance y approve
+    // Minimal ERC20 ABI for allowance and approve.
     const erc20ABI = [
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para el evento Transfer del token ADRIAN
+    // ABI for the Transfer event of the ADRIAN token.
     const tokenInterface = new ethers.utils.Interface([
       "event Transfer(address indexed from, address indexed to, uint256 value)"
     ]);
@@ -297,7 +299,7 @@
     let loyaltyContract;
     let tokenContract;
 
-    // Log helper
+    // Log helper.
     function logMsg(message) {
       console.log(message);
       const logDiv = document.getElementById("log");
@@ -305,7 +307,7 @@
       logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    // Connect wallet and initialize contracts
+    // Connect wallet and initialize contracts.
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -326,13 +328,13 @@
     }
     document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
 
-    // Single button: Import token events from last 2 days and claim points.
+    // Single button: Import token events from last 5 days and claim points.
     document.getElementById("importClaimButton").addEventListener("click", async () => {
       try {
         // Get current block number.
         const currentBlock = await provider.getBlockNumber();
-        // Calculate fromBlock as currentBlock - 13300 (approx. 2 days at 13 sec/block)
-        const fromBlock = currentBlock > 13300 ? currentBlock - 13300 : 0;
+        // Calculate fromBlock as currentBlock - 33230 (approx. 5 days at 13 sec/block)
+        const fromBlock = currentBlock > 33230 ? currentBlock - 33230 : 0;
         logMsg("Querying token Transfer events from block " + fromBlock + " to latest");
         const filter = {
           address: adrianTokenAddress,
@@ -342,24 +344,20 @@
         };
         const logs = await provider.getLogs(filter);
         logMsg("Found " + logs.length + " Transfer events.");
-        // For each log, decode and call recordEvent on loyalty contract.
+        // For each log, decode and record event.
         for (let i = 0; i < logs.length; i++) {
           const logEntry = logs[i];
           const parsed = tokenInterface.parseLog(logEntry);
-          // Use the recipient (to) as the user and record event type "transfer"
           const user = parsed.args.to;
           const amount = parsed.args.value.toString();
-          // Use block timestamp from the block of the log
           const blockInfo = await provider.getBlock(logEntry.blockNumber);
           const timestamp = blockInfo.timestamp;
-          // Record the event
           const tx = await loyaltyContract.recordEvent(user, "transfer", amount);
           logMsg("Recording event for " + user + " (amount: " + amount + ")... Tx: " + tx.hash);
           await tx.wait();
-          logMsg("Event recorded (" + (i+1) + "/" + logs.length + ").");
+          logMsg("Event recorded (" + (i + 1) + "/" + logs.length + ").");
         }
         // Now, handle claimPoints:
-        // First, check transaction fee allowance.
         const fee = await loyaltyContract.transactionFee();
         const allowance = await tokenContract.allowance(userAddress, loyaltyAddress);
         logMsg("Current allowance for fee: " + allowance.toString());
@@ -370,7 +368,6 @@
           await approveTx.wait();
           logMsg("Fee approved.");
         }
-        // Claim points
         const claimTx = await loyaltyContract.claimPoints();
         logMsg("Claiming points... Tx: " + claimTx.hash);
         await claimTx.wait();
@@ -442,7 +439,7 @@
       }
     });
 
-    // Import Historical Events
+    // Import Historical Events (Owner)
     document.getElementById("importHistoricalForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
