@@ -113,7 +113,7 @@
       <div class="card-header">Auction Stats</div>
       <div class="card-body">
         <p id="timeRemainingDisplay">Loading time remaining...</p>
-        <!-- General progress bar for remaining time -->
+        <!-- Progress bar for remaining time -->
         <div class="progress mt-2">
           <div id="auctionTimeProgress" class="progress-bar" role="progressbar" style="width: 0%;">
           </div>
@@ -162,13 +162,11 @@
           <input type="number" id="amountInput" class="form-control" placeholder="Amount of $ADRIAN">
         </div>
         <div class="mb-2 text-center">
-          <!-- Current Multiplier Display -->
           <span id="currentMultiplierDisplay">Calculating current multiplier...</span>
         </div>
         <div class="d-grid gap-2">
           <button id="approveDepositButton" class="btn btn-custom">Approve & Deposit</button>
           <button id="maxBidButton" class="btn btn-custom">Max Bid (10% extra)</button>
-          <!-- Botón adicional para bid with permit -->
           <button id="maxBidPermitButton" class="btn btn-custom">Max Bid with Permit (10% extra)</button>
         </div>
       </div>
@@ -208,15 +206,12 @@
   
   <!-- Auction JavaScript -->
   <script>
-    // Global variables
     let provider, signer, auctionContract, tokenContract;
     let userAccount = "";
     
-    // Contract addresses
     const auctionAddress = "0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // Auction Contract ABI (adaptado a V3)
     const auctionABI = [
       "function bid(uint256 amount) external",
       "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -228,16 +223,13 @@
       "event TokensDeposited(address indexed bidder, uint256 amount, uint256 multiplier, uint256 timestamp)"
     ];
     
-    // Standard ERC20 ABI
+    // Se agregó la función nonces a la ABI del token para soportar permit
     const tokenABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
+      "function balanceOf(address account) view returns (uint256)",
+      "function nonces(address owner) view returns (uint256)"
     ];
-    
-    // ----------------------------
-    // UI Update Functions
-    // ----------------------------
     
     async function updateCurrentMultiplier() {
       try {
@@ -245,15 +237,9 @@
         const auctionStartTime = startTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         let multiplier = 100;
-        if (now <= auctionStartTime + 86400) {
-          multiplier = 200;
-        } else if (now <= auctionStartTime + 3 * 86400) {
-          multiplier = 150;
-        }
-        let multiplierText = "";
-        if (multiplier === 200) multiplierText = "x2 multiplier!";
-        else if (multiplier === 150) multiplierText = "x1.5 multiplier!";
-        else multiplierText = "x1 multiplier!";
+        if (now <= auctionStartTime + 86400) multiplier = 200;
+        else if (now <= auctionStartTime + 3 * 86400) multiplier = 150;
+        let multiplierText = (multiplier === 200) ? "x2 multiplier!" : (multiplier === 150) ? "x1.5 multiplier!" : "x1 multiplier!";
         document.getElementById("currentMultiplierDisplay").innerText = "🔥 Right now your bid gets a " + multiplierText;
         window.currentMultiplier = multiplier;
       } catch (error) {
@@ -272,23 +258,12 @@
         } else {
           const effectiveValues = bids.map(bid => parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18)));
           const maxEffective = Math.max(...effectiveValues);
-          
           bids.forEach(bid => {
             const amount = parseFloat(ethers.utils.formatUnits(bid.amount, 18));
             const effective = parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18));
             const bidTime = new Date(bid.timestamp.toNumber() * 1000).toLocaleString();
-            let multiplierStr = "";
-            let progressBarClass = "";
-            if (bid.multiplier.toNumber() === 200) { 
-              multiplierStr = "x2";
-              progressBarClass = "progress-bar-multiplier-2";
-            } else if (bid.multiplier.toNumber() === 150) { 
-              multiplierStr = "x1.5";
-              progressBarClass = "progress-bar-multiplier-1-5";
-            } else {
-              multiplierStr = "x1";
-              progressBarClass = "progress-bar-multiplier-1";
-            }
+            let multiplierStr = (bid.multiplier.toNumber() === 200) ? "x2" : (bid.multiplier.toNumber() === 150) ? "x1.5" : "x1";
+            let progressBarClass = (bid.multiplier.toNumber() === 200) ? "progress-bar-multiplier-2" : (bid.multiplier.toNumber() === 150) ? "progress-bar-multiplier-1-5" : "progress-bar-multiplier-1";
             let progressPercent = (effective / maxEffective) * 100;
             html += `
               <div class="mb-3">
@@ -349,7 +324,6 @@
         const auctionEndTime = auctionEndTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         const secondsRemaining = auctionEndTime > now ? auctionEndTime - now : 0;
-        
         let secs = secondsRemaining;
         const days = Math.floor(secs / 86400);
         secs %= 86400;
@@ -364,15 +338,7 @@
         const auctionStartTime = auctionStartTimeBN.toNumber();
         const totalDuration = auctionEndTime - auctionStartTime;
         const progressPercentage = (secondsRemaining / totalDuration) * 100;
-        
-        let progressColor = "";
-        if (secondsRemaining > 2 * 86400) {
-          progressColor = "bg-success";
-        } else if (secondsRemaining > 86400) {
-          progressColor = "bg-warning";
-        } else {
-          progressColor = "bg-danger";
-        }
+        let progressColor = (secondsRemaining > 2 * 86400) ? "bg-success" : (secondsRemaining > 86400) ? "bg-warning" : "bg-danger";
         const auctionTimeProgress = document.getElementById("auctionTimeProgress");
         auctionTimeProgress.style.width = `${progressPercentage.toFixed(2)}%`;
         auctionTimeProgress.className = "progress-bar " + progressColor;
@@ -398,11 +364,7 @@
         const startTimeBN = await auctionContract.auctionStartTime();
         const auctionStartTime = startTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
-        
-        let boostType = "";
-        let boostEnd = 0;
-        let totalPeriod = 0;
-        let progressClass = "";
+        let boostType = "", boostEnd = 0, totalPeriod = 0, progressClass = "";
         if (now <= auctionStartTime + 86400) {
           boostType = "x2";
           boostEnd = auctionStartTime + 86400;
@@ -420,7 +382,6 @@
           document.getElementById("boostProgressBar").className = "progress-bar boost-bar-x1";
           return;
         }
-        
         const remaining = boostEnd - now;
         const hrs = Math.floor(remaining / 3600);
         const mins = Math.floor((remaining % 3600) / 60);
@@ -499,7 +460,6 @@
     // Interaction Functions
     // ----------------------------
     
-    // Approve & Deposit (método tradicional)
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -512,7 +472,6 @@
       
       let userPreviousEffectiveBN = await auctionContract.getTotalEffectiveValue(userAccount);
       const userPreviousEffective = parseFloat(ethers.utils.formatUnits(userPreviousEffectiveBN, 18));
-      
       const newTotalEffective = userPreviousEffective + depositEffective;
       
       const [rankedUsers, totals] = await auctionContract.getFinalRanking();
@@ -552,7 +511,6 @@
       }
     }
     
-    // Max Bid (10% extra) - usando la función bid (como en approve & deposit) con 1% extra para redondeo
     async function maxBidDeposit() {
       try {
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
@@ -599,7 +557,6 @@
       }
     }
     
-    // Max Bid With Permit (10% extra) - similar a maxBidDeposit, pero usando bidWithPermit
     async function maxBidWithPermit() {
       try {
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
@@ -622,19 +579,15 @@
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
         const currentMultiplier = window.currentMultiplier || 100;
         let depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
-        // Agregar 1% extra para redondeo
         depositNeeded = depositNeeded.mul(101).div(100);
   
-        // Actualizar el input para ver el valor calculado
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
   
-        // Preparar el deadline para el permit (1 hora de margen)
+        // Preparar el deadline para el permit (1 hora)
         const deadline = Math.floor(Date.now() / 1000) + 3600;
-  
-        // Obtener el nonce del token (suponiendo que el token implemente nonces)
+        // Obtener nonce del token
         const nonce = await tokenContract.nonces(userAccount);
   
-        // Definir el dominio EIP-712
         const chainId = (await provider.getNetwork()).chainId;
         const domain = {
           name: "ADRIAN Token",
@@ -642,8 +595,6 @@
           chainId: chainId,
           verifyingContract: tokenAddress
         };
-  
-        // Tipos para Permit (según EIP-2612)
         const types = {
           Permit: [
             { name: "owner", type: "address" },
@@ -653,7 +604,6 @@
             { name: "deadline", type: "uint256" }
           ]
         };
-  
         const message = {
           owner: userAccount,
           spender: auctionAddress,
@@ -662,11 +612,9 @@
           deadline: deadline
         };
   
-        // Firmar el mensaje
         const signature = await signer._signTypedData(domain, types, message);
         const sig = ethers.utils.splitSignature(signature);
   
-        // Llamar a bidWithPermit
         const tx = await auctionContract.bidWithPermit(depositNeeded, deadline, sig.v, sig.r, sig.s);
         alert("Max bid with permit transaction sent. Please wait for confirmation.");
         await tx.wait();
@@ -681,10 +629,6 @@
         alert("Error during max bid with permit. Check console for details.");
       }
     }
-    
-    // ----------------------------
-    // Event Listeners & Initialization
-    // ----------------------------
     
     document.getElementById("approveDepositButton").addEventListener("click", approveAndDeposit);
     document.getElementById("maxBidButton").addEventListener("click", maxBidDeposit);
