@@ -30,9 +30,7 @@
       border-bottom: 1px solid #ccc;
       padding-bottom: 1rem;
     }
-    h2 {
-      margin-top: 0;
-    }
+    h2 { margin-top: 0; }
     label {
       display: block;
       margin-top: 0.5rem;
@@ -81,35 +79,11 @@
       <div id="log"></div>
     </div>
 
-    <!-- Sección de Funciones de Usuario -->
+    <!-- Sección de Funciones de Usuario (Import & Claim en un solo botón) -->
     <div class="section">
       <h2>User Functions</h2>
-      
-      <!-- Record Event (Manual) -->
-      <h3>Record Event (Manual)</h3>
-      <form id="recordEventForm">
-        <label for="recordUser">User Address (default: connected wallet):</label>
-        <input type="text" id="recordUser" placeholder="0x..." />
-        <label for="recordEventType">Event Type:</label>
-        <input type="text" id="recordEventType" placeholder="e.g., transfer, burn" required>
-        <label for="recordAmount">Amount:</label>
-        <input type="number" id="recordAmount" placeholder="e.g., 1000" required>
-        <button type="submit">Record Event</button>
-      </form>
-      
-      <!-- Import ADRIAN Token Events -->
-      <h3>Import ADRIAN Token Events</h3>
-      <form id="importTokenEventsForm">
-        <label for="fromBlock">From Block:</label>
-        <input type="number" id="fromBlock" placeholder="e.g., 10000000" required>
-        <label for="toBlock">To Block (or 'latest'):</label>
-        <input type="text" id="toBlock" placeholder="latest" required>
-        <button type="submit">Import Token Events</button>
-      </form>
-      
-      <!-- Claim Points -->
-      <h3>Claim Points</h3>
-      <button id="claimPointsButton">Claim Points (Auto approve fee)</button>
+      <p>This button will import ADRIAN Token Transfer events from the last 2 days (approx. 13,300 blocks) and then claim points.</p>
+      <button id="importClaimButton">Import & Claim Points</button>
     </div>
 
     <!-- Sección de Funciones del Owner -->
@@ -124,7 +98,7 @@
         <input type="number" id="requiredTokenId" placeholder="e.g., 1" required>
         <button type="submit">Set NFT Parameters</button>
       </form>
-      <!-- Set ADRIAN Token -->
+      <!-- Set ADRIAN Token Address -->
       <h3>Set ADRIAN Token Address</h3>
       <form id="setAdrianTokenForm">
         <label for="adrianTokenAddress">ADRIAN Token Address:</label>
@@ -164,13 +138,13 @@
   </div>
 
   <script>
-    // Direcciones de contratos
+    // Contrato ADRIANloyalty address y ADRIAN token address (ya definidos)
     const loyaltyAddress = "0xd49f50630b1c0879081420db09a05fea57fce758";
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    // La dirección de AdrianGallery se muestra en header; aquí no la usamos directamente.
-    
-    // ABI para el contrato ADRIANloyalty (funciones de usuario y owner)
+
+    // ABI para ADRIANloyalty (incluye funciones de usuario y owner, incluyendo getter de transactionFee)
     const loyaltyABI = [
+      // recordEvent(address user, string eventType, uint256 amount)
       {
         "inputs": [
           { "internalType": "address", "name": "user", "type": "address" },
@@ -182,6 +156,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // updateRewardForEvent(string eventType, uint256 rewardFactor)
       {
         "inputs": [
           { "internalType": "string", "name": "eventType", "type": "string" },
@@ -192,6 +167,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // importHistoricalEvents(address[] users, string[] eventTypes, uint256[] amounts, uint256[] timestamps)
       {
         "inputs": [
           { "internalType": "address[]", "name": "users", "type": "address[]" },
@@ -204,6 +180,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // claimPoints() returns (uint256 pointsToClaim)
       {
         "inputs": [],
         "name": "claimPoints",
@@ -213,6 +190,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // getEventCount() view returns (uint256)
       {
         "inputs": [],
         "name": "getEventCount",
@@ -222,6 +200,7 @@
         "stateMutability": "view",
         "type": "function"
       },
+      // getEventRecord(uint256 index) view returns (EventRecord)
       {
         "inputs": [
           { "internalType": "uint256", "name": "index", "type": "uint256" }
@@ -237,6 +216,7 @@
         "stateMutability": "view",
         "type": "function"
       },
+      // getAllEventRecords() view returns (EventRecord[])
       {
         "inputs": [],
         "name": "getAllEventRecords",
@@ -257,6 +237,7 @@
         "stateMutability": "view",
         "type": "function"
       },
+      // setNFTParameters(address _nftAddress, uint256 _requiredTokenId)
       {
         "inputs": [
           { "internalType": "address", "name": "_nftAddress", "type": "address" },
@@ -267,6 +248,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // setAdrianToken(address _tokenAddress)
       {
         "inputs": [
           { "internalType": "address", "name": "_tokenAddress", "type": "address" }
@@ -276,6 +258,7 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
+      // setTransactionFee(uint256 _fee)
       {
         "inputs": [
           { "internalType": "uint256", "name": "_fee", "type": "uint256" }
@@ -284,17 +267,29 @@
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
+      },
+      // Getter for transactionFee (public variable)
+      {
+        "inputs": [],
+        "name": "transactionFee",
+        "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
       }
     ];
 
-    // Minimal ERC20 ABI for allowance and approve
+    // ABI mínima para ERC20: allowance y approve
     const erc20ABI = [
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // Minimal ERC20 Transfer event interface is not needed if we use getLogs directly.
-    // Minimal ERC1155 ABI already defined in contract will be used on-chain.
+    // ABI para el evento Transfer del token ADRIAN
+    const tokenInterface = new ethers.utils.Interface([
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
+    ]);
 
     let provider;
     let signer;
@@ -302,12 +297,7 @@
     let loyaltyContract;
     let tokenContract;
 
-    // For querying token events (Transfer)
-    const tokenInterface = new ethers.utils.Interface([
-      "event Transfer(address indexed from, address indexed to, uint256 value)"
-    ]);
-
-    // Log function: append messages to #log div.
+    // Log helper
     function logMsg(message) {
       console.log(message);
       const logDiv = document.getElementById("log");
@@ -315,7 +305,7 @@
       logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    // Connect wallet and initialize contracts.
+    // Connect wallet and initialize contracts
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -336,68 +326,43 @@
     }
     document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
 
-    // ----------------------------
-    // User Functions
-    // ----------------------------
-
-    // Manual Record Event
-    document.getElementById("recordEventForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    // Single button: Import token events from last 2 days and claim points.
+    document.getElementById("importClaimButton").addEventListener("click", async () => {
       try {
-        let recUser = document.getElementById("recordUser").value;
-        if (!recUser) recUser = userAddress;
-        const eventType = document.getElementById("recordEventType").value;
-        const amount = document.getElementById("recordAmount").value;
-        const tx = await loyaltyContract.recordEvent(recUser, eventType, amount);
-        logMsg("Recording event... Tx: " + tx.hash);
-        await tx.wait();
-        logMsg("Event recorded.");
-      } catch (error) {
-        logMsg("Error recording event: " + error.message);
-      }
-    });
-
-    // Import ADRIAN Token Events
-    document.getElementById("importTokenEventsForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      try {
-        const fromBlock = document.getElementById("fromBlock").value;
-        const toBlock = document.getElementById("toBlock").value;
-        logMsg("Querying token Transfer events from block " + fromBlock + " to " + toBlock);
+        // Get current block number.
+        const currentBlock = await provider.getBlockNumber();
+        // Calculate fromBlock as currentBlock - 13300 (approx. 2 days at 13 sec/block)
+        const fromBlock = currentBlock > 13300 ? currentBlock - 13300 : 0;
+        logMsg("Querying token Transfer events from block " + fromBlock + " to latest");
         const filter = {
           address: adrianTokenAddress,
           topics: [ethers.utils.id("Transfer(address,address,uint256)")],
-          fromBlock: Number(fromBlock),
-          toBlock: toBlock === "latest" ? "latest" : Number(toBlock)
+          fromBlock: ethers.utils.hexValue(fromBlock),
+          toBlock: "latest"
         };
         const logs = await provider.getLogs(filter);
         logMsg("Found " + logs.length + " Transfer events.");
-        // For each event, decode and call recordEvent on loyalty contract.
+        // For each log, decode and call recordEvent on loyalty contract.
         for (let i = 0; i < logs.length; i++) {
-          const log = logs[i];
-          const parsed = tokenInterface.parseLog(log);
-          // We'll record the event for the recipient (parsed.args.to) with type "transfer"
+          const logEntry = logs[i];
+          const parsed = tokenInterface.parseLog(logEntry);
+          // Use the recipient (to) as the user and record event type "transfer"
           const user = parsed.args.to;
           const amount = parsed.args.value.toString();
-          // Use the block timestamp from the block (not available in log, so use current timestamp as approximation)
-          const timestamp = (await provider.getBlock(log.blockNumber)).timestamp;
+          // Use block timestamp from the block of the log
+          const blockInfo = await provider.getBlock(logEntry.blockNumber);
+          const timestamp = blockInfo.timestamp;
+          // Record the event
           const tx = await loyaltyContract.recordEvent(user, "transfer", amount);
           logMsg("Recording event for " + user + " (amount: " + amount + ")... Tx: " + tx.hash);
           await tx.wait();
-          logMsg("Event recorded (ID " + i + ").");
+          logMsg("Event recorded (" + (i+1) + "/" + logs.length + ").");
         }
-      } catch (error) {
-        logMsg("Error importing token events: " + error.message);
-      }
-    });
-
-    // Claim Points (with automatic approve if needed)
-    document.getElementById("claimPointsButton").addEventListener("click", async () => {
-      try {
-        // Check allowance for fee
+        // Now, handle claimPoints:
+        // First, check transaction fee allowance.
         const fee = await loyaltyContract.transactionFee();
         const allowance = await tokenContract.allowance(userAddress, loyaltyAddress);
-        logMsg("Current allowance: " + allowance.toString());
+        logMsg("Current allowance for fee: " + allowance.toString());
         if (allowance.lt(fee)) {
           logMsg("Approving fee transfer...");
           const approveTx = await tokenContract.approve(loyaltyAddress, fee);
@@ -409,29 +374,9 @@
         const claimTx = await loyaltyContract.claimPoints();
         logMsg("Claiming points... Tx: " + claimTx.hash);
         await claimTx.wait();
-        logMsg("Points claimed.");
+        logMsg("Points claimed successfully.");
       } catch (error) {
-        logMsg("Error claiming points: " + error.message);
-      }
-    });
-
-    // Get Event Count
-    document.getElementById("getEventCountButton").addEventListener("click", async () => {
-      try {
-        const count = await loyaltyContract.getEventCount();
-        logMsg("Total events recorded: " + count.toString());
-      } catch (error) {
-        logMsg("Error getting event count: " + error.message);
-      }
-    });
-
-    // Get All Events (JSON)
-    document.getElementById("getAllEventsButton").addEventListener("click", async () => {
-      try {
-        const events = await loyaltyContract.getAllEventRecords();
-        logMsg("All events: " + JSON.stringify(events, null, 2));
-      } catch (error) {
-        logMsg("Error getting all events: " + error.message);
+        logMsg("Error in import and claim: " + error.message);
       }
     });
 
@@ -497,7 +442,7 @@
       }
     });
 
-    // Import Historical Events (owner)
+    // Import Historical Events
     document.getElementById("importHistoricalForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
