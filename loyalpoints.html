@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>ADRIANloyalty Debug Panel</title>
-  <!-- Cargamos ethers.js UMD version 5.7.2 -->
+  <!-- Cargamos ethers.js (versión UMD 5.7.2) -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
@@ -84,23 +84,32 @@
     <!-- Sección de Funciones de Usuario -->
     <div class="section">
       <h2>User Functions</h2>
-      <!-- Record Event -->
-      <h3>Record Event</h3>
+      
+      <!-- Record Event (Manual) -->
+      <h3>Record Event (Manual)</h3>
       <form id="recordEventForm">
         <label for="recordUser">User Address (default: connected wallet):</label>
         <input type="text" id="recordUser" placeholder="0x..." />
         <label for="recordEventType">Event Type:</label>
-        <input type="text" id="recordEventType" placeholder="e.g., transfer, burn, spend" required>
+        <input type="text" id="recordEventType" placeholder="e.g., transfer, burn" required>
         <label for="recordAmount">Amount:</label>
         <input type="number" id="recordAmount" placeholder="e.g., 1000" required>
         <button type="submit">Record Event</button>
       </form>
-      <button id="getEventCountButton">Get Event Count</button>
-      <button id="getAllEventsButton">Get All Events (JSON)</button>
-      <br><br>
+      
+      <!-- Import ADRIAN Token Events -->
+      <h3>Import ADRIAN Token Events</h3>
+      <form id="importTokenEventsForm">
+        <label for="fromBlock">From Block:</label>
+        <input type="number" id="fromBlock" placeholder="e.g., 10000000" required>
+        <label for="toBlock">To Block (or 'latest'):</label>
+        <input type="text" id="toBlock" placeholder="latest" required>
+        <button type="submit">Import Token Events</button>
+      </form>
+      
       <!-- Claim Points -->
       <h3>Claim Points</h3>
-      <button id="claimPointsButton">Claim Points</button>
+      <button id="claimPointsButton">Claim Points (Auto approve fee)</button>
     </div>
 
     <!-- Sección de Funciones del Owner -->
@@ -155,14 +164,13 @@
   </div>
 
   <script>
-    // Addresses
+    // Direcciones de contratos
     const loyaltyAddress = "0xd49f50630b1c0879081420db09a05fea57fce758";
-    const adrianGalleryAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
     const adrianTokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-
-    // ABI for ADRIANloyalty contract (all functions)
+    // La dirección de AdrianGallery se muestra en header; aquí no la usamos directamente.
+    
+    // ABI para el contrato ADRIANloyalty (funciones de usuario y owner)
     const loyaltyABI = [
-      // recordEvent(address user, string eventType, uint256 amount)
       {
         "inputs": [
           { "internalType": "address", "name": "user", "type": "address" },
@@ -174,7 +182,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // updateRewardForEvent(string eventType, uint256 rewardFactor)
       {
         "inputs": [
           { "internalType": "string", "name": "eventType", "type": "string" },
@@ -185,7 +192,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // importHistoricalEvents(address[] users, string[] eventTypes, uint256[] amounts, uint256[] timestamps)
       {
         "inputs": [
           { "internalType": "address[]", "name": "users", "type": "address[]" },
@@ -198,7 +204,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // claimPoints() returns (uint256 pointsToClaim)
       {
         "inputs": [],
         "name": "claimPoints",
@@ -208,7 +213,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // getEventCount() view returns (uint256)
       {
         "inputs": [],
         "name": "getEventCount",
@@ -218,7 +222,6 @@
         "stateMutability": "view",
         "type": "function"
       },
-      // getEventRecord(uint256 index) view returns (EventRecord)
       {
         "inputs": [
           { "internalType": "uint256", "name": "index", "type": "uint256" }
@@ -234,7 +237,6 @@
         "stateMutability": "view",
         "type": "function"
       },
-      // getAllEventRecords() view returns (EventRecord[])
       {
         "inputs": [],
         "name": "getAllEventRecords",
@@ -255,7 +257,6 @@
         "stateMutability": "view",
         "type": "function"
       },
-      // setNFTParameters(address _nftAddress, uint256 _requiredTokenId)
       {
         "inputs": [
           { "internalType": "address", "name": "_nftAddress", "type": "address" },
@@ -266,7 +267,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // setAdrianToken(address _tokenAddress)
       {
         "inputs": [
           { "internalType": "address", "name": "_tokenAddress", "type": "address" }
@@ -276,7 +276,6 @@
         "stateMutability": "nonpayable",
         "type": "function"
       },
-      // setTransactionFee(uint256 _fee)
       {
         "inputs": [
           { "internalType": "uint256", "name": "_fee", "type": "uint256" }
@@ -288,12 +287,27 @@
       }
     ];
 
+    // Minimal ERC20 ABI for allowance and approve
+    const erc20ABI = [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) returns (bool)"
+    ];
+
+    // Minimal ERC20 Transfer event interface is not needed if we use getLogs directly.
+    // Minimal ERC1155 ABI already defined in contract will be used on-chain.
+
     let provider;
     let signer;
-    let loyaltyContract;
     let userAddress;
+    let loyaltyContract;
+    let tokenContract;
 
-    // Log function: appends messages to the log div and console.
+    // For querying token events (Transfer)
+    const tokenInterface = new ethers.utils.Interface([
+      "event Transfer(address indexed from, address indexed to, uint256 value)"
+    ]);
+
+    // Log function: append messages to #log div.
     function logMsg(message) {
       console.log(message);
       const logDiv = document.getElementById("log");
@@ -301,7 +315,7 @@
       logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    // Connect wallet and initialize contract.
+    // Connect wallet and initialize contracts.
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -311,6 +325,7 @@
           userAddress = await signer.getAddress();
           document.getElementById("walletAddress").innerText = "Connected: " + userAddress;
           loyaltyContract = new ethers.Contract(loyaltyAddress, loyaltyABI, signer);
+          tokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
           logMsg("Wallet connected: " + userAddress);
         } catch (error) {
           logMsg("Error connecting wallet: " + error.message);
@@ -319,40 +334,82 @@
         alert("Please install MetaMask!");
       }
     }
-
     document.getElementById("connectWalletButton").addEventListener("click", connectWallet);
 
-    // ----------------------
+    // ----------------------------
     // User Functions
-    // ----------------------
+    // ----------------------------
 
-    // Record Event
+    // Manual Record Event
     document.getElementById("recordEventForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
         let recUser = document.getElementById("recordUser").value;
-        if (!recUser) {
-          recUser = userAddress;
-        }
+        if (!recUser) recUser = userAddress;
         const eventType = document.getElementById("recordEventType").value;
         const amount = document.getElementById("recordAmount").value;
         const tx = await loyaltyContract.recordEvent(recUser, eventType, amount);
-        logMsg("Recording event... Tx hash: " + tx.hash);
+        logMsg("Recording event... Tx: " + tx.hash);
         await tx.wait();
-        logMsg("Event recorded successfully.");
+        logMsg("Event recorded.");
       } catch (error) {
         logMsg("Error recording event: " + error.message);
       }
     });
 
-    // Claim Points
+    // Import ADRIAN Token Events
+    document.getElementById("importTokenEventsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const fromBlock = document.getElementById("fromBlock").value;
+        const toBlock = document.getElementById("toBlock").value;
+        logMsg("Querying token Transfer events from block " + fromBlock + " to " + toBlock);
+        const filter = {
+          address: adrianTokenAddress,
+          topics: [ethers.utils.id("Transfer(address,address,uint256)")],
+          fromBlock: Number(fromBlock),
+          toBlock: toBlock === "latest" ? "latest" : Number(toBlock)
+        };
+        const logs = await provider.getLogs(filter);
+        logMsg("Found " + logs.length + " Transfer events.");
+        // For each event, decode and call recordEvent on loyalty contract.
+        for (let i = 0; i < logs.length; i++) {
+          const log = logs[i];
+          const parsed = tokenInterface.parseLog(log);
+          // We'll record the event for the recipient (parsed.args.to) with type "transfer"
+          const user = parsed.args.to;
+          const amount = parsed.args.value.toString();
+          // Use the block timestamp from the block (not available in log, so use current timestamp as approximation)
+          const timestamp = (await provider.getBlock(log.blockNumber)).timestamp;
+          const tx = await loyaltyContract.recordEvent(user, "transfer", amount);
+          logMsg("Recording event for " + user + " (amount: " + amount + ")... Tx: " + tx.hash);
+          await tx.wait();
+          logMsg("Event recorded (ID " + i + ").");
+        }
+      } catch (error) {
+        logMsg("Error importing token events: " + error.message);
+      }
+    });
+
+    // Claim Points (with automatic approve if needed)
     document.getElementById("claimPointsButton").addEventListener("click", async () => {
       try {
-        const tx = await loyaltyContract.claimPoints();
-        logMsg("Claiming points... Tx hash: " + tx.hash);
-        const receipt = await tx.wait();
-        // We can decode the returned value from the event if needed.
-        logMsg("Points claimed successfully.");
+        // Check allowance for fee
+        const fee = await loyaltyContract.transactionFee();
+        const allowance = await tokenContract.allowance(userAddress, loyaltyAddress);
+        logMsg("Current allowance: " + allowance.toString());
+        if (allowance.lt(fee)) {
+          logMsg("Approving fee transfer...");
+          const approveTx = await tokenContract.approve(loyaltyAddress, fee);
+          logMsg("Approve tx: " + approveTx.hash);
+          await approveTx.wait();
+          logMsg("Fee approved.");
+        }
+        // Claim points
+        const claimTx = await loyaltyContract.claimPoints();
+        logMsg("Claiming points... Tx: " + claimTx.hash);
+        await claimTx.wait();
+        logMsg("Points claimed.");
       } catch (error) {
         logMsg("Error claiming points: " + error.message);
       }
@@ -368,7 +425,7 @@
       }
     });
 
-    // Get All Events (display JSON)
+    // Get All Events (JSON)
     document.getElementById("getAllEventsButton").addEventListener("click", async () => {
       try {
         const events = await loyaltyContract.getAllEventRecords();
@@ -378,18 +435,18 @@
       }
     });
 
-    // ----------------------
+    // ----------------------------
     // Owner Functions
-    // ----------------------
+    // ----------------------------
 
     // Set NFT Parameters
     document.getElementById("setNFTParametersForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
-        const nftAddress = document.getElementById("nftAddress").value;
-        const requiredTokenId = document.getElementById("requiredTokenId").value;
-        const tx = await loyaltyContract.setNFTParameters(nftAddress, requiredTokenId);
-        logMsg("Setting NFT parameters... Tx hash: " + tx.hash);
+        const nftAddr = document.getElementById("nftAddress").value;
+        const reqTokenId = document.getElementById("requiredTokenId").value;
+        const tx = await loyaltyContract.setNFTParameters(nftAddr, reqTokenId);
+        logMsg("Setting NFT parameters... Tx: " + tx.hash);
         await tx.wait();
         logMsg("NFT parameters updated.");
       } catch (error) {
@@ -397,13 +454,13 @@
       }
     });
 
-    // Set ADRIAN Token
+    // Set ADRIAN Token Address
     document.getElementById("setAdrianTokenForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
         const tokenAddr = document.getElementById("adrianTokenAddress").value;
         const tx = await loyaltyContract.setAdrianToken(tokenAddr);
-        logMsg("Setting ADRIAN token address... Tx hash: " + tx.hash);
+        logMsg("Setting ADRIAN token address... Tx: " + tx.hash);
         await tx.wait();
         logMsg("ADRIAN token address updated.");
       } catch (error) {
@@ -417,7 +474,7 @@
       try {
         const fee = document.getElementById("transactionFeeInput").value;
         const tx = await loyaltyContract.setTransactionFee(fee);
-        logMsg("Setting transaction fee... Tx hash: " + tx.hash);
+        logMsg("Setting transaction fee... Tx: " + tx.hash);
         await tx.wait();
         logMsg("Transaction fee updated.");
       } catch (error) {
@@ -432,15 +489,15 @@
         const eventType = document.getElementById("rewardEventType").value;
         const rewardFactor = document.getElementById("rewardFactor").value;
         const tx = await loyaltyContract.updateRewardForEvent(eventType, rewardFactor);
-        logMsg("Updating reward factor... Tx hash: " + tx.hash);
+        logMsg("Updating reward for event '" + eventType + "'... Tx: " + tx.hash);
         await tx.wait();
-        logMsg("Reward factor updated for event type: " + eventType);
+        logMsg("Reward updated for event: " + eventType);
       } catch (error) {
         logMsg("Error updating reward: " + error.message);
       }
     });
 
-    // Import Historical Events
+    // Import Historical Events (owner)
     document.getElementById("importHistoricalForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       try {
@@ -449,18 +506,13 @@
         const amountsStr = document.getElementById("importAmounts").value;
         const timestampsStr = document.getElementById("importTimestamps").value;
         
-        // Convert comma-separated values to arrays
         const users = usersStr.split(",").map(s => s.trim());
         const eventTypes = eventTypesStr.split(",").map(s => s.trim());
-        const amounts = amountsStr.split(",").map(s => s.trim());
-        const timestamps = timestampsStr.split(",").map(s => s.trim());
+        const amounts = amountsStr.split(",").map(s => ethers.BigNumber.from(s.trim()));
+        const timestamps = timestampsStr.split(",").map(s => Number(s.trim()));
         
-        // Convert amounts and timestamps to uint256 arrays.
-        const amountsArray = amounts.map(x => ethers.BigNumber.from(x));
-        const timestampsArray = timestamps.map(x => Number(x));
-        
-        const tx = await loyaltyContract.importHistoricalEvents(users, eventTypes, amountsArray, timestampsArray);
-        logMsg("Importing historical events... Tx hash: " + tx.hash);
+        const tx = await loyaltyContract.importHistoricalEvents(users, eventTypes, amounts, timestamps);
+        logMsg("Importing historical events... Tx: " + tx.hash);
         await tx.wait();
         logMsg("Historical events imported.");
       } catch (error) {
