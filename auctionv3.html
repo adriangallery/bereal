@@ -214,7 +214,7 @@
     const auctionAddress = "0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // Auction Contract ABI (adaptado al contrato actualizado)
+    // Auction Contract ABI (adaptado al contrato V3)
     const auctionABI = [
       "function bid(uint256 amount) external",
       "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -261,7 +261,7 @@
       }
     }
     
-    // 2. Update User Bids display (calcula el ancho de la barra relativo al máximo efectivo de las pujas del usuario)
+    // 2. Update User Bids display (barras relativas al máximo efectivo del usuario)
     async function updateUserBids() {
       if (!userAccount) return;
       try {
@@ -472,7 +472,7 @@
       }
     }
     
-    // 7. Update My Position: determina la posición del usuario y suma sus pujas efectivas
+    // 7. Update My Position: muestra la posición del usuario y su total efectivo
     async function updateMyPosition() {
       if (!userAccount) {
         document.getElementById("myPositionDisplay").innerText = "Not connected";
@@ -504,7 +504,7 @@
     // Interaction Functions
     // ----------------------------
     
-    // Approve & Deposit: se valida que la nueva puja efectiva supere la puja global actual
+    // Approve & Deposit (función actualizada similar a V3)
     async function approveAndDeposit() {
       const amountInput = document.getElementById("amountInput").value;
       if (!amountInput || amountInput <= 0) {
@@ -526,15 +526,7 @@
         globalHighestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
       }
       
-      // Si ya existe una puja y la nueva suma no supera la puja global, rechazar el depósito
-      if (globalHighestEffective > 0 && newTotalEffective <= globalHighestEffective) {
-        alert("Your deposit is too low.\n" +
-              "Your total effective bid would be " + newTotalEffective.toFixed(2) + " $ADRIAN, " +
-              "but it must exceed the current highest effective bid of " + globalHighestEffective.toFixed(2) + " $ADRIAN.");
-        return;
-      }
-      
-      // Además, si intenta convertirse en líder, debe ser al menos 10% mayor
+      // Si el nuevo total efectivo intenta superar la puja global, exige al menos 10% extra
       if (globalHighestEffective > 0 && newTotalEffective > globalHighestEffective) {
         const requiredEffective = globalHighestEffective * 1.1;
         if (newTotalEffective < requiredEffective) {
@@ -566,7 +558,7 @@
       }
     }
     
-    // Max Bid (10% extra)
+    // Max Bid (10% extra) - ahora se agrega un 1% extra en el cálculo para compensar redondeos
     async function maxBidDeposit() {
       try {
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
@@ -588,7 +580,9 @@
         }
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
         const currentMultiplier = window.currentMultiplier || 100;
-        const depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
+        let depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
+        // Agregar un 1% extra para compensar redondeos
+        depositNeeded = depositNeeded.mul(101).div(100);
   
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
   
