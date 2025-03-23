@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>$ADRIAN Auction - Admin Panel</title>
+  <title>$ADRIAN Auction - Admin NFT Config</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (v5.3.0) -->
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Ethers.js v5 -->
+  <!-- Ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     body { background-color: #f8f9fa; }
@@ -17,339 +17,132 @@
 </head>
 <body>
   <div class="container">
-    <h1>$ADRIAN Auction - Admin Panel</h1>
+    <h1>$ADRIAN Auction - Admin NFT Configuration</h1>
+    <button id="connectWalletBtn" class="btn btn-primary">Connect Wallet</button>
+    <p id="walletAddress"></p>
 
-    <!-- Sección: Configuración de Subasta -->
-    <div class="card">
-      <div class="card-header">Auction Settings</div>
-      <div class="card-body">
-        <!-- Duración de la subasta -->
-        <div class="form-group">
-          <label for="auctionDuration">Auction Duration (seconds):</label>
-          <input type="number" id="auctionDuration" class="form-control" placeholder="e.g., 604800 (7 days)">
-          <button id="updateAuctionDurationBtn" class="btn btn-primary mt-2">Update Auction Duration</button>
-        </div>
-        <!-- Multiplicadores -->
-        <div class="form-group">
-          <label>Multiplier Durations (seconds):</label>
-          <input type="number" id="multiplier2Duration" class="form-control" placeholder="Multiplier2 Duration (e.g., 86400)">
-          <input type="number" id="multiplier1_5Duration" class="form-control mt-2" placeholder="Multiplier1.5 Duration (e.g., 259200)">
-          <button id="updateMultiplierDurationsBtn" class="btn btn-primary mt-2">Update Multiplier Durations</button>
-        </div>
-        <!-- Incremento mínimo -->
-        <div class="form-group">
-          <label for="minIncrementPercentage">Min Increment Percentage (%):</label>
-          <input type="number" id="minIncrementPercentage" class="form-control" placeholder="e.g., 10">
-          <button id="updateMinIncrementBtn" class="btn btn-primary mt-2">Update Min Increment</button>
-        </div>
-        <!-- Distribución de tokens -->
-        <div class="form-group">
-          <label>Distribution Addresses:</label>
-          <input type="text" id="distAddress1" class="form-control" placeholder="Distribution Address 1">
-          <input type="text" id="distAddress2" class="form-control mt-2" placeholder="Distribution Address 2">
-          <button id="updateDistributionAddressesBtn" class="btn btn-primary mt-2">Update Distribution Addresses</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sección: Configuración de NFTs -->
     <div class="card mt-4">
-      <div class="card-header">NFT Settings</div>
+      <div class="card-header">NFT Configuration</div>
       <div class="card-body">
-        <!-- Actualizar contrato NFT -->
         <div class="form-group">
           <label for="nftContract">Global NFT Contract Address:</label>
-          <input type="text" id="nftContract" class="form-control" placeholder="NFT Contract Address">
-          <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" id="is1155">
+          <input type="text" id="nftContract" class="form-control" placeholder="0x...">
+        </div>
+        <div class="form-group mt-3">
+          <div class="form-check">
+            <input type="checkbox" id="is1155" class="form-check-input">
             <label class="form-check-label" for="is1155">ERC1155?</label>
           </div>
-          <button id="updateNftContractBtn" class="btn btn-primary mt-2">Update NFT Contract</button>
         </div>
-        <!-- Configurar Common Reward NFTs -->
-        <div class="form-group">
+        <div class="form-group mt-3">
           <label for="commonRewards">Common Reward NFTs (JSON array, 10 items required):</label>
-          <textarea id="commonRewards" class="form-control" rows="3" placeholder='e.g., [{"nftContract": "0x...", "tokenId": 1, "is1155": false, "amount": 1}, ...]'></textarea>
-          <button id="setCommonRewardsBtn" class="btn btn-primary mt-2">Set Common Reward NFTs</button>
+          <textarea id="commonRewards" class="form-control" rows="4" placeholder='e.g., 
+[
+  {"nftContract": "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD", "tokenId": 19, "is1155": true, "amount": 1},
+  {"nftContract": "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD", "tokenId": 19, "is1155": true, "amount": 1},
+  ... (10 items total)
+]
+'></textarea>
         </div>
-        <!-- Configurar Winner Reward NFT -->
-        <div class="form-group">
-          <label for="winnerReward">Winner Reward NFT (JSON object, 1 item):</label>
-          <textarea id="winnerReward" class="form-control" rows="2" placeholder='e.g., {"nftContract": "0x...", "tokenId": 100, "is1155": false, "amount": 1}'></textarea>
-          <button id="setWinnerRewardBtn" class="btn btn-primary mt-2">Set Winner Reward NFT</button>
+        <div class="form-group mt-3">
+          <label for="winnerReward">Winner Reward NFT (JSON object):</label>
+          <textarea id="winnerReward" class="form-control" rows="2" placeholder='e.g., {"nftContract": "0x62eb92B403cD5D6E9B20b51f27B96552cD9f8bcD", "tokenId": 18, "is1155": true, "amount": 1}'></textarea>
         </div>
+        <button id="updateNFTConfigBtn" class="btn btn-success mt-3">Update NFT Configuration</button>
       </div>
     </div>
 
-    <!-- Sección: Finalización de Subasta -->
-    <div class="card mt-4">
-      <div class="card-header">Finalize Auction</div>
-      <div class="card-body">
-        <button id="endAuctionEarlyBtn" class="btn btn-danger">End Auction Early</button>
-        <button id="finalizeAuctionBtn" class="btn btn-success mt-2">Finalize Auction & Distribute Rewards</button>
-      </div>
-    </div>
-
-    <!-- Sección: Funciones de Emergencia -->
-    <div class="card mt-4">
-      <div class="card-header">Emergency Functions</div>
-      <div class="card-body">
-        <!-- Emergencia: Retirar NFTs -->
-        <div class="form-group">
-          <label>Emergency Withdraw NFT:</label>
-          <input type="text" id="emergencyNFTContract" class="form-control" placeholder="NFT Contract Address">
-          <input type="number" id="emergencyTokenId" class="form-control mt-2" placeholder="Token ID">
-          <input type="number" id="emergencyAmount" class="form-control mt-2" placeholder="Amount (for ERC1155)">
-          <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" id="emergencyIs1155">
-            <label class="form-check-label" for="emergencyIs1155">ERC1155?</label>
-          </div>
-          <button id="emergencyWithdrawNFTBtn" class="btn btn-warning mt-2">Withdraw NFT</button>
-        </div>
-        <!-- Emergencia: Retirar Tokens -->
-        <button id="emergencyWithdrawTokensBtn" class="btn btn-warning mt-3">Withdraw All $ADRIAN Tokens</button>
-      </div>
-    </div>
-    
-    <!-- Mensaje de estado -->
-    <div id="adminStatus" class="mt-4"></div>
-    
+    <div id="status" class="mt-3"></div>
   </div>
   
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Panel de Administración JavaScript -->
+  <!-- Admin Panel JavaScript -->
   <script>
-    // Asume que provider, signer, userAccount, auctionContract y tokenContract ya están definidos al conectar el wallet (desde menu2.js)
-    
-    // Inicializar variables globales de contrato de subasta y token
-    let provider, signer, auctionContract, tokenContract;
-    
-    // Dirección del contrato de subasta (nueva)
+    let provider, signer, auctionContract;
+    let userAccount = "";
+    // Dirección del nuevo contrato de subasta V4
     const auctionAddress = "0xb6f46540cad3d8ea7568e0acb2e48fad72cb6ee0";
     // Dirección del token $ADRIAN
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // ABI del contrato de subasta (la misma que en V3)
+    // ABI de las funciones administrativas (updateNftContract, setCommonRewardNFTs, setWinnerRewardNFTs)
     const auctionABI = [
-      "function bid(uint256 amount) external",
-      "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
-      "function auctionStartTime() view returns (uint256)",
-      "function auctionEndTime() view returns (uint256)",
-      "function getBidsOf(address user) view returns (tuple(uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)[])",
-      "function getTotalEffectiveValue(address user) view returns (uint256)",
-      "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
-      "event TokensDeposited(address indexed bidder, uint256 amount, uint256 multiplier, uint256 timestamp)",
-      "function endAuctionEarly() external",
-      "function finalizeAuction() external"
+      "function updateNftContract(address newNftContract, bool _is1155) external",
+      "function setCommonRewardNFTs(tuple(address nftContract, uint256 tokenId, bool is1155, uint256 amount)[] calldata rewards) external",
+      "function setWinnerRewardNFTs(tuple(address nftContract, uint256 tokenId, bool is1155, uint256 amount)[] calldata rewards) external"
     ];
     
-    // ABI del token $ADRIAN (incluye funciones básicas)
-    const tokenABI = [
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
-    ];
-    
-    // Función para mostrar mensajes de estado en el panel
-    function setAdminStatus(msg) {
-      document.getElementById("adminStatus").innerText = msg;
-    }
-    
-    // Función para conectar el panel (se invoca cuando el wallet se conecta)
-    async function initAdminPanel() {
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      userAccount = window.menuUserAccount;
-      auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
-      tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
-      setAdminStatus("Admin panel initialized. Connected as " + userAccount);
-    }
-    
-    // Funciones de administración:
-    async function updateAuctionDuration() {
-      const newDuration = document.getElementById("auctionDuration").value;
-      if (!newDuration) return alert("Please enter a new duration");
-      try {
-        const tx = await auctionContract.updateAuctionDuration(newDuration);
-        setAdminStatus("Updating auction duration...");
-        await tx.wait();
-        setAdminStatus("Auction duration updated.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error updating auction duration.");
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("walletAddress").innerText = "Connected: " + userAccount;
+        auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
+      } else {
+        alert("No Ethereum provider found. Please install MetaMask.");
       }
     }
     
-    async function updateMultiplierDurations() {
-      const m2 = document.getElementById("multiplier2Duration").value;
-      const m15 = document.getElementById("multiplier1_5Duration").value;
-      if (!m2 || !m15) return alert("Please enter both multiplier durations");
-      try {
-        const tx = await auctionContract.updateMultiplierDurations(m2, m15);
-        setAdminStatus("Updating multiplier durations...");
-        await tx.wait();
-        setAdminStatus("Multiplier durations updated.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error updating multiplier durations.");
-      }
-    }
-    
-    async function updateMinIncrement() {
-      const perc = document.getElementById("minIncrementPercentage").value;
-      if (!perc) return alert("Please enter a percentage");
-      try {
-        const tx = await auctionContract.updateMinIncrementPercentage(perc);
-        setAdminStatus("Updating minimum increment percentage...");
-        await tx.wait();
-        setAdminStatus("Min increment percentage updated.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error updating min increment percentage.");
-      }
-    }
-    
-    async function updateDistributionAddresses() {
-      const addr1 = document.getElementById("distAddress1").value;
-      const addr2 = document.getElementById("distAddress2").value;
-      if (!addr1 || !addr2) return alert("Please enter both addresses");
-      try {
-        const tx = await auctionContract.updateDistributionAddresses(addr1, addr2);
-        setAdminStatus("Updating distribution addresses...");
-        await tx.wait();
-        setAdminStatus("Distribution addresses updated.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error updating distribution addresses.");
-      }
-    }
-    
-    async function updateNftContract() {
-      const newNftContract = document.getElementById("nftContract").value;
+    async function updateNFTConfig() {
+      const nftContractInput = document.getElementById("nftContract").value;
       const is1155 = document.getElementById("is1155").checked;
-      if (!newNftContract) return alert("Please enter the NFT contract address");
+      const commonRewardsJSON = document.getElementById("commonRewards").value;
+      const winnerRewardJSON = document.getElementById("winnerReward").value;
+      
+      if (!nftContractInput || !commonRewardsJSON || !winnerRewardJSON) {
+        alert("Please fill in all fields.");
+        return;
+      }
+      
+      let commonRewards;
+      let winnerReward;
       try {
-        const tx = await auctionContract.updateNftContract(newNftContract, is1155);
-        setAdminStatus("Updating NFT contract...");
+        commonRewards = JSON.parse(commonRewardsJSON);
+      } catch (e) {
+        alert("Invalid JSON for Common Reward NFTs.");
+        return;
+      }
+      
+      try {
+        // Parse winner reward as object and wrap it in an array
+        winnerReward = [JSON.parse(winnerRewardJSON)];
+      } catch (e) {
+        alert("Invalid JSON for Winner Reward NFT.");
+        return;
+      }
+      
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerText = "Updating NFT configuration...";
+      
+      try {
+        // Actualiza la dirección global del NFT y su estándar
+        let tx = await auctionContract.updateNftContract(nftContractInput, is1155);
+        statusDiv.innerText = "Updating NFT contract...";
         await tx.wait();
-        setAdminStatus("NFT contract updated.");
+        
+        // Configura los Common Reward NFTs
+        tx = await auctionContract.setCommonRewardNFTs(commonRewards);
+        statusDiv.innerText = "Setting common reward NFTs...";
+        await tx.wait();
+        
+        // Configura el Winner Reward NFT
+        tx = await auctionContract.setWinnerRewardNFTs(winnerReward);
+        statusDiv.innerText = "Setting winner reward NFT...";
+        await tx.wait();
+        
+        statusDiv.innerText = "NFT configuration updated successfully.";
       } catch (error) {
         console.error(error);
-        setAdminStatus("Error updating NFT contract.");
+        statusDiv.innerText = "Error updating NFT configuration: " + error.message;
       }
     }
     
-    // Para las funciones que configuran arrays, se esperan datos en formato JSON.
-    async function setCommonRewardNFTs() {
-      const jsonData = document.getElementById("commonRewards").value;
-      if (!jsonData) return alert("Please enter common reward NFTs JSON");
-      try {
-        const rewards = JSON.parse(jsonData);
-        const tx = await auctionContract.setCommonRewardNFTs(rewards);
-        setAdminStatus("Setting common reward NFTs...");
-        await tx.wait();
-        setAdminStatus("Common reward NFTs set.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error setting common reward NFTs.");
-      }
-    }
-    
-    async function setWinnerRewardNFTs() {
-      const jsonData = document.getElementById("winnerReward").value;
-      if (!jsonData) return alert("Please enter winner reward NFT JSON");
-      try {
-        // Para este ejemplo, se espera un array con 1 objeto
-        const rewards = JSON.parse("[" + jsonData + "]");
-        const tx = await auctionContract.setWinnerRewardNFTs(rewards);
-        setAdminStatus("Setting winner reward NFT...");
-        await tx.wait();
-        setAdminStatus("Winner reward NFT set.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error setting winner reward NFT.");
-      }
-    }
-    
-    async function endAuctionEarly() {
-      try {
-        const tx = await auctionContract.endAuctionEarly();
-        setAdminStatus("Ending auction early...");
-        await tx.wait();
-        setAdminStatus("Auction ended early.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error ending auction early.");
-      }
-    }
-    
-    async function finalizeAuction() {
-      try {
-        const tx = await auctionContract.finalizeAuction();
-        setAdminStatus("Finalizing auction and distributing rewards...");
-        await tx.wait();
-        setAdminStatus("Auction finalized and rewards distributed.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error finalizing auction.");
-      }
-    }
-    
-    async function emergencyWithdrawNFT() {
-      const nftContract = document.getElementById("emergencyNFTContract").value;
-      const tokenId = document.getElementById("emergencyTokenId").value;
-      const amount = document.getElementById("emergencyAmount").value;
-      const is1155 = document.getElementById("emergencyIs1155").checked;
-      if (!nftContract || !tokenId) return alert("Please enter NFT contract address and token ID");
-      try {
-        const tx = await auctionContract.emergencyWithdrawNFT(nftContract, tokenId, amount || 1, is1155);
-        setAdminStatus("Withdrawing NFT in emergency...");
-        await tx.wait();
-        setAdminStatus("NFT withdrawn.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error withdrawing NFT.");
-      }
-    }
-    
-    async function emergencyWithdrawTokens() {
-      try {
-        const tx = await auctionContract.emergencyWithdrawTokens();
-        setAdminStatus("Withdrawing tokens in emergency...");
-        await tx.wait();
-        setAdminStatus("Tokens withdrawn.");
-      } catch (error) {
-        console.error(error);
-        setAdminStatus("Error withdrawing tokens.");
-      }
-    }
-    
-    // Event Listeners para botones de admin
-    document.getElementById("updateAuctionDurationBtn").addEventListener("click", updateAuctionDuration);
-    document.getElementById("updateMultiplierDurationsBtn").addEventListener("click", updateMultiplierDurations);
-    document.getElementById("updateMinIncrementBtn").addEventListener("click", updateMinIncrement);
-    document.getElementById("updateDistributionAddressesBtn").addEventListener("click", updateDistributionAddresses);
-    document.getElementById("updateNftContractBtn").addEventListener("click", updateNftContract);
-    document.getElementById("setCommonRewardsBtn").addEventListener("click", setCommonRewardNFTs);
-    document.getElementById("setWinnerRewardBtn").addEventListener("click", setWinnerRewardNFTs);
-    document.getElementById("endAuctionEarlyBtn").addEventListener("click", endAuctionEarly);
-    document.getElementById("finalizeAuctionBtn").addEventListener("click", finalizeAuction);
-    document.getElementById("emergencyWithdrawNFTBtn").addEventListener("click", emergencyWithdrawNFT);
-    document.getElementById("emergencyWithdrawTokensBtn").addEventListener("click", emergencyWithdrawTokens);
-    
-    // Inicializar el panel de admin cuando se conecte el wallet
-    window.onMenuWalletConnected = async function() {
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      userAccount = window.menuUserAccount;
-      await initAdminPanel();
-    };
-    
-    window.onMenuWalletDisconnected = function() {
-      setAdminStatus("Wallet disconnected.");
-    };
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+    document.getElementById("updateNFTConfigBtn").addEventListener("click", updateNFTConfig);
   </script>
 </body>
 </html>
