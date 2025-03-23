@@ -75,14 +75,10 @@
   <script>
     fetch('components/menu2.html')
       .then(response => response.text())
-      .then(html => {
-        document.getElementById('menu-placeholder').innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error loading menu:', error);
-      });
+      .then(html => { document.getElementById('menu-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading menu:', error); });
   </script>
-  <!-- Lógica del wallet (se carga después de ethers.js) -->
+  <!-- Lógica del wallet (después de ethers.js) -->
   <script src="components/menu2.js"></script>
   
   <!-- Sección Hero -->
@@ -105,12 +101,10 @@
     <!-- Imágenes de Tokens -->
     <div class="row mb-4">
       <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeidz2fd3ad5ctqlfk2e4ibtsg6xutngsddjkrvtrn2w56gntfr64ji" 
-             class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeidz2fd3ad5ctqlfk2e4ibtsg6xutngsddjkrvtrn2w56gntfr64ji" class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
       </div>
       <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiaz5u7jqbhlutesrmitkmkp63ukcacbppzub3d7kvqjjjpnkktnbi" 
-             class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiaz5u7jqbhlutesrmitkmkp63ukcacbppzub3d7kvqjjjpnkktnbi" class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
       </div>
     </div>
     
@@ -120,8 +114,7 @@
       <div class="card-body">
         <p id="timeRemainingDisplay">Loading time remaining...</p>
         <div class="progress mt-2">
-          <div id="auctionTimeProgress" class="progress-bar" role="progressbar" style="width: 0%;">
-          </div>
+          <div id="auctionTimeProgress" class="progress-bar" role="progressbar" style="width: 0%;"></div>
         </div>
         <p id="highestBidDisplay" class="mt-3">Highest Bid (Effective): Loading...</p>
         <p id="totalDepositedDisplay">Total Tokens Deposited: Loading...</p>
@@ -134,8 +127,7 @@
       <div class="card-body">
         <div id="boostTimerDisplay">Calculating boost timer...</div>
         <div class="progress mt-2">
-          <div id="boostProgressBar" class="progress-bar" role="progressbar" style="width: 0%;">
-          </div>
+          <div id="boostProgressBar" class="progress-bar" role="progressbar" style="width: 0%;"></div>
         </div>
       </div>
     </div>
@@ -143,9 +135,7 @@
     <!-- Tarjeta de Ranking Final -->
     <div class="card">
       <div class="card-header">Final Ranking</div>
-      <div class="card-body" id="rankingDisplay">
-        Loading ranking...
-      </div>
+      <div class="card-body" id="rankingDisplay">Loading ranking...</div>
     </div>
     
     <!-- Tarjeta Mi Posición -->
@@ -154,9 +144,7 @@
         My Position
         <button id="myPositionButton" class="btn btn-sm btn-custom float-end">Check My Position</button>
       </div>
-      <div class="card-body" id="myPositionDisplay">
-        Not checked
-      </div>
+      <div class="card-body" id="myPositionDisplay">Not checked</div>
     </div>
     
     <!-- Tarjeta para Realizar una Puja -->
@@ -179,9 +167,7 @@
     <!-- Tarjeta de Mis Pujas -->
     <div class="card">
       <div class="card-header">Your Bids</div>
-      <div class="card-body" id="userBidsDisplay">
-        Loading your bids...
-      </div>
+      <div class="card-body" id="userBidsDisplay">Loading your bids...</div>
     </div>
     
     <!-- Información del Contrato -->
@@ -207,13 +193,12 @@
     const auctionAddress = "0xb6f46540cad3d8ea7568e0acb2e48fad72cb6ee0";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // ABI del contrato (V3 funciones básicas)
+    // ABI del contrato (usamos el getter allBids)
     const auctionABI = [
       "function bid(uint256 amount) external",
       "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
       "function auctionStartTime() view returns (uint256)",
       "function auctionEndTime() view returns (uint256)",
-      // Usamos el getter público allBids en lugar de getBidsOf
       "function allBids(address) view returns (uint256 amount, uint256 timestamp, uint256 multiplier, uint256 effectiveValue)",
       "function getTotalEffectiveValue(address user) view returns (uint256)",
       "function getFinalRanking() view returns (address[] memory, uint256[] memory)",
@@ -249,22 +234,12 @@
     async function updateUserBids() {
       if (!userAccount) return;
       try {
-        // Usamos el getter allBids directamente
         const bids = await auctionContract.allBids(userAccount);
         let html = "";
-        // Si no hay pujas, mostramos mensaje
         if (!bids || bids.length === 0) {
           html = "<p>No bids found.</p>";
         } else {
-          // Dado que allBids es un getter de mapping, debemos simular un array
-          // (Si tienes problemas, conviene crear una función getBidsOf en el contrato)
-          const bidArray = [];
-          // Aquí asumiremos que bids es un objeto, en cuyo caso se debe ajustar la lógica.
-          // Para este ejemplo, si ethers.js no nos devuelve un array, se recomienda crear en el contrato la función getBidsOf.
-          // Suponiendo que ya se corrige en el contrato, continuamos:
-          for (let i = 0; i < bids.length; i++) {
-            bidArray.push(bids[i]);
-          }
+          const bidArray = bids; // asumiendo que allBids ya devuelve un array
           const effectiveValues = bidArray.map(bid => parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18)));
           const maxEffective = Math.max(...effectiveValues);
           bidArray.forEach(bid => {
@@ -459,9 +434,9 @@
             position = index + 1;
           }
         });
+        // Usamos allBids para obtener las pujas del usuario
         const bids = await auctionContract.allBids(userAccount);
         let userEffective = ethers.BigNumber.from("0");
-        // Suponemos que allBids devuelve un array de structs
         bids.forEach(bid => {
           userEffective = userEffective.add(bid.effectiveValue);
         });
@@ -543,7 +518,7 @@
         bids.forEach(bid => {
           userEffective = userEffective.add(bid.effectiveValue);
         });
-        // Calculamos que el nuevo total efectivo debe ser al menos 110% del máximo (10% extra)
+        // Calculamos que el nuevo total efectivo debe ser al menos 110% del máximo actual (10% extra)
         const requiredEffective = highestEffective.add(highestEffective.div(10));
         if (userEffective.gte(requiredEffective)) {
           alert("Your current bid already meets or exceeds the required max bid.");
@@ -552,7 +527,7 @@
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
         const currentMultiplier = window.currentMultiplier || 100;
         let depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
-        // Añadimos un 1% extra para compensar redondeos
+        // Añadimos 1% extra para compensar redondeos
         depositNeeded = depositNeeded.mul(101).div(100);
   
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18))
