@@ -293,9 +293,9 @@
             html += `
               <div class="mb-3">
                 <strong>Date:</strong> ${bidTime}<br>
-                <strong>Tokens Bid:</strong> ${amount} $ADRIAN<br>
+                <strong>Tokens Bid:</strong> ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ADRIAN<br>
                 <strong>Multiplier:</strong> ${multiplierStr}<br>
-                <strong>Effective Value:</strong> ${effective} $ADRIAN
+                <strong>Effective Value:</strong> ${effective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ADRIAN
                 <div class="progress mt-1">
                   <div class="progress-bar ${progressBarClass}" role="progressbar" style="width: ${progressPercent.toFixed(2)}%;">
                   </div>
@@ -328,7 +328,7 @@
             const abbreviated = wallet.substring(0,6) + "..." + wallet.substring(wallet.length - 4);
             html += `
               <div class="mb-2">
-                <strong>${index + 1}. ${abbreviated}</strong> - ${effectiveFloat.toFixed(2)} $ADRIAN
+                <strong>${index + 1}. ${abbreviated}</strong> - ${effectiveFloat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ADRIAN
                 <div class="progress mt-1">
                   <div class="progress-bar" role="progressbar" style="width: ${percent}%;">
                   </div>
@@ -382,14 +382,14 @@
         const [rankedUsers, totals] = await auctionContract.getFinalRanking();
         if (rankedUsers.length > 0) {
           const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
-          document.getElementById("highestBidDisplay").innerText = "Highest Bid (Effective): " + highestEffective.toFixed(2) + " $ADRIAN";
+          document.getElementById("highestBidDisplay").innerText = "Highest Bid (Effective): " + highestEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
         } else {
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
         }
         
         const totalDepositedBN = await tokenContract.balanceOf(auctionAddress);
         const totalDeposited = parseFloat(ethers.utils.formatUnits(totalDepositedBN, 18));
-        document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toFixed(2) + " $ADRIAN";
+        document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
       } catch (error) {
         console.error("Error updating auction stats:", error);
       }
@@ -493,7 +493,7 @@
         });
         const userEffective = parseFloat(ethers.utils.formatUnits(userEffectiveBN, 18));
         document.getElementById("myPositionDisplay").innerText =
-          `Your Position: ${position} - Your Total Bid (Effective): ${userEffective.toFixed(2)} $ADRIAN`;
+          `Your Position: ${position} - Your Total Bid (Effective): ${userEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ADRIAN`;
       } catch (error) {
         console.error("Error fetching your position:", error);
         document.getElementById("myPositionDisplay").innerText = "Error loading your position.";
@@ -531,9 +531,9 @@
         const requiredEffective = globalHighestEffective * 1.1;
         if (newTotalEffective < requiredEffective) {
           alert("Your deposit is insufficient to become the new highest bid.\n" +
-                "Your total effective bid (" + newTotalEffective.toFixed(2) + " $ADRIAN) " +
-                "must be at least 10% higher than the current highest effective bid (" + globalHighestEffective.toFixed(2) + " $ADRIAN).\n" +
-                "Required: " + requiredEffective.toFixed(2) + " $ADRIAN.");
+                "Your total effective bid (" + newTotalEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN) " +
+                "must be at least 10% higher than the current highest effective bid (" + globalHighestEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN).\n" +
+                "Required: " + requiredEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN.");
           return;
         }
       }
@@ -584,7 +584,7 @@
         // Agregar un 1% extra para compensar redondeos
         depositNeeded = depositNeeded.mul(101).div(100);
   
-        document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toFixed(2);
+        document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
         const txApprove = await tokenContract.approve(auctionAddress, depositNeeded);
         alert("Approval transaction sent. Please wait for confirmation.");
