@@ -90,7 +90,7 @@
   
   <!-- Contenido Principal -->
   <div class="container mt-4">
-    <!-- Sección Winner (inicialmente oculta) -->
+    <!-- Winner Section (inicialmente oculta) -->
     <div id="winnerSection" class="mb-4 d-none"></div>
     
     <!-- Cuenta Conectada -->
@@ -159,7 +159,7 @@
         </div>
         <div class="d-grid gap-2">
           <button id="approveDepositButton" class="btn btn-custom">Approve & Deposit</button>
-          <button id="maxBidButton" class="btn btn-custom">Max Bid (10% extra)</button>
+          <button id="maxBidButton" class="btn btn-custom">Max Bid (10% extra + 1% round-up)</button>
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@
     const auctionAddress = "0xb6f46540cad3d8ea7568e0acb2e48fad72cb6ee0";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     
-    // ABI del contrato (usamos el getter allBids)
+    // ABI del contrato (usamos allBids para pujas)
     const auctionABI = [
       "function bid(uint256 amount) external",
       "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
@@ -239,10 +239,10 @@
         if (!bids || bids.length === 0) {
           html = "<p>No bids found.</p>";
         } else {
-          const bidArray = bids; // asumiendo que allBids ya devuelve un array
-          const effectiveValues = bidArray.map(bid => parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18)));
+          // Suponemos que allBids devuelve un array de structs
+          const effectiveValues = bids.map(bid => parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18)));
           const maxEffective = Math.max(...effectiveValues);
-          bidArray.forEach(bid => {
+          bids.forEach(bid => {
             const amount = parseFloat(ethers.utils.formatUnits(bid.amount, 18));
             const effective = parseFloat(ethers.utils.formatUnits(bid.effectiveValue, 18));
             const bidTime = new Date(bid.timestamp.toNumber() * 1000).toLocaleString();
@@ -272,9 +272,15 @@
     
     async function updateRanking() {
       try {
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let rankedUsers = [];
+        let totals = [];
+        try {
+          [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        } catch (e) {
+          console.error("Error fetching ranking, assuming no bids", e);
+        }
         let html = "";
-        if (rankedUsers.length === 0) {
+        if (!rankedUsers || rankedUsers.length === 0) {
           html = "<p>No bids yet.</p>";
         } else {
           let maxEffective = totals.reduce((max, current) => current.gt(max) ? current : max, totals[0]);
@@ -335,9 +341,15 @@
         auctionTimeProgress.style.width = `${progressPercentage.toFixed(2)}%`;
         auctionTimeProgress.className = "progress-bar " + progressColor;
         
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
-        if (rankedUsers.length > 0) {
-          const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
+        let rankedUsers = [];
+        let totalsArray = [];
+        try {
+          [rankedUsers, totalsArray] = await auctionContract.getFinalRanking();
+        } catch (e) {
+          console.error("Error fetching ranking in stats", e);
+        }
+        if (rankedUsers && rankedUsers.length > 0) {
+          const highestEffective = parseFloat(ethers.utils.formatUnits(totalsArray[0], 18));
           document.getElementById("highestBidDisplay").innerText = "Highest Bid (Effective): " + highestEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
         } else {
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
@@ -397,8 +409,14 @@
         const now = Math.floor(Date.now() / 1000);
         const winnerSection = document.getElementById("winnerSection");
         if (now >= auctionEndTime) {
-          const [rankedUsers, totals] = await auctionContract.getFinalRanking();
-          if (rankedUsers.length > 0) {
+          let rankedUsers = [];
+          let totals = [];
+          try {
+            [rankedUsers, totals] = await auctionContract.getFinalRanking();
+          } catch (e) {
+            console.error("Error fetching final ranking:", e);
+          }
+          if (rankedUsers && rankedUsers.length > 0) {
             const winner = rankedUsers[0];
             const abbreviated = winner.substring(0,6) + "..." + winner.substring(winner.length - 4);
             winnerSection.innerHTML = `
@@ -427,13 +445,21 @@
         return;
       }
       try {
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let rankedUsers = [];
+        let totals = [];
+        try {
+          [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        } catch (e) {
+          console.error("Error fetching ranking:", e);
+        }
         let position = "N/A";
-        rankedUsers.forEach((wallet, index) => {
-          if (wallet.toLowerCase() === userAccount.toLowerCase()) {
-            position = index + 1;
-          }
-        });
+        if (rankedUsers && rankedUsers.length > 0) {
+          rankedUsers.forEach((wallet, index) => {
+            if (wallet.toLowerCase() === userAccount.toLowerCase()) {
+              position = index + 1;
+            }
+          });
+        }
         // Usamos allBids para obtener las pujas del usuario
         const bids = await auctionContract.allBids(userAccount);
         let userEffective = ethers.BigNumber.from("0");
@@ -467,9 +493,15 @@
       const userPreviousEffective = parseFloat(ethers.utils.formatUnits(userPreviousEffectiveBN, 18));
       const newTotalEffective = userPreviousEffective + depositEffective;
       
-      const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+      let rankedUsers = [];
+      let totals = [];
+      try {
+        [rankedUsers, totals] = await auctionContract.getFinalRanking();
+      } catch (e) {
+        console.error("Error fetching ranking in deposit:", e);
+      }
       let globalHighestEffective = 0;
-      if (rankedUsers.length > 0) {
+      if (rankedUsers && rankedUsers.length > 0) {
         globalHighestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
       }
       
@@ -506,9 +538,15 @@
     
     async function maxBidDeposit() {
       try {
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        let rankedUsers = [];
+        let totals = [];
+        try {
+          [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        } catch (e) {
+          console.error("Error fetching ranking in max bid:", e);
+        }
         let highestEffective = ethers.BigNumber.from("0");
-        if (totals.length > 0) {
+        if (totals && totals.length > 0) {
           highestEffective = totals[0];
         } else {
           highestEffective = ethers.utils.parseUnits("1", 18);
@@ -527,7 +565,7 @@
         const additionalEffectiveNeeded = requiredEffective.sub(userEffective);
         const currentMultiplier = window.currentMultiplier || 100;
         let depositNeeded = additionalEffectiveNeeded.mul(100).div(ethers.BigNumber.from(currentMultiplier));
-        // Añadimos 1% extra para compensar redondeos
+        // Añadimos un 1% extra para compensar redondeos
         depositNeeded = depositNeeded.mul(101).div(100);
   
         document.getElementById("amountInput").value = parseFloat(ethers.utils.formatUnits(depositNeeded, 18))
