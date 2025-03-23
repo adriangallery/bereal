@@ -62,6 +62,11 @@
     .boost-bar-x1 {
       background-color: #ADD8E6; /* light blue */
     }
+    /* Clase para resaltar la wallet del usuario conectado */
+    .highlight-user {
+      color: red;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -326,9 +331,11 @@
             const effective = totals[index];
             const effectiveFloat = parseFloat(ethers.utils.formatUnits(effective, 18));
             const percent = maxEffectiveFloat > 0 ? (effectiveFloat / maxEffectiveFloat * 100).toFixed(2) : 0;
-            const abbreviated = wallet.substring(0,6) + "..." + wallet.substring(wallet.length - 4);
+            const abbreviated = wallet.substring(0, 6) + "..." + wallet.substring(wallet.length - 4);
+            // Si la wallet es la del usuario conectado, se agrega la clase "highlight-user"
+            const highlightClass = wallet.toLowerCase() === userAccount.toLowerCase() ? 'highlight-user' : '';
             html += `
-              <div class="mb-2">
+              <div class="mb-2 ${highlightClass}">
                 <strong>${index + 1}. ${abbreviated}</strong> - ${effectiveFloat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ADRIAN
                 <div class="progress mt-1">
                   <div class="progress-bar" role="progressbar" style="width: ${percent}%;">
