@@ -50,14 +50,14 @@
 </head>
 <body>
   <div class="mint-container">
-    <!-- Botón de conectar wallet -->
+    <!-- Botón para conectar la wallet -->
     <button id="connectWalletButton" class="btn btn-primary">Connect Wallet</button>
     
     <h1>Adrian Punks Mint</h1>
     <!-- Imagen actualizada -->
     <img src="https://ipfs.io/ipfs/bafkreigid3xj2k2lhcnplpwob64sakbrrfg6b4fftj36k27svovl66waoq" alt="Adrian Punks" />
     <p>
-      Mintea tu NFT usando tokens $ADRIAN. Consulta en qué tiers estás allowlisted y cuántos mints te quedan disponibles.
+      Mintea tu NFT usando tokens $ADRIAN. Consulta en qué tiers estás allowlisted, los tiempos de inicio, el precio y la cantidad permitida para mintear.
     </p>
     <!-- Sección para mostrar información de whitelist y tiers -->
     <div id="whitelistInfo"></div>
@@ -111,53 +111,70 @@
     let adrianPunksContract;
     let adrianTokenContract;
 
-    // Función para conectar la wallet
+    // Función para conectar la wallet con manejo de errores
     async function connectWallet() {
-      if (window.ethereum) {
+      try {
+        if (!window.ethereum) {
+          document.getElementById("status").innerText = "Por favor, instala MetaMask.";
+          return;
+        }
         provider = new ethers.providers.Web3Provider(window.ethereum);
+        // Solicitar conexión a la wallet
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         userAccount = await signer.getAddress();
+        console.log("Wallet conectada:", userAccount);
         document.getElementById("status").innerText = "Wallet connected: " + userAccount;
         // Instanciar contratos
         adrianPunksContract = new ethers.Contract(adrianPunksAddress, adrianPunksABI, signer);
         adrianTokenContract = new ethers.Contract(adrianTokenAddress, erc20ABI, signer);
-        // Deshabilitar el botón de conexión
+        // Deshabilitar el botón de conectar para evitar múltiples conexiones
         document.getElementById("connectWalletButton").disabled = true;
+        // Cargar información de whitelist y tiers
         loadWhitelistInfo();
-      } else {
-        document.getElementById("status").innerText = "Please install MetaMask.";
+      } catch (error) {
+        console.error("Error al conectar la wallet:", error);
+        document.getElementById("status").innerText = "Error connecting wallet: " + error.message;
       }
     }
 
-    // Cargar información de whitelist y tiers
+    // Función para cargar y mostrar la información de whitelist y tiers
     async function loadWhitelistInfo() {
       try {
-        const info = await adrianPunksContract.getAggregatedWhitelistInfo(userAccount);
-        // info: totalAllowed, mintedByUser, totalRemaining, prices, saleStarts
-        const totalAllowed = info.totalAllowed.toString();
-        const mintedByUser = info.mintedByUser.toString();
-        const totalRemaining = info.totalRemaining.toString();
-        // Convertir precios (asumido 18 decimales) y timestamps a formatos legibles
-        const prices = info.prices.map(p => ethers.utils.formatUnits(p, 18));
-        const saleStarts = info.saleStarts.map(ts => {
-          const date = new Date(ts.toNumber() * 1000);
-          return date.toLocaleString();
-        });
-        
+        // Obtener información agregada de whitelist del usuario (totales)
+        const aggregatedInfo = await adrianPunksContract.getAggregatedWhitelistInfo(userAccount);
+        const totalAllowed = aggregatedInfo.totalAllowed.toString();
+        const mintedByUser = aggregatedInfo.mintedByUser.toString();
+        const totalRemaining = aggregatedInfo.totalRemaining.toString();
+
         let html = `<h3>Your Whitelist Info</h3>`;
         html += `<p>Total Allowed: ${totalAllowed} | Already Minted: ${mintedByUser} | Remaining: ${totalRemaining}</p>`;
         html += `<table class="table table-bordered">
                     <thead>
-                      <tr><th>Tier</th><th>Sale Start</th><th>Price ($ADRIAN)</th><th>Tipo</th></tr>
+                      <tr>
+                        <th>Tier</th>
+                        <th>Sale Start</th>
+                        <th>Price ($ADRIAN)</th>
+                        <th>Allowed</th>
+                        <th>Tipo</th>
+                      </tr>
                     </thead>
                     <tbody>`;
+        // Para cada tier, consultamos la información individual
         for (let i = 0; i < 4; i++) {
+          const phase = await adrianPunksContract.salePhases(i);
+          // phase: [saleStart, price, allowed]
+          const saleStartTimestamp = phase.saleStart.toNumber();
+          const saleStartDate = new Date(saleStartTimestamp * 1000).toLocaleString();
+          const priceFormatted = ethers.utils.formatUnits(phase.price, 18);
+          const allowed = phase.allowed.toString();
+          const tipo = (i < 3) ? "Whitelist" : "Público";
           html += `<tr>
                      <td>Tier ${i}</td>
-                     <td>${saleStarts[i]}</td>
-                     <td>${prices[i]}</td>
-                     <td>${i < 3 ? "Whitelist" : "Público"}</td>
+                     <td>${saleStartDate}</td>
+                     <td>${priceFormatted}</td>
+                     <td>${allowed}</td>
+                     <td>${tipo}</td>
                    </tr>`;
         }
         html += `</tbody></table>`;
@@ -177,7 +194,7 @@
       const tier2 = parseInt(document.getElementById("tier2").value) || 0;
       const tier3 = parseInt(document.getElementById("tier3").value) || 0;
       
-      // Construir arrays para tiers y cantidades (solamente si la cantidad es > 0)
+      // Construir arrays para tiers y cantidades (solo si la cantidad es > 0)
       let tiers = [];
       let amounts = [];
       if (tier0 > 0) { tiers.push(0); amounts.push(tier0); }
