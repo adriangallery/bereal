@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdrianMarket - Collections</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <style>
+    /* Custom styles for cards */
+    .card { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">AdrianMarket</a>
+  </nav>
+  <div class="container mt-4">
+    <h1 class="mb-4">Collections</h1>
+    <div id="collections-container" class="row">
+      <!-- Collection cards will be dynamically inserted here -->
+    </div>
+  </div>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script>
+    // Sample data for collections; in practice, fetch this offchain.
+    const collections = [
+      {
+        name: "CryptoArt",
+        description: "A collection of unique digital art pieces.",
+        image: "https://via.placeholder.com/300",
+        address: "0xCollectionAddress1"
+      },
+      {
+        name: "PixelPunks",
+        description: "Pixelated punks with a unique style.",
+        image: "https://via.placeholder.com/300",
+        address: "0xCollectionAddress2"
+      }
+    ];
+
+    const container = document.getElementById('collections-container');
+    collections.forEach(collection => {
+      const colDiv = document.createElement('div');
+      colDiv.className = "col-md-4";
+      colDiv.innerHTML = `
+        <div class="card">
+          <img src="${collection.image}" class="card-img-top" alt="${collection.name}">
+          <div class="card-body">
+            <h5 class="card-title">${collection.name}</h5>
+            <p class="card-text">${collection.description}</p>
+            <a href="collection.html?address=${collection.address}" class="btn btn-primary">View Collection</a>
+          </div>
+        </div>
+      `;
+      container.appendChild(colDiv);
+    });
+  </script>
+</body>
+</html>
