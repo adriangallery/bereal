@@ -19,7 +19,7 @@
       max-width: 600px;
       margin-top: 40px;
     }
-    .form-control, .btn {
+    .form-control, .btn, .form-select {
       margin-bottom: 15px;
     }
   </style>
@@ -44,6 +44,13 @@
       <div class="mb-3">
         <label for="tokenId" class="form-label">Token ID</label>
         <input type="number" class="form-control" id="tokenId" placeholder="Enter token ID">
+      </div>
+      <div class="mb-3">
+        <label for="nftType" class="form-label">NFT Type</label>
+        <select id="nftType" class="form-select">
+          <option value="ERC1155" selected>ERC1155</option>
+          <option value="ERC721">ERC721</option>
+        </select>
       </div>
       <div class="mb-3">
         <label for="quantity" class="form-label">Quantity</label>
@@ -86,7 +93,7 @@
     ];
     let marketplaceContract;
     
-    // Minimal ERC1155 ABI for approval (assumes new collection implements ERC1155)
+    // Minimal ERC1155 ABI for approval (works similarly for ERC721 approvals using isApprovedForAll)
     const erc1155Abi = [
       "function isApprovedForAll(address account, address operator) view returns (bool)",
       "function setApprovalForAll(address operator, bool approved) external"
@@ -100,6 +107,7 @@
         userAccount = await signer.getAddress();
         document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
         marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+        console.log("Wallet connected:", userAccount);
       } else {
         alert("Please install MetaMask!");
       }
@@ -108,54 +116,82 @@
     document.getElementById("connectButton").addEventListener("click", connectWallet);
     
     async function createListing() {
-      if (!signer) {
-        alert("Please connect your wallet first.");
-        return;
-      }
+      console.log("Starting createListing process...");
       // Read form values
       const collectionAddr = document.getElementById("collectionAddress").value.trim();
       const tokenId = document.getElementById("tokenId").value;
-      const quantity = document.getElementById("quantity").value;
+      let quantity = parseInt(document.getElementById("quantity").value);
       const pricePerToken = document.getElementById("pricePerToken").value.trim();
       const duration = document.getElementById("duration").value;
+      const nftType = document.getElementById("nftType").value;
+      
+      console.log("Form values:", { collectionAddr, tokenId, quantity, pricePerToken, duration, nftType });
       
       if (!collectionAddr || !tokenId || !quantity || !pricePerToken || !duration) {
+        console.error("Missing required fields");
         alert("Please fill in all fields.");
         return;
       }
       
-      // Calculate total price: price per token * quantity, using 18 decimals
+      // If NFT type is ERC721, enforce quantity to be 1.
+      if (nftType === "ERC721") {
+        if (quantity !== 1) {
+          console.warn("For ERC721 tokens, quantity must be 1. Overriding to 1.");
+          quantity = 1;
+        }
+      }
+      
+      // Calculate total price (price per token * quantity) with 18 decimals
       let totalPrice;
       try {
         totalPrice = ethers.utils.parseUnits(pricePerToken, 18).mul(quantity);
+        console.log("Calculated totalPrice (wei):", totalPrice.toString());
       } catch (err) {
+        console.error("Error parsing price:", err);
         alert("Invalid price value.");
         return;
       }
       
-      // Check if the NFT collection is approved for the marketplace
+      // Check NFT collection approval
       const nftContract = new ethers.Contract(collectionAddr, erc1155Abi, signer);
       try {
         const approved = await nftContract.isApprovedForAll(userAccount, marketplaceAddress);
+        console.log("Approval status for collection:", approved);
         if (!approved) {
+          console.log("Collection not approved. Requesting approval...");
           const txApprove = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          console.log("Approval transaction sent. Waiting for confirmation... Tx Hash:", txApprove.hash);
           await txApprove.wait();
+          console.log("Collection approval confirmed.");
           alert("Collection approved for marketplace transfers.");
         }
       } catch (error) {
-        console.error("Error approving collection:", error);
+        console.error("Error during collection approval:", error);
         alert("Error approving collection: " + error.message);
         return;
       }
       
-      // Create the listing by calling the marketplace contract
+      // Create the listing by calling the marketplace contract with a manual gas limit
       try {
-        const tx = await marketplaceContract.createListing(collectionAddr, tokenId, quantity, totalPrice, duration);
+        console.log("Calling createListing with parameters:");
+        console.log("Collection Address:", collectionAddr);
+        console.log("Token ID:", tokenId);
+        console.log("Quantity:", quantity);
+        console.log("Total Price (wei):", totalPrice.toString());
+        console.log("Duration (seconds):", duration);
+        
+        const tx = await marketplaceContract.createListing(collectionAddr, tokenId, quantity, totalPrice, duration, { gasLimit: 1000000 });
+        console.log("Transaction sent. Tx hash:", tx.hash);
+        
         const receipt = await tx.wait();
+        console.log("Transaction confirmed. Receipt:", receipt);
+        
         let listingId;
         for (let event of receipt.events) {
+          console.log("Event detected:", event.event, event.args);
           if (event.event === "ListingCreated") {
             listingId = event.args.listingId.toString();
+            console.log("ListingCreated event found. Listing ID:", listingId);
             break;
           }
         }
