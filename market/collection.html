@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdrianMarket - Collection</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <style>
+    .card { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="collections.html">AdrianMarket</a>
+  </nav>
+  <div class="container mt-4">
+    <h1 id="collection-name" class="mb-4">Collection Name</h1>
+    <div id="tokens-container" class="row">
+      <!-- Token cards will be dynamically inserted here -->
+    </div>
+  </div>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script>
+    // Utility function to get URL parameters.
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    const collectionAddress = getQueryParam('address');
+
+    // In a real scenario, fetch collection details and token listings from an API.
+    const collectionData = {
+      name: "CryptoArt",
+      description: "A collection of unique digital art pieces.",
+      image: "https://via.placeholder.com/300",
+      address: collectionAddress
+    };
+
+    // Sample tokens in this collection.
+    const tokens = [
+      {
+        tokenId: 1,
+        name: "Art Piece #1",
+        image: "https://via.placeholder.com/300",
+        price: "2.5 ETH"
+      },
+      {
+        tokenId: 2,
+        name: "Art Piece #2",
+        image: "https://via.placeholder.com/300",
+        price: "3.0 ETH"
+      }
+    ];
+
+    document.getElementById('collection-name').innerText = collectionData.name;
+    const container = document.getElementById('tokens-container');
+    tokens.forEach(token => {
+      const colDiv = document.createElement('div');
+      colDiv.className = "col-md-4";
+      colDiv.innerHTML = `
+        <div class="card">
+          <img src="${token.image}" class="card-img-top" alt="${token.name}">
+          <div class="card-body">
+            <h5 class="card-title">${token.name}</h5>
+            <p class="card-text">Price: ${token.price}</p>
+            <a href="token.html?collection=${collectionAddress}&tokenId=${token.tokenId}" class="btn btn-primary">View Token</a>
+          </div>
+        </div>
+      `;
+      container.appendChild(colDiv);
+    });
+  </script>
+</body>
+</html>
