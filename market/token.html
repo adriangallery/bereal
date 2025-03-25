@@ -1,137 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
+  <title>$ADRIAN Marketplace - Token Detail</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdrianMarket - Token Detail</title>
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    .card { margin-bottom: 20px; }
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    .nft-card {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .nft-card img {
+      width: 100%;
+      object-fit: cover;
+      border-radius: 8px 8px 0 0;
+    }
+    .card-body {
+      padding: 1rem;
+    }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="collections.html">AdrianMarket</a>
+  <!-- Header -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="collections.html">$ADRIAN Marketplace</a>
+      <button id="connectButton" class="btn btn-outline-light">Connect Wallet</button>
+    </div>
   </nav>
-  <div class="container mt-4">
-    <h1 id="token-name" class="mb-4">Token Detail</h1>
-    <div class="card mb-4">
-      <img id="token-image" src="https://via.placeholder.com/300" class="card-img-top" alt="Token Image">
-      <div class="card-body">
-        <h5 id="token-title" class="card-title">Token Name</h5>
-        <p id="token-description" class="card-text">Detailed description of the token.</p>
-        <p id="token-price" class="card-text"><strong>Price:</strong> 0 ETH</p>
-      </div>
+  
+  <!-- Token Detail Section -->
+  <div class="container my-4">
+    <h1 id="tokenTitle" class="mb-4">Token Detail</h1>
+    <div id="tokenDetail" class="mb-4"></div>
+    <!-- Marketplace Actions (placeholders for now) -->
+    <div id="marketplaceActions">
+      <button class="btn btn-primary me-2" onclick="alert('Create Listing functionality')">Create Listing</button>
+      <button class="btn btn-secondary" onclick="alert('Make Offer functionality')">Make Offer</button>
     </div>
-
-    <h3>Actions</h3>
-    <div class="mb-4">
-      <button id="buy-button" class="btn btn-success">Buy Now</button>
-    </div>
-
-    <div class="mb-4">
-      <h4>Make an Offer</h4>
-      <form id="offer-form">
-        <div class="form-group">
-          <label for="offer-amount">Offer Amount (in ETH):</label>
-          <input type="number" step="0.01" class="form-control" id="offer-amount" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit Offer</button>
-      </form>
-    </div>
-
-    <div id="message"></div>
   </div>
-
-  <!-- jQuery and Bootstrap JS -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  
+  <!-- Footer -->
+  <footer class="bg-dark text-center text-light py-3">
+    &copy; 2025 $ADRIAN Marketplace
+  </footer>
+  
+  <!-- Scripts -->
   <script>
-    // Utility function to extract URL parameters.
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
-
-    const collectionAddress = getQueryParam('collection');
-    const tokenId = getQueryParam('tokenId');
-
-    // Placeholder token data; in a real app, fetch this from your API or blockchain.
-    const tokenData = {
-      tokenId: tokenId,
-      name: "Art Piece #" + tokenId,
-      description: "This is a detailed description of the token.",
-      image: "https://via.placeholder.com/300",
-      price: "2.5 ETH"
-    };
-
-    // Populate token details on the page.
-    document.getElementById('token-name').innerText = tokenData.name;
-    document.getElementById('token-title').innerText = tokenData.name;
-    document.getElementById('token-description').innerText = tokenData.description;
-    document.getElementById('token-price').innerHTML = `<strong>Price:</strong> ${tokenData.price}`;
-    document.getElementById('token-image').src = tokenData.image;
-
-    // Ethers.js setup.
-    let provider, signer;
-    // Replace with your deployed AdrianMarket contract address and ABI.
-    const contractAddress = "0xYourAdrianMarketContractAddress";
-    const contractABI = [ /* Your contract ABI JSON here */ ];
-
-    async function initEthers() {
+    let provider, signer, userAccount;
+    let nftContract;
+    // Get collection address and tokenId from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const collectionAddress = urlParams.get("collection");
+    const tokenId = urlParams.get("tokenId");
+    
+    // Minimal NFT ABI to get token URI
+    const nftAbi = [
+      "function uri(uint256 id) view returns (string)"
+    ];
+    
+    async function connectWallet() {
       if (window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
+        nftContract = new ethers.Contract(collectionAddress, nftAbi, signer);
+        loadTokenDetail();
       } else {
         alert("Please install MetaMask!");
       }
     }
-
-    // Function to call the buyListing function on the contract.
-    async function buyToken() {
-      await initEthers();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+    
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    
+    // Utility function to fetch metadata from tokenURI
+    async function getMetadata(tokenURI) {
       try {
-        // For demonstration purposes, we use tokenId as listingId and quantity = 1.
-        const tx = await contract.buyListing(tokenId, 1);
-        await tx.wait();
-        document.getElementById('message').innerText = "Purchase successful!";
+        const response = await fetch(tokenURI);
+        return await response.json();
       } catch (error) {
-        console.error(error);
-        document.getElementById('message').innerText = "Purchase failed.";
+        console.error("Error fetching metadata:", error);
+        return {};
       }
     }
-
-    // Function to call the makeOffer function on the contract.
-    async function makeOffer(offerAmount) {
-      await initEthers();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+    
+    async function loadTokenDetail() {
       try {
-        // For ERC721, quantity is fixed to 1.
-        const tx = await contract.makeOffer(tokenId, 1, ethers.utils.parseEther(offerAmount));
-        await tx.wait();
-        document.getElementById('message').innerText = "Offer submitted successfully!";
+        let tokenURI = await nftContract.uri(tokenId);
+        if (tokenURI.startsWith("ipfs://")) {
+          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        }
+        const metadata = await getMetadata(tokenURI);
+        document.getElementById("tokenTitle").innerText = metadata.name || ("Token " + tokenId);
+        let detailHtml = `
+          <div class="card nft-card mb-4">
+            <img src="${(metadata.image && metadata.image.startsWith("ipfs://")) ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : (metadata.image || "https://via.placeholder.com/300?text=No+Image")}" alt="${metadata.name}">
+            <div class="card-body">
+              <h5 class="card-title">${metadata.name || ("Token " + tokenId)}</h5>
+              <p class="card-text">${metadata.description || "No description provided."}</p>
+              <p><strong>Token ID:</strong> ${tokenId}</p>
+            </div>
+          </div>
+        `;
+        document.getElementById("tokenDetail").innerHTML = detailHtml;
       } catch (error) {
-        console.error(error);
-        document.getElementById('message').innerText = "Offer submission failed.";
+        console.error("Error loading token detail:", error);
+        document.getElementById("tokenDetail").innerHTML = "<p>Error loading token details.</p>";
       }
     }
-
-    // Event listener for the Buy button.
-    document.getElementById('buy-button').addEventListener('click', () => {
-      buyToken();
-    });
-
-    // Event listener for the offer submission form.
-    document.getElementById('offer-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const offerAmount = document.getElementById('offer-amount').value;
-      makeOffer(offerAmount);
-    });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
