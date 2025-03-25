@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdrianMarket - Token Detail</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <style>
+    .card { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="collections.html">AdrianMarket</a>
+  </nav>
+  <div class="container mt-4">
+    <h1 id="token-name" class="mb-4">Token Detail</h1>
+    <div class="card mb-4">
+      <img id="token-image" src="https://via.placeholder.com/300" class="card-img-top" alt="Token Image">
+      <div class="card-body">
+        <h5 id="token-title" class="card-title">Token Name</h5>
+        <p id="token-description" class="card-text">Detailed description of the token.</p>
+        <p id="token-price" class="card-text"><strong>Price:</strong> 0 ETH</p>
+      </div>
+    </div>
+
+    <h3>Actions</h3>
+    <div class="mb-4">
+      <button id="buy-button" class="btn btn-success">Buy Now</button>
+    </div>
+
+    <div class="mb-4">
+      <h4>Make an Offer</h4>
+      <form id="offer-form">
+        <div class="form-group">
+          <label for="offer-amount">Offer Amount (in ETH):</label>
+          <input type="number" step="0.01" class="form-control" id="offer-amount" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Offer</button>
+      </form>
+    </div>
+
+    <div id="message"></div>
+  </div>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  <script>
+    // Utility function to extract URL parameters.
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    const collectionAddress = getQueryParam('collection');
+    const tokenId = getQueryParam('tokenId');
+
+    // Placeholder token data; in a real app, fetch this from your API or blockchain.
+    const tokenData = {
+      tokenId: tokenId,
+      name: "Art Piece #" + tokenId,
+      description: "This is a detailed description of the token.",
+      image: "https://via.placeholder.com/300",
+      price: "2.5 ETH"
+    };
+
+    // Populate token details on the page.
+    document.getElementById('token-name').innerText = tokenData.name;
+    document.getElementById('token-title').innerText = tokenData.name;
+    document.getElementById('token-description').innerText = tokenData.description;
+    document.getElementById('token-price').innerHTML = `<strong>Price:</strong> ${tokenData.price}`;
+    document.getElementById('token-image').src = tokenData.image;
+
+    // Ethers.js setup.
+    let provider, signer;
+    // Replace with your deployed AdrianMarket contract address and ABI.
+    const contractAddress = "0xYourAdrianMarketContractAddress";
+    const contractABI = [ /* Your contract ABI JSON here */ ];
+
+    async function initEthers() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+
+    // Function to call the buyListing function on the contract.
+    async function buyToken() {
+      await initEthers();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      try {
+        // For demonstration purposes, we use tokenId as listingId and quantity = 1.
+        const tx = await contract.buyListing(tokenId, 1);
+        await tx.wait();
+        document.getElementById('message').innerText = "Purchase successful!";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('message').innerText = "Purchase failed.";
+      }
+    }
+
+    // Function to call the makeOffer function on the contract.
+    async function makeOffer(offerAmount) {
+      await initEthers();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      try {
+        // For ERC721, quantity is fixed to 1.
+        const tx = await contract.makeOffer(tokenId, 1, ethers.utils.parseEther(offerAmount));
+        await tx.wait();
+        document.getElementById('message').innerText = "Offer submitted successfully!";
+      } catch (error) {
+        console.error(error);
+        document.getElementById('message').innerText = "Offer submission failed.";
+      }
+    }
+
+    // Event listener for the Buy button.
+    document.getElementById('buy-button').addEventListener('click', () => {
+      buyToken();
+    });
+
+    // Event listener for the offer submission form.
+    document.getElementById('offer-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const offerAmount = document.getElementById('offer-amount').value;
+      makeOffer(offerAmount);
+    });
+  </script>
+</body>
+</html>
