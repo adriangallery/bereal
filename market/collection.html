@@ -1,81 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
+  <title>$ADRIAN Marketplace - Collection Detail</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdrianMarket - Collection</title>
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
-    .card { margin-bottom: 20px; }
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    .nft-card {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease-in-out;
+    }
+    .nft-card:hover {
+      transform: scale(1.01);
+    }
+    .nft-card img {
+      width: 100%;
+      object-fit: cover;
+      border-radius: 8px 8px 0 0;
+    }
+    .card-body {
+      padding: 1rem;
+    }
+    .card-title {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .load-more-btn {
+      display: block;
+      width: 100%;
+      margin: 20px auto;
+    }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="collections.html">AdrianMarket</a>
-  </nav>
-  <div class="container mt-4">
-    <h1 id="collection-name" class="mb-4">Collection Name</h1>
-    <div id="tokens-container" class="row">
-      <!-- Token cards will be dynamically inserted here -->
+  <!-- Header -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="collections.html">$ADRIAN Marketplace</a>
+      <button id="connectButton" class="btn btn-outline-light">Connect Wallet</button>
     </div>
+  </nav>
+  
+  <!-- Collection Detail Section -->
+  <div class="container my-4">
+    <h1 id="collectionTitle" class="mb-4">Collection: Loading...</h1>
+    <div id="tokensContainer" class="row"></div>
+    <button id="loadMoreTokens" class="btn btn-primary load-more-btn" style="display:none;">Load More</button>
   </div>
-
-  <!-- jQuery and Bootstrap JS -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+  
+  <!-- Footer -->
+  <footer class="bg-dark text-center text-light py-3">
+    &copy; 2025 $ADRIAN Marketplace
+  </footer>
+  
+  <!-- Scripts -->
   <script>
-    // Utility function to get URL parameters.
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
-
-    const collectionAddress = getQueryParam('address');
-
-    // In a real scenario, fetch collection details and token listings from an API.
-    const collectionData = {
-      name: "CryptoArt",
-      description: "A collection of unique digital art pieces.",
-      image: "https://via.placeholder.com/300",
-      address: collectionAddress
-    };
-
-    // Sample tokens in this collection.
-    const tokens = [
-      {
-        tokenId: 1,
-        name: "Art Piece #1",
-        image: "https://via.placeholder.com/300",
-        price: "2.5 ETH"
-      },
-      {
-        tokenId: 2,
-        name: "Art Piece #2",
-        image: "https://via.placeholder.com/300",
-        price: "3.0 ETH"
-      }
+    let provider, signer, userAccount;
+    let nftContract;
+    // Get collection address from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const collectionAddress = urlParams.get("address");
+    
+    // Minimal NFT ABI (assumes your contract implements nextEventId and uri)
+    const nftAbi = [
+      "function nextEventId() view returns (uint256)",
+      "function uri(uint256 id) view returns (string)"
     ];
-
-    document.getElementById('collection-name').innerText = collectionData.name;
-    const container = document.getElementById('tokens-container');
-    tokens.forEach(token => {
-      const colDiv = document.createElement('div');
-      colDiv.className = "col-md-4";
-      colDiv.innerHTML = `
-        <div class="card">
-          <img src="${token.image}" class="card-img-top" alt="${token.name}">
-          <div class="card-body">
-            <h5 class="card-title">${token.name}</h5>
-            <p class="card-text">Price: ${token.price}</p>
-            <a href="token.html?collection=${collectionAddress}&tokenId=${token.tokenId}" class="btn btn-primary">View Token</a>
+    
+    // Pagination variables for tokens
+    let tokens = []; // Array to hold token objects
+    const tokensPerPage = 6;
+    let currentTokenPage = 0;
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
+        nftContract = new ethers.Contract(collectionAddress, nftAbi, signer);
+        document.getElementById("collectionTitle").innerText = "Collection: " + (collectionAddress.substring(0,6) + "..." + collectionAddress.slice(-4));
+        loadTokens();
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+    
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    
+    // Utility function to fetch metadata from a tokenURI
+    async function getMetadata(tokenURI) {
+      try {
+        const response = await fetch(tokenURI);
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching metadata:", error);
+        return {};
+      }
+    }
+    
+    // Load tokens from the NFT contract
+    async function loadTokens() {
+      try {
+        const nextId = await nftContract.nextEventId();
+        const totalTokens = nextId.toNumber();
+        // For each tokenId from 1 to totalTokens-1, fetch metadata
+        for (let tokenId = 1; tokenId < totalTokens; tokenId++) {
+          try {
+            let tokenURI = await nftContract.uri(tokenId);
+            if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+            const metadata = await getMetadata(tokenURI);
+            let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+            if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+            let tokenName = metadata.name || `Token ${tokenId}`;
+            tokens.push({
+              tokenId: tokenId,
+              tokenName: tokenName,
+              imageUrl: imageUrl
+            });
+          } catch (err) {
+            console.error("Error loading token", tokenId, err);
+          }
+        }
+        displayTokens();
+      } catch (error) {
+        console.error("Error loading tokens:", error);
+      }
+    }
+    
+    function displayTokens() {
+      const container = document.getElementById("tokensContainer");
+      const start = currentTokenPage * tokensPerPage;
+      const end = start + tokensPerPage;
+      const pageTokens = tokens.slice(start, end);
+      pageTokens.forEach(token => {
+        const colDiv = document.createElement("div");
+        colDiv.className = "col-6 col-md-4 mb-4";
+        colDiv.innerHTML = `
+          <div class="card nft-card" onclick="location.href='token.html?collection=${collectionAddress}&tokenId=${token.tokenId}'">
+            <img src="${token.imageUrl}" alt="${token.tokenName}">
+            <div class="card-body">
+              <h5 class="card-title">${token.tokenName}</h5>
+              <p class="card-text">Token ID: ${token.tokenId}</p>
+            </div>
           </div>
-        </div>
-      `;
-      container.appendChild(colDiv);
+        `;
+        container.appendChild(colDiv);
+      });
+      if (end < tokens.length) {
+        document.getElementById("loadMoreTokens").style.display = "block";
+      } else {
+        document.getElementById("loadMoreTokens").style.display = "none";
+      }
+    }
+    
+    document.getElementById("loadMoreTokens").addEventListener("click", function(){
+      currentTokenPage++;
+      displayTokens();
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
