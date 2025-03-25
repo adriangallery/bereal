@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>$ADRIAN Marketplace - New Listing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    .container {
+      max-width: 600px;
+      margin-top: 40px;
+    }
+    .form-control, .btn {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="collections.html">$ADRIAN Marketplace</a>
+      <button id="connectButton" class="btn btn-outline-light">Connect Wallet</button>
+    </div>
+  </nav>
+
+  <!-- New Listing Form -->
+  <div class="container">
+    <h1 class="mb-4 text-center">Create New Listing</h1>
+    <form id="newListingForm">
+      <div class="mb-3">
+        <label for="collectionAddress" class="form-label">Collection Address</label>
+        <input type="text" class="form-control" id="collectionAddress" placeholder="0x...">
+      </div>
+      <div class="mb-3">
+        <label for="tokenId" class="form-label">Token ID</label>
+        <input type="number" class="form-control" id="tokenId" placeholder="Enter token ID">
+      </div>
+      <div class="mb-3">
+        <label for="quantity" class="form-label">Quantity</label>
+        <input type="number" class="form-control" id="quantity" placeholder="Enter quantity" value="1" min="1">
+      </div>
+      <div class="mb-3">
+        <label for="pricePerToken" class="form-label">Price per Token ($ADRIAN)</label>
+        <input type="text" class="form-control" id="pricePerToken" placeholder="e.g., 10">
+      </div>
+      <div class="mb-3">
+        <label for="duration" class="form-label">Duration</label>
+        <select id="duration" class="form-select">
+          <option value="3600">1 hour</option>
+          <option value="86400">1 day</option>
+          <option value="172800" selected>2 days</option>
+          <option value="604800">7 days</option>
+          <option value="2592000">30 days</option>
+          <option value="15552000">6 months</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-primary w-100" onclick="createListing()">Create Listing</button>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-center text-light py-3">
+    &copy; 2025 $ADRIAN Marketplace
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    let provider, signer, userAccount;
+    // Marketplace contract details (update address if needed)
+    const marketplaceAddress = "0x424a2456cc04724508f2bdb11b572d79da1fa244";
+    const marketplaceAbi = [
+      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
+      "function listingIdCounter() view returns (uint256)",
+      "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
+      "event ListingCreated(uint256 indexed listingId, address indexed seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)"
+    ];
+    let marketplaceContract;
+    
+    // Minimal ERC1155 ABI for approval (assumes new collection implements ERC1155)
+    const erc1155Abi = [
+      "function isApprovedForAll(address account, address operator) view returns (bool)",
+      "function setApprovalForAll(address operator, bool approved) external"
+    ];
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
+        marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+    
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+    
+    async function createListing() {
+      if (!signer) {
+        alert("Please connect your wallet first.");
+        return;
+      }
+      // Read form values
+      const collectionAddr = document.getElementById("collectionAddress").value.trim();
+      const tokenId = document.getElementById("tokenId").value;
+      const quantity = document.getElementById("quantity").value;
+      const pricePerToken = document.getElementById("pricePerToken").value.trim();
+      const duration = document.getElementById("duration").value;
+      
+      if (!collectionAddr || !tokenId || !quantity || !pricePerToken || !duration) {
+        alert("Please fill in all fields.");
+        return;
+      }
+      
+      // Calculate total price: price per token * quantity, using 18 decimals
+      let totalPrice;
+      try {
+        totalPrice = ethers.utils.parseUnits(pricePerToken, 18).mul(quantity);
+      } catch (err) {
+        alert("Invalid price value.");
+        return;
+      }
+      
+      // Check if the NFT collection is approved for the marketplace
+      const nftContract = new ethers.Contract(collectionAddr, erc1155Abi, signer);
+      try {
+        const approved = await nftContract.isApprovedForAll(userAccount, marketplaceAddress);
+        if (!approved) {
+          const txApprove = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          await txApprove.wait();
+          alert("Collection approved for marketplace transfers.");
+        }
+      } catch (error) {
+        console.error("Error approving collection:", error);
+        alert("Error approving collection: " + error.message);
+        return;
+      }
+      
+      // Create the listing by calling the marketplace contract
+      try {
+        const tx = await marketplaceContract.createListing(collectionAddr, tokenId, quantity, totalPrice, duration);
+        const receipt = await tx.wait();
+        let listingId;
+        for (let event of receipt.events) {
+          if (event.event === "ListingCreated") {
+            listingId = event.args.listingId.toString();
+            break;
+          }
+        }
+        if (listingId) {
+          alert("Listing created successfully with ID: " + listingId);
+        } else {
+          alert("Listing created, but no listing ID was found in the events.");
+        }
+      } catch (error) {
+        console.error("Error creating listing:", error);
+        alert("Error creating listing: " + error.message);
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
