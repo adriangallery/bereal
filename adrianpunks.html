@@ -25,7 +25,7 @@
     }
     /* ========== HERO SECTION ========== */
     .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi') center center no-repeat;
+      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiec4rw7utpdllzerf2hdknrl6ek3xogaau535u4wzwanhnzqnom7i') center center no-repeat;
       background-size: cover;
       padding: 80px 0;
       text-align: center;
@@ -65,7 +65,7 @@
     .nft-card:hover {
       transform: scale(1.01);
     }
-    /* Force images to a 1:1 aspect ratio */
+    /* Forzar proporción 1:1 en las imágenes */
     .nft-card img {
       aspect-ratio: 1 / 1;
       object-fit: cover;
@@ -86,18 +86,17 @@
       color: #ccc;
       margin-bottom: 0;
     }
-    /* Styles for unowned NFTs */
+    /* Estilo para tokens NO poseídos: se mantiene el fondo oscuro */
     .nft-card.unowned {
-      background-color: #ddd;
-      color: #555;
-      filter: grayscale(100%);
-      border: 1px solid #bbb;
+      background-color: #1f1f1f;
+      color: #ccc;
     }
-    .nft-card.unowned .card-title,
-    .nft-card.unowned .card-text {
-      color: #555;
+    /* Si el usuario ES dueño, se cambia el fondo a azul claro */
+    .nft-card.owned {
+      background-color: #add8e6;
+      color: #000;
     }
-    /* Details Button (for owned tokens) */
+    /* Botón de detalles */
     .see-details-btn {
       position: absolute;
       bottom: 5px;
@@ -163,7 +162,7 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="container">
-      <h1 class="mt-3">BE REAL | BE ADRIAN</h1>
+      <h1 class="mt-3">AdrianPunks</h1>
     </div>
   </section>
   
@@ -201,7 +200,7 @@
     </div>
   </section>
 
-  <!-- Modal for showing NFT metadata and marketplace actions -->
+  <!-- Modal para mostrar metadata y acciones del marketplace -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -210,7 +209,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- Content injected dynamically -->
+          <!-- Se inyecta contenido dinámicamente -->
         </div>
       </div>
     </div>
@@ -225,12 +224,13 @@
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
 
-  <!-- Scripts and logic -->
+  <!-- Scripts y lógica -->
   <script>
-    // Cache duration (2 días)
+    // Duración de la caché (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
-    // Función para obtener metadata utilizando localStorage como caché
+    // Función para obtener metadata usando localStorage como caché.
+    // Si la respuesta no es JSON válido, se asume que es la imagen.
     async function getMetadata(tokenURI) {
       const cached = localStorage.getItem(tokenURI);
       if (cached) {
@@ -250,7 +250,7 @@
         try {
           metadata = JSON.parse(text);
         } catch (err) {
-          // Si no es JSON, asumimos que tokenURI es la URL de la imagen
+          // Si no es JSON, se asume que tokenURI es la URL de la imagen
           metadata = { image: tokenURI, name: "NFT", description: "Metadata not provided" };
         }
         const toStore = { timestamp: Date.now(), data: metadata };
@@ -271,9 +271,9 @@
     let provider, signer, userAccount;
     // Dirección del token ERC20 (permanece igual)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    // Nueva colección: AdrianPunks (ERC721)
+    // Colección: AdrianPunks (ERC721)
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // Para el marketplace se utiliza la misma colección
+    // Se usa la misma colección para el marketplace
     const collectionAddress = nftCollectionAddress;
     // Dirección del marketplace (AdrianMarket)
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
@@ -285,7 +285,7 @@
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para NFT (ERC721; este contrato NO extiende ERC721Enumerable)
+    // ABI para NFT (ERC721; NO extiende ERC721Enumerable)
     const nftABI = [
       "function totalMinted() view returns (uint256)",
       "function tokenURI(uint256 tokenId) view returns (string)",
@@ -303,7 +303,7 @@
       "constructor(address _paymentToken, address _commissionWallet, uint256 _commissionPercentage)",
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
       "function cancelListing(uint256 listingId) external",
-      "function buyListing(uint256 listingId) external",
+      "function buyListing(uint256 listingId, uint256 purchaseQuantity) external",
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime, uint8 nftType)",
       "function setFloorOffer(address collection, uint256 offerAmount) external",
@@ -354,48 +354,36 @@
       }
     }
 
-    // Para cargar los NFTs, iteramos desde el tokenId 1 hasta totalMinted
+    // Cargar los NFTs iterando desde el tokenId 1 hasta totalMinted
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
         const totalMinted = await nftContract.totalMinted();
-        // Iterar desde el token 1 hasta totalMinted (se asume mint secuencial)
+        // Iteramos desde el token 1 hasta totalMinted (mint secuencial)
         for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
           let tokenURI = await nftContract.tokenURI(tokenId);
           if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
           const metadata = await getMetadata(tokenURI);
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
           if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          let tokenName = metadata.name || `Token ${tokenId}`;
+          // Se muestra el tokenId con el formato "#<tokenId>"
+          let displayName = "#" + tokenId;
           // Verificar si el usuario es dueño del token
           let owner = await nftContract.ownerOf(tokenId);
-          let owned = (owner.toLowerCase() === userAccount.toLowerCase()) ? 1 : 0;
-          let cardHTML = "";
-          if (owned > 0) {
-            cardHTML = `
-              <div class="card nft-card h-100" onclick="showMetadata(${tokenId})">
-                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
-                <div class="card-body">
-                  <h5 class="card-title">${tokenName}</h5>
-                  <p class="card-text">Owned</p>
-                </div>
-                <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
+          let owned = (owner.toLowerCase() === userAccount.toLowerCase());
+          // Si es dueño, aplicamos la clase "owned" (fondo azul claro), de lo contrario se mantiene el estilo por defecto
+          let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
+          let cardHTML = `
+            <div class="${cardClass}" onclick="showMetadata(${tokenId})">
+              <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
+              <div class="card-body">
+                <h5 class="card-title">${displayName}</h5>
               </div>
-            `;
-          } else {
-            cardHTML = `
-              <div class="card nft-card unowned h-100" onclick="showMetadata(${tokenId})">
-                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
-                <div class="card-body">
-                  <h5 class="card-title">${tokenName}</h5>
-                  <p class="card-text">Not owned</p>
-                </div>
-                <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
-              </div>
-            `;
-          }
+              <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
+            </div>
+          `;
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           colDiv.innerHTML = cardHTML;
@@ -429,7 +417,7 @@
                  <div id="offerForm" style="display:none;"></div>
                  <div id="marketplaceOffers" class="mt-3"></div>`;
         html += `<hr>
-                 <p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>
+                 <p><strong>Name:</strong> ${metadata.name || ('#' + tokenId)}</p>
                  <p><strong>Description:</strong> ${metadata.description || 'No description provided'}</p>`;
         if (metadata.attributes) {
           html += `<p><strong>Attributes:</strong></p><ul>`;
@@ -440,7 +428,7 @@
         }
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
         document.getElementById("metadataContent").innerHTML = html;
-        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
+        document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('#' + tokenId)}</strong>`;
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
         loadListingsForToken(tokenId);
@@ -520,7 +508,7 @@
       // Se añade nftTypeParam (0 por defecto)
       const nftTypeParam = 0;
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
-      // Usamos la función setApprovalForAll de ERC721 para aprobar la transferencia
+      // Usamos setApprovalForAll de ERC721 para aprobar la transferencia
       const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
       try {
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
@@ -615,7 +603,8 @@
           await txApprove.wait();
           alert("Approved tokens for purchase.");
         }
-        const tx = await marketplaceContract.buyListing(listingId);
+        // Para ERC721, purchaseQuantity es siempre 1.
+        const tx = await marketplaceContract.buyListing(listingId, 1, { gasLimit: 1000000 });
         await tx.wait();
         alert("Listing purchased successfully.");
         loadListingsForToken(listing.tokenId);
