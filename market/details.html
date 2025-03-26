@@ -60,7 +60,7 @@
   
   <main>
     <div class="nft-detail" id="nftDetail">
-      <!-- Contenido dinámico del NFT -->
+      <!-- Contenido dinámico del NFT se mostrará aquí -->
       <img id="nftImage" src="" alt="Imagen NFT">
       <h2 id="nftTitle">NFT #</h2>
       <p id="nftDescription">Descripción del NFT.</p>
@@ -71,21 +71,58 @@
     <p>© 2025 AdrianMarket</p>
   </footer>
   
+  <!-- Incluir ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
-    // Simulación: obtenemos el tokenID desde la URL o algún parámetro
-    // En este ejemplo, se fija un tokenID; en la práctica, se puede extraer de window.location.search
-    const tokenID = 1; 
-    // Datos de ejemplo; normalmente cargarías esta información de tu CSV/JSON generado
-    const nft = { 
-      tokenID: tokenID, 
-      imageUrl: "ipfs://CID_REAL/1.png", 
-      description: "Este NFT forma parte de una colección exclusiva." 
-    };
-
-    // Actualizar contenido dinámicamente
-    document.getElementById("nftTitle").textContent = "NFT #" + nft.tokenID;
-    document.getElementById("nftImage").src = nft.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-    document.getElementById("nftDescription").textContent = nft.description;
+    // Configuración del contrato (reemplaza con tus datos reales)
+    const contractAddress = "0xTuContrato";
+    const contractABI = [
+      // Reemplaza con el ABI real de tu contrato.
+      // Ejemplo: "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
+    ];
+    
+    // Función para conectar al proveedor (MetaMask)
+    async function connectProvider() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          return provider;
+        } catch (error) {
+          console.error("Acceso a la cuenta denegado:", error);
+          return null;
+        }
+      } else {
+        alert("Por favor, instala MetaMask para continuar.");
+        return null;
+      }
+    }
+    
+    // Función para cargar los detalles del NFT
+    async function loadNFTDetail() {
+      const provider = await connectProvider();
+      if (!provider) return;
+      
+      // Instanciar el contrato
+      const contract = new ethers.Contract(contractAddress, contractABI, provider);
+      
+      // Obtén el tokenID desde la URL o define uno fijo para el ejemplo
+      const tokenID = 1;  // En una implementación real, extrae el tokenID de window.location.search o similar.
+      
+      try {
+        // Supongamos que getTokenData devuelve un objeto con imageUrl y description
+        const tokenData = await contract.getTokenData(tokenID);
+        
+        document.getElementById("nftTitle").textContent = "NFT #" + tokenID;
+        document.getElementById("nftImage").src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+        document.getElementById("nftDescription").textContent = tokenData.description;
+      } catch (error) {
+        console.error("Error al cargar los detalles del NFT:", error);
+      }
+    }
+    
+    // Iniciar la carga de detalles
+    loadNFTDetail();
   </script>
 </body>
 </html>
