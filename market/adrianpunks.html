@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AdrianMarket - Adrian Punks Collection</title>
+  <style>
+    body {
+      background-color: #fff;
+      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header, footer {
+      background-color: #b2b3b3;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    .wallet-info {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    main {
+      padding: 20px;
+    }
+    .token-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .token-card {
+      background-color: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin: 10px;
+      padding: 10px;
+      width: 180px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .token-card:hover {
+      transform: scale(1.03);
+    }
+    .token-card img {
+      width: 100%;
+      border-radius: 5px;
+    }
+    .token-card h3 {
+      font-size: 1em;
+      margin: 10px 0 0 0;
+    }
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 8px;
+      position: relative;
+    }
+    .modal-content img {
+      width: 100%;
+      border-radius: 5px;
+    }
+    .modal-content h2 {
+      margin-top: 15px;
+    }
+    .modal-content p {
+      margin: 10px 0;
+    }
+    .close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .marketplace-buttons {
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-around;
+    }
+    .marketplace-buttons button {
+      padding: 8px 16px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .marketplace-buttons button:hover {
+      background-color: #555;
+    }
+    .loading-message {
+      text-align: center;
+      font-size: 1.1em;
+      color: #555;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AdrianMarket - Adrian Punks</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="adrianpunks.html">Adrian Punks</a>
+      <a href="details.html">NFT Details</a>
+    </nav>
+    <div>
+      <button id="connectWalletBtn">Connect Wallet</button>
+      <div class="wallet-info" id="walletInfo">Not connected</div>
+    </div>
+  </header>
+  
+  <main>
+    <div class="token-container" id="tokenContainer">
+      <!-- Token cards will be loaded here -->
+    </div>
+    <div class="loading-message" id="loadingMessage">Loading tokens...</div>
+  </main>
+  
+  <footer>
+    <p>© 2025 AdrianMarket</p>
+  </footer>
+  
+  <!-- Modal Popup -->
+  <div id="tokenModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="modalClose">&times;</span>
+      <img id="modalImage" src="" alt="Token Image">
+      <h2 id="modalTitle">Token #</h2>
+      <p id="modalDescription">Description...</p>
+      <div id="marketStatus"></div>
+      <div class="marketplace-buttons">
+        <button id="listButton">List</button>
+        <button id="offerButton">Offer</button>
+        <button id="approveButton">Approve</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Include ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Include the ABI file from /market/ -->
+  <script src="/market/AdrianPunksABI.js"></script>
+  <script>
+    let provider, signer, userAccount;
+    const tokenContainer = document.getElementById("tokenContainer");
+    const loadingMessage = document.getElementById("loadingMessage");
+    let currentTokenIndex = 0;
+    const tokensPerPage = 10;
+    let totalTokens = 0;
+    let tokenIds = []; // Array to store all token IDs from the contract
+
+    // Modal elements
+    const tokenModal = document.getElementById("tokenModal");
+    const modalImage = document.getElementById("modalImage");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalDescription = document.getElementById("modalDescription");
+    const marketStatus = document.getElementById("marketStatus");
+    const modalClose = document.getElementById("modalClose");
+    const listButton = document.getElementById("listButton");
+    const offerButton = document.getElementById("offerButton");
+    const approveButton = document.getElementById("approveButton");
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("walletInfo").textContent = "Connected: " + userAccount;
+          if(tokenIds.length === 0) {
+            loadTotalTokens();
+          }
+        } catch (error) {
+          console.error("Account access denied:", error);
+          document.getElementById("walletInfo").textContent = "Connection denied";
+        }
+      } else {
+        alert("Please install MetaMask to continue.");
+      }
+    }
+
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+
+    // Contract configuration for AdrianPunks using the ABI from the external file
+    const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
+    const contractABI = AdrianPunksABI;
+    let contract;
+
+    async function initContract() {
+      if (!provider) return;
+      contract = new ethers.Contract(contractAddress, contractABI, provider);
+    }
+
+    async function loadTotalTokens() {
+      await initContract();
+      try {
+        totalTokens = parseInt(await contract.getTotalTokens());
+        // Assuming token IDs are sequential starting at 1
+        for (let i = 1; i <= totalTokens; i++) {
+          tokenIds.push(i);
+        }
+        loadMoreTokens();
+      } catch (error) {
+        console.error("Error loading total tokens:", error);
+        loadingMessage.textContent = "Error loading tokens.";
+      }
+    }
+
+    async function loadMoreTokens() {
+      if (currentTokenIndex >= tokenIds.length) {
+        loadingMessage.textContent = "No more tokens to load.";
+        return;
+      }
+      const endIndex = Math.min(currentTokenIndex + tokensPerPage, tokenIds.length);
+      for (let i = currentTokenIndex; i < endIndex; i++) {
+        const tokenId = tokenIds[i];
+        try {
+          const tokenData = await contract.getTokenData(tokenId);
+          createTokenCard(tokenId, tokenData);
+        } catch (error) {
+          console.error("Error loading token " + tokenId, error);
+        }
+      }
+      currentTokenIndex = endIndex;
+      loadingMessage.textContent = "";
+    }
+
+    function createTokenCard(tokenId, tokenData) {
+      const card = document.createElement("div");
+      card.className = "token-card";
+      const img = document.createElement("img");
+      img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+      const title = document.createElement("h3");
+      title.textContent = tokenData.name || "Token #" + tokenId;
+      card.appendChild(img);
+      card.appendChild(title);
+      card.addEventListener("click", () => openTokenModal(tokenId, tokenData));
+      tokenContainer.appendChild(card);
+    }
+
+    function openTokenModal(tokenId, tokenData) {
+      modalImage.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+      modalTitle.textContent = tokenData.name || "Token #" + tokenId;
+      modalDescription.textContent = tokenData.description || "No description available.";
+      let statusText = "";
+      statusText += tokenData.isListed ? "Listed. " : "Not Listed. ";
+      statusText += tokenData.hasOfferCollection ? "Collection Offer exists. " : "";
+      statusText += tokenData.hasOfferIndividual ? "Individual Offer exists." : "";
+      marketStatus.textContent = statusText;
+      
+      listButton.onclick = () => { console.log("List token " + tokenId + " - trigger approval cascade if needed."); };
+      offerButton.onclick = () => { console.log("Offer on token " + tokenId + " - trigger approval cascade if needed."); };
+      approveButton.onclick = () => { console.log("Approve token " + tokenId + " or collection as needed."); };
+      
+      tokenModal.style.display = "block";
+    }
+
+    modalClose.onclick = function() {
+      tokenModal.style.display = "none";
+    };
+
+    window.onclick = function(event) {
+      if (event.target == tokenModal) {
+        tokenModal.style.display = "none";
+      }
+    };
+
+    window.addEventListener("scroll", () => {
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+        loadMoreTokens();
+      }
+    });
+
+    window.addEventListener("load", async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+        loadTotalTokens();
+      } else {
+        loadingMessage.textContent = "Please connect your wallet to load tokens.";
+      }
+    });
+  </script>
+</body>
+</html>
