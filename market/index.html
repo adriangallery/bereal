@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>AdrianMarket - Inicio</title>
   <style>
-    /* Paleta en tonos de gris, blanco y negro, con base #b2b3b3 */
+    /* Estilos en tonos de gris, blanco y negro; base: #b2b3b3 */
     body {
       background-color: #fff;
       color: #333;
@@ -34,6 +34,14 @@
     .intro {
       text-align: center;
       margin-top: 50px;
+    }
+    .collection-preview {
+      margin-top: 30px;
+      text-align: center;
+    }
+    .collection-preview img {
+      max-width: 300px;
+      border-radius: 8px;
     }
     button {
       padding: 10px 20px;
@@ -67,6 +75,12 @@
       <h2>Bienvenido a AdrianMarket</h2>
       <p>Explora y adquiere tus NFTs favoritos en un entorno elegante en tonos grises, blanco y negro.</p>
     </section>
+    <section class="collection-preview">
+      <h3>Colección principal: AdrianPunks</h3>
+      <!-- Se puede usar una imagen representativa de la colección -->
+      <img src="https://via.placeholder.com/300x300?text=AdrianPunks" alt="AdrianPunks">
+      <p>Descubre nuestra colección principal de AdrianPunks, listada y en constante evolución.</p>
+    </section>
   </main>
   
   <footer>
@@ -77,7 +91,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     let provider, signer, userAccount;
-    
+
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -94,7 +108,7 @@
         alert("Por favor, instala MetaMask para continuar.");
       }
     }
-    
+
     document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
   </script>
 </body>
