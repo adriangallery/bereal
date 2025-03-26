@@ -245,7 +245,14 @@
       }
       try {
         const response = await fetch(tokenURI);
-        const metadata = await response.json();
+        const text = await response.text();
+        let metadata;
+        try {
+          metadata = JSON.parse(text);
+        } catch (err) {
+          // Si no es JSON, asumimos que tokenURI es la URL de la imagen
+          metadata = { image: tokenURI, name: "NFT", description: "Metadata not provided" };
+        }
         const toStore = { timestamp: Date.now(), data: metadata };
         localStorage.setItem(tokenURI, JSON.stringify(toStore));
         return metadata;
@@ -278,7 +285,7 @@
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para NFT (ERC721; NOTA: este contrato NO extiende ERC721Enumerable)
+    // ABI para NFT (ERC721; este contrato NO extiende ERC721Enumerable)
     const nftABI = [
       "function totalMinted() view returns (uint256)",
       "function tokenURI(uint256 tokenId) view returns (string)",
@@ -354,7 +361,7 @@
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
         const totalMinted = await nftContract.totalMinted();
-        // Iterar desde el token 1 hasta totalMinted (asumiendo que se mintearon de forma secuencial)
+        // Iterar desde el token 1 hasta totalMinted (se asume mint secuencial)
         for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
           let tokenURI = await nftContract.tokenURI(tokenId);
           if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
@@ -437,7 +444,6 @@
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
         loadListingsForToken(tokenId);
-        // Aquí podrías llamar a loadOffersForToken(tokenId) si implementas esa funcionalidad
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
         alert("Error fetching metadata");
