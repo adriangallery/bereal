@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>AdrianMarket - Detalles NFT</title>
+  <style>
+    body {
+      background-color: #fff;
+      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header, footer {
+      background-color: #b2b3b3;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .nft-detail {
+      max-width: 400px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      background-color: #f7f7f7;
+    }
+    .nft-detail img {
+      width: 100%;
+      border-radius: 5px;
+    }
+    .nft-detail h2 {
+      margin-top: 15px;
+    }
+    .nft-detail p {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AdrianMarket</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="market.html">Marketplace</a>
+      <a href="details.html">Detalles NFT</a>
+    </nav>
+  </header>
+  
+  <main>
+    <div class="nft-detail" id="nftDetail">
+      <!-- Contenido dinámico del NFT -->
+      <img id="nftImage" src="" alt="Imagen NFT">
+      <h2 id="nftTitle">NFT #</h2>
+      <p id="nftDescription">Descripción del NFT.</p>
+    </div>
+  </main>
+  
+  <footer>
+    <p>© 2025 AdrianMarket</p>
+  </footer>
+  
+  <script>
+    // Simulación: obtenemos el tokenID desde la URL o algún parámetro
+    // En este ejemplo, se fija un tokenID; en la práctica, se puede extraer de window.location.search
+    const tokenID = 1; 
+    // Datos de ejemplo; normalmente cargarías esta información de tu CSV/JSON generado
+    const nft = { 
+      tokenID: tokenID, 
+      imageUrl: "ipfs://CID_REAL/1.png", 
+      description: "Este NFT forma parte de una colección exclusiva." 
+    };
+
+    // Actualizar contenido dinámicamente
+    document.getElementById("nftTitle").textContent = "NFT #" + nft.tokenID;
+    document.getElementById("nftImage").src = nft.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+    document.getElementById("nftDescription").textContent = nft.description;
+  </script>
+</body>
+</html>
