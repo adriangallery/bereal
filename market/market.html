@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>AdrianMarket - Marketplace</title>
   <style>
+    /* Estilos en tonos gris, blanco y negro */
     body {
       background-color: #fff;
       color: #333;
@@ -63,7 +64,7 @@
   <main>
     <h2>Marketplace</h2>
     <div class="nft-container" id="nftContainer">
-      <!-- Aquí se insertarán las cards dinámicamente -->
+      <!-- Aquí se insertarán las cards de los NFTs cargados de la blockchain -->
     </div>
   </main>
   
@@ -71,32 +72,80 @@
     <p>© 2025 AdrianMarket</p>
   </footer>
   
+  <!-- Incluir ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
-    // Ejemplo de datos; en la práctica, cargarías el CSV o JSON generado
-    const nftData = [
-      { tokenID: 1, imageUrl: "ipfs://CID_REAL/1.png" },
-      { tokenID: 2, imageUrl: "ipfs://CID_REAL/2.gif" },
-      { tokenID: 3, imageUrl: "ipfs://CID_REAL/3.png" }
-      // ... hasta 1000
+    // Configuración: dirección del contrato y ABI
+    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real
+    const contractABI = [
+      // Aquí va el ABI de tu contrato
+      // Ejemplo:
+      // "function getCollections() view returns (address[])",
+      // "function getToken(uint256 tokenId) view returns (string memory imageUrl, string memory description)",
+      // "function getListings() view returns (Listing[])"      
     ];
+    
+    // Conectar al proveedor (MetaMask)
+    async function connectProvider() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          return provider;
+        } catch (error) {
+          console.error("Acceso a la cuenta denegado", error);
+          return null;
+        }
+      } else {
+        alert("Por favor, instala MetaMask.");
+        return null;
+      }
+    }
+    
+    // Cargar información del contrato
+    async function loadNFTs() {
+      const provider = await connectProvider();
+      if (!provider) return;
+      
+      // Instanciar el contrato
+      const contract = new ethers.Contract(contractAddress, contractABI, provider);
+      
+      try {
+        // Ejemplo: obtener un listado de tokens o colecciones (modifica según tu contrato)
+        // Supongamos que existe una función "getActiveTokens" que devuelve un array de tokenIDs
+        const tokenIDs = await contract.getActiveTokens();
+        
+        const container = document.getElementById("nftContainer");
+        container.innerHTML = ""; // Limpiar el contenedor
 
-    const container = document.getElementById("nftContainer");
-    nftData.forEach(nft => {
-      const card = document.createElement("div");
-      card.className = "nft-card";
-      
-      // Se puede incorporar el CID dentro de la URL (asegúrate de que la URL se pueda visualizar correctamente)
-      const img = document.createElement("img");
-      // Si los navegadores no interpretan ipfs://, puedes usar un gateway, por ejemplo: https://ipfs.io/ipfs/CID_REAL/...
-      img.src = nft.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-      
-      const title = document.createElement("h3");
-      title.textContent = "NFT #" + nft.tokenID;
-      
-      card.appendChild(img);
-      card.appendChild(title);
-      container.appendChild(card);
-    });
+        // Recorrer los tokenIDs y obtener datos para cada NFT
+        for (let tokenId of tokenIDs) {
+          // Supongamos que tenemos una función getTokenData(tokenId) que retorna los datos del token.
+          const tokenData = await contract.getTokenData(tokenId);
+          // tokenData puede contener: imageUrl, description, title, etc.
+          
+          // Crear la card
+          const card = document.createElement("div");
+          card.className = "nft-card";
+          
+          const img = document.createElement("img");
+          // Si la URL es ipfs://, reemplazar por un gateway público
+          img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+          
+          const title = document.createElement("h3");
+          title.textContent = "NFT #" + tokenId;
+          
+          card.appendChild(img);
+          card.appendChild(title);
+          container.appendChild(card);
+        }
+      } catch (error) {
+        console.error("Error al cargar NFTs:", error);
+      }
+    }
+    
+    // Iniciar la carga
+    loadNFTs();
   </script>
 </body>
 </html>
