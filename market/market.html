@@ -23,6 +23,10 @@
       margin: 0 15px;
       font-weight: bold;
     }
+    .wallet-info {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
     main {
       padding: 20px;
     }
@@ -48,6 +52,17 @@
       font-size: 1.1em;
       margin: 10px 0;
     }
+    button {
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +73,10 @@
       <a href="market.html">Marketplace</a>
       <a href="details.html">Detalles NFT</a>
     </nav>
+    <div>
+      <button id="connectWalletBtn">Conectar Wallet</button>
+      <div class="wallet-info" id="walletInfo">No conectada</div>
+    </div>
   </header>
   
   <main>
@@ -74,56 +93,52 @@
   <!-- Incluir ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
+    let provider, signer, userAccount;
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
+        } catch (error) {
+          console.error("Acceso a la cuenta denegado:", error);
+          document.getElementById("walletInfo").textContent = "Conexión denegada";
+        }
+      } else {
+        alert("Por favor, instala MetaMask para continuar.");
+      }
+    }
+    
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+    
     // Configuración: dirección del contrato y ABI (ajusta estos datos)
-    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real de tu contrato
+    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real
     const contractABI = [
       // Ejemplo de funciones. Reemplaza con el ABI real de tu contrato:
       // "function getActiveTokens() view returns (uint256[])",
       // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
     ];
     
-    // Conectar al proveedor (MetaMask)
-    async function connectProvider() {
-      if (window.ethereum) {
-        try {
-          await window.ethereum.request({ method: "eth_requestAccounts" });
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          return provider;
-        } catch (error) {
-          console.error("Acceso a la cuenta denegado:", error);
-          return null;
-        }
-      } else {
-        alert("Por favor, instala MetaMask para continuar.");
-        return null;
-      }
-    }
-    
-    // Cargar los NFTs desde el contrato
     async function loadNFTs() {
-      const provider = await connectProvider();
-      if (!provider) return;
-      
-      // Instanciar el contrato
+      if (!provider) {
+        console.warn("Conecta tu wallet para cargar los NFTs");
+        return;
+      }
       const contract = new ethers.Contract(contractAddress, contractABI, provider);
-      
       try {
-        // Supongamos que el contrato tiene la función getActiveTokens() que devuelve un array de tokenIDs
         const tokenIDs = await contract.getActiveTokens();
         const container = document.getElementById("nftContainer");
         container.innerHTML = "";
         
-        // Iterar sobre cada token para obtener su información
         for (let tokenId of tokenIDs) {
-          // Supongamos que la función getTokenData(tokenId) devuelve un objeto con imageUrl y description
           const tokenData = await contract.getTokenData(tokenId);
-          
-          // Crear la card para el NFT
           const card = document.createElement("div");
           card.className = "nft-card";
           
           const img = document.createElement("img");
-          // Reemplaza "ipfs://" por un gateway para visualizar la imagen en el navegador
           img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
           
           const title = document.createElement("h3");
@@ -138,8 +153,13 @@
       }
     }
     
-    // Iniciar la carga de NFTs
-    loadNFTs();
+    // Intenta cargar NFTs una vez que se conecte la wallet
+    window.addEventListener("load", async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+        loadNFTs();
+      }
+    });
   </script>
 </body>
 </html>
