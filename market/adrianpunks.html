@@ -147,27 +147,18 @@
     <p>© 2025 AdrianMarket</p>
   </footer>
   
-  <!-- Modal Popup -->
-  <div id="tokenModal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="modalClose">&times;</span>
-      <img id="modalImage" src="" alt="Token Image">
-      <h2 id="modalTitle">Token #</h2>
-      <p id="modalDescription">Description...</p>
-      <!-- Marketplace buttons (placeholders for cascading approvals and actions) -->
-      <div class="marketplace-buttons">
-        <button id="listButton">List</button>
-        <button id="offerButton">Offer</button>
-        <button id="approveButton">Approve</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Include ethers.js -->
+  <!-- Include ethers.js first -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <!-- Include the ABI file from /market/ -->
   <script src="/market/AdrianPunksABI.js"></script>
+  <!-- Now include our custom script -->
   <script>
+    // Ensure the ABI is available:
+    if (typeof AdrianPunksABI === "undefined") {
+      console.error("AdrianPunksABI is not defined. Check the /market/AdrianPunksABI.js file.");
+    }
+    const contractABI = AdrianPunksABI;
+    
     let provider, signer, userAccount;
     const tokenContainer = document.getElementById("tokenContainer");
     const loadingMessage = document.getElementById("loadingMessage");
@@ -208,9 +199,8 @@
     
     document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
     
-    // Contract configuration using the ABI from the external file
+    // Contract configuration using the ABI loaded from the external file
     const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    const contractABI = AdrianPunksABI;
     let contract;
     
     async function initContract() {
@@ -218,12 +208,12 @@
       contract = new ethers.Contract(contractAddress, contractABI, provider);
     }
     
+    // Load the total number of tokens (using totalMinted() function)
     async function loadTotalTokens() {
       await initContract();
       try {
-        // Use totalMinted() to get the total number of tokens minted
         totalTokens = parseInt(await contract.totalMinted());
-        // Assume token IDs are sequential starting at 1
+        // Assuming token IDs are sequential starting at 1
         for (let i = 1; i <= totalTokens; i++) {
           tokenIds.push(i);
         }
@@ -234,6 +224,7 @@
       }
     }
     
+    // Load the next batch of tokens (10 per page)
     async function loadMoreTokens() {
       if (currentTokenIndex >= tokenIds.length) {
         loadingMessage.textContent = "No more tokens to load.";
@@ -243,11 +234,9 @@
       for (let i = currentTokenIndex; i < endIndex; i++) {
         const tokenId = tokenIds[i];
         try {
-          // Get the tokenURI for this tokenId
           let uri = await contract.tokenURI(tokenId);
           // Replace ipfs:// with a gateway URL if needed
           uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
-          // Fetch metadata from the token URI
           const response = await fetch(uri);
           const metadata = await response.json();
           createTokenCard(tokenId, metadata);
@@ -259,6 +248,7 @@
       loadingMessage.textContent = "";
     }
     
+    // Create a token card element
     function createTokenCard(tokenId, metadata) {
       const card = document.createElement("div");
       card.className = "token-card";
@@ -272,11 +262,12 @@
       tokenContainer.appendChild(card);
     }
     
+    // Open a modal popup with token details
     function openTokenModal(tokenId, metadata) {
       modalImage.src = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
       modalTitle.textContent = metadata.name || "Token #" + tokenId;
       modalDescription.textContent = metadata.description || "No description available.";
-      // Placeholder for marketplace buttons – add your logic as needed
+      // Placeholder actions for marketplace buttons:
       listButton.onclick = () => { console.log("List token " + tokenId); };
       offerButton.onclick = () => { console.log("Offer on token " + tokenId); };
       approveButton.onclick = () => { console.log("Approve token " + tokenId); };
@@ -308,5 +299,20 @@
       }
     });
   </script>
+  
+  <!-- Modal Popup HTML -->
+  <div id="tokenModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="modalClose">&times;</span>
+      <img id="modalImage" src="" alt="Token Image">
+      <h2 id="modalTitle">Token #</h2>
+      <p id="modalDescription">Description...</p>
+      <div class="marketplace-buttons">
+        <button id="listButton">List</button>
+        <button id="offerButton">Offer</button>
+        <button id="approveButton">Approve</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
