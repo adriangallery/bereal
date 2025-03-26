@@ -26,15 +26,12 @@
     /* ========== HERO SECTION ========== */
     .hero {
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiec4rw7utpdllzerf2hdknrl6ek3xogaau535u4wzwanhnzqnom7i') center center no-repeat;
-      background-size: cover;
+      background-size: contain;
+      background-color: #000; /* fondo de respaldo */
       padding: 80px 0;
       text-align: center;
     }
-    .hero h1 {
-      font-size: 3rem;
-      font-weight: bold;
-      margin: 0;
-    }
+    /* Se ha quitado el título dentro del hero */
     /* ========== SECTION WRAPPER ========== */
     .section-wrapper {
       max-width: 1200px;
@@ -86,12 +83,12 @@
       color: #ccc;
       margin-bottom: 0;
     }
-    /* Estilo para tokens NO poseídos: se mantiene el fondo oscuro */
+    /* Estilo para tokens NO poseídos: fondo oscuro */
     .nft-card.unowned {
       background-color: #1f1f1f;
       color: #ccc;
     }
-    /* Si el usuario ES dueño, se cambia el fondo a azul claro */
+    /* Si el usuario ES dueño, se aplica fondo azul claro */
     .nft-card.owned {
       background-color: #add8e6;
       color: #000;
@@ -159,12 +156,8 @@
   </script>
   <script src="components/menu2.js"></script>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <h1 class="mt-3">AdrianPunks</h1>
-    </div>
-  </section>
+  <!-- Hero Section sin texto -->
+  <section class="hero"></section>
   
   <!-- Sección de botones debajo del Hero -->
   <section class="mt-0 mb-4">
@@ -209,7 +202,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- Se inyecta contenido dinámicamente -->
+          <!-- Contenido inyectado dinámicamente -->
         </div>
       </div>
     </div>
@@ -368,12 +361,12 @@
           const metadata = await getMetadata(tokenURI);
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
           if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          // Se muestra el tokenId con el formato "#<tokenId>"
+          // Mostrar tokenId con el formato "#<tokenId>"
           let displayName = "#" + tokenId;
           // Verificar si el usuario es dueño del token
           let owner = await nftContract.ownerOf(tokenId);
           let owned = (owner.toLowerCase() === userAccount.toLowerCase());
-          // Si es dueño, aplicamos la clase "owned" (fondo azul claro), de lo contrario se mantiene el estilo por defecto
+          // Se aplica la clase "owned" si el token es poseído, de lo contrario se usa "unowned"
           let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
           let cardHTML = `
             <div class="${cardClass}" onclick="showMetadata(${tokenId})">
