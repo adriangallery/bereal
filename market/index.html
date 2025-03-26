@@ -24,12 +24,27 @@
       margin: 0 15px;
       font-weight: bold;
     }
+    .wallet-info {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
     main {
       padding: 20px;
     }
     .intro {
       text-align: center;
       margin-top: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #555;
     }
   </style>
 </head>
@@ -41,6 +56,10 @@
       <a href="market.html">Marketplace</a>
       <a href="details.html">Detalles NFT</a>
     </nav>
+    <div>
+      <button id="connectWalletBtn">Conectar Wallet</button>
+      <div class="wallet-info" id="walletInfo">No conectada</div>
+    </div>
   </header>
   
   <main>
@@ -53,5 +72,30 @@
   <footer>
     <p>© 2025 AdrianMarket</p>
   </footer>
+  
+  <!-- Incluir ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    let provider, signer, userAccount;
+    
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
+        } catch (error) {
+          console.error("Acceso a la cuenta denegado:", error);
+          document.getElementById("walletInfo").textContent = "Conexión denegada";
+        }
+      } else {
+        alert("Por favor, instala MetaMask para continuar.");
+      }
+    }
+    
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+  </script>
 </body>
 </html>
