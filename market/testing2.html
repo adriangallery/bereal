@@ -99,33 +99,32 @@
   <script>
     // Global variables
     let provider, signer, userAccount;
-    let marketplaceContract;
+    let marketplaceContract, tokenContract;
 
-    // Contract address and ABI for AdrianMarket
+    // Contract addresses
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
+    const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // ADRIAN token
+
+    // ABIs
     const marketplaceAbi = [
-      // createListing: (address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam)
       "function createListing(address, uint256, uint256, uint256, uint256, uint8) external",
-      // getActiveListings: view returns (uint256[])
       "function getActiveListings() view returns (uint256[])",
-      // listings mapping: returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime, uint8 nftType)
       "function listings(uint256) view returns (uint256, address, address, uint256, uint256, uint256, uint256, uint8)",
-      // buyListing: (uint256 listingId, uint256 purchaseQuantity)
       "function buyListing(uint256, uint256) external"
     ];
-
-    // ABI for ERC721 (for approvals)
     const erc721Abi = [
       "function ownerOf(uint256 tokenId) view returns (address)",
       "function getApproved(uint256 tokenId) view returns (address)",
       "function isApprovedForAll(address owner, address operator) view returns (bool)",
       "function setApprovalForAll(address operator, bool approved) external"
     ];
-
-    // ABI for ERC1155 (for approvals)
     const erc1155Abi = [
       "function isApprovedForAll(address account, address operator) view returns (bool)",
       "function setApprovalForAll(address operator, bool approved) external"
+    ];
+    const tokenAbi = [
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function approve(address spender, uint256 amount) external returns (bool)"
     ];
 
     // Connect wallet function
@@ -137,8 +136,8 @@
         userAccount = await signer.getAddress();
         document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
         marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+        tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
         console.log("Wallet connected:", userAccount);
-        // Load listings once connected.
         loadActiveListings();
       } else {
         alert("Please install MetaMask!");
@@ -194,12 +193,10 @@
         alert("Please fill in all fields.");
         return;
       }
-      // For ERC721, force quantity to 1.
       if (nftTypeParam === 1 && quantity !== 1) {
         console.warn("For ERC721, quantity must be 1. Overriding quantity to 1.");
         quantity = 1;
       }
-      // Convert the human-readable price to wei (18 decimals) and multiply by quantity.
       let totalPrice;
       try {
         totalPrice = ethers.utils.parseUnits(pricePerToken, 18).mul(quantity);
@@ -209,7 +206,6 @@
         alert("Invalid price value.");
         return;
       }
-      // Call createListing with a manual gas limit.
       try {
         const tx = await marketplaceContract.createListing(
           collectionAddr,
@@ -244,14 +240,10 @@
         container.innerHTML = "";
         for (let i = 0; i < listingIds.length; i++) {
           const id = listingIds[i];
-          // Call listings(id) to get listing details.
           const listing = await marketplaceContract.listings(id);
-          // listing returns: id, seller, collection, tokenId, quantity, price, expirationTime, nftType
           const nftType = listing[7] == 1 ? "ERC721" : "ERC1155";
-          // Calculate unit price: total price divided by quantity, then convert to human-readable format.
           const unitPrice = ethers.utils.formatUnits(listing[5].div(listing[4]), 18);
           const expiration = new Date(listing[6].toNumber() * 1000).toLocaleString();
-          // Create a card for the listing.
           const card = document.createElement("div");
           card.className = "listing-card";
           card.innerHTML = `
@@ -273,19 +265,37 @@
       }
     }
 
-    // Function to buy a listing.
-    // For ERC721, purchaseQuantity must be 1; for ERC1155, we prompt the user.
+    // Function to buy a listing, incluyendo la verificación de approval para el token ADRIAN.
     async function buyListingById(listingId, availableQuantity, nftTypeParam) {
       try {
         let purchaseQuantity = 1;
-        if (nftTypeParam == 0) { // ERC1155: solicitar cantidad
-          purchaseQuantity = parseInt(prompt("Enter the quantity you want to purchase (max " + availableQuantity + "):", "1"));
+        if (nftTypeParam == 0) { // ERC1155: preguntar cantidad.
+          purchaseQuantity = parseInt(prompt("Enter the quantity to purchase (max " + availableQuantity + "):", "1"));
           if (isNaN(purchaseQuantity) || purchaseQuantity < 1 || purchaseQuantity > availableQuantity) {
             alert("Invalid quantity.");
             return;
           }
         }
         console.log("Buying listing", listingId, "with quantity", purchaseQuantity);
+
+        // Primero, verificar la allowance del token ADRIAN.
+        // Para la compra, el comprador debe haber aprobado al marketplace para gastar el totalPrice (calculado en el contrato).
+        // Aquí asumimos que el precio total se calcula de la siguiente manera:
+        const listing = await marketplaceContract.listings(listingId);
+        const unitPrice = listing[5].div(listing[4]);
+        const totalPrice = unitPrice.mul(purchaseQuantity);
+        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
+        console.log("Current ADRIAN allowance:", currentAllowance.toString(), "Required:", totalPrice.toString());
+        if (currentAllowance.lt(totalPrice)) {
+          console.log("Insufficient allowance. Approving tokens...");
+          const txApprove = await tokenContract.approve(marketplaceAddress, totalPrice);
+          console.log("Approve transaction sent. Tx hash:", txApprove.hash);
+          await txApprove.wait();
+          console.log("Token approval confirmed.");
+          alert("Token approval completed for purchase.");
+        }
+
+        // Llamar a buyListing con un gas manual.
         const tx = await marketplaceContract.buyListing(listingId, purchaseQuantity, { gasLimit: 1000000 });
         console.log("Buy transaction sent. Tx hash:", tx.hash);
         const receipt = await tx.wait();
