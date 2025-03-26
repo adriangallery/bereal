@@ -52,6 +52,12 @@
       font-size: 1.1em;
       margin: 10px 0;
     }
+    .message {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #555;
+    }
     button {
       padding: 10px 20px;
       background-color: #333;
@@ -81,9 +87,10 @@
   
   <main>
     <h2>Marketplace</h2>
-    <div class="nft-container" id="nftContainer">
-      <!-- Se insertarán las cards de los NFTs cargados desde la blockchain -->
+    <div id="nftContainer" class="nft-container">
+      <!-- Aquí se insertarán las cards de los NFTs listados -->
     </div>
+    <div id="message" class="message"></div>
   </main>
   
   <footer>
@@ -114,31 +121,45 @@
     
     document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
     
-    // Configuración: dirección del contrato y ABI (ajusta estos datos)
-    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real
+    // Dirección y ABI del contrato AdrianPunks
+    const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
     const contractABI = [
-      // Ejemplo de funciones. Reemplaza con el ABI real de tu contrato:
-      // "function getActiveTokens() view returns (uint256[])",
-      // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
+      // Actualiza este ABI con las funciones de tu contrato.
+      // Se asume que existen:
+      // function getActiveListings() public view returns (uint256[] memory)
+      // function getTokenData(uint256 tokenId) public view returns (string memory imageUrl, string memory description)
+      "function getActiveListings() view returns (uint256[])",
+      "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
     ];
     
     async function loadNFTs() {
       if (!provider) {
-        console.warn("Conecta tu wallet para cargar los NFTs");
+        document.getElementById("message").textContent = "Conecta tu wallet para cargar los NFTs.";
         return;
       }
+      
       const contract = new ethers.Contract(contractAddress, contractABI, provider);
+      
       try {
-        const tokenIDs = await contract.getActiveTokens();
+        const tokenIDs = await contract.getActiveListings();
         const container = document.getElementById("nftContainer");
         container.innerHTML = "";
         
+        if(tokenIDs.length === 0) {
+          document.getElementById("message").textContent = "Actualmente no hay listados activos.";
+          return;
+        } else {
+          document.getElementById("message").textContent = "";
+        }
+        
         for (let tokenId of tokenIDs) {
           const tokenData = await contract.getTokenData(tokenId);
+          
           const card = document.createElement("div");
           card.className = "nft-card";
           
           const img = document.createElement("img");
+          // Reemplazar el prefijo ipfs:// con el gateway para visualización
           img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
           
           const title = document.createElement("h3");
@@ -150,10 +171,11 @@
         }
       } catch (error) {
         console.error("Error al cargar NFTs:", error);
+        document.getElementById("message").textContent = "Error al cargar NFTs. Revisa la consola para más detalles.";
       }
     }
     
-    // Intenta cargar NFTs una vez que se conecte la wallet
+    // Intentar cargar los NFTs al cargar la página (si la wallet ya está conectada)
     window.addEventListener("load", async () => {
       if (window.ethereum && window.ethereum.selectedAddress) {
         await connectWallet();
