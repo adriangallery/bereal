@@ -154,7 +154,7 @@
       <img id="modalImage" src="" alt="Token Image">
       <h2 id="modalTitle">Token #</h2>
       <p id="modalDescription">Description...</p>
-      <div id="marketStatus"></div>
+      <!-- Marketplace buttons (placeholders for cascading approvals and actions) -->
       <div class="marketplace-buttons">
         <button id="listButton">List</button>
         <button id="offerButton">Offer</button>
@@ -174,19 +174,18 @@
     let currentTokenIndex = 0;
     const tokensPerPage = 10;
     let totalTokens = 0;
-    let tokenIds = []; // Array to store all token IDs from the contract
-
+    let tokenIds = []; // Array to store token IDs
+    
     // Modal elements
     const tokenModal = document.getElementById("tokenModal");
     const modalImage = document.getElementById("modalImage");
     const modalTitle = document.getElementById("modalTitle");
     const modalDescription = document.getElementById("modalDescription");
-    const marketStatus = document.getElementById("marketStatus");
     const modalClose = document.getElementById("modalClose");
     const listButton = document.getElementById("listButton");
     const offerButton = document.getElementById("offerButton");
     const approveButton = document.getElementById("approveButton");
-
+    
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -206,24 +205,25 @@
         alert("Please install MetaMask to continue.");
       }
     }
-
+    
     document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
-
-    // Contract configuration for AdrianPunks using the ABI from the external file
+    
+    // Contract configuration using the ABI from the external file
     const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
     const contractABI = AdrianPunksABI;
     let contract;
-
+    
     async function initContract() {
       if (!provider) return;
       contract = new ethers.Contract(contractAddress, contractABI, provider);
     }
-
+    
     async function loadTotalTokens() {
       await initContract();
       try {
-        totalTokens = parseInt(await contract.getTotalTokens());
-        // Assuming token IDs are sequential starting at 1
+        // Use totalMinted() to get the total number of tokens minted
+        totalTokens = parseInt(await contract.totalMinted());
+        // Assume token IDs are sequential starting at 1
         for (let i = 1; i <= totalTokens; i++) {
           tokenIds.push(i);
         }
@@ -233,7 +233,7 @@
         loadingMessage.textContent = "Error loading tokens.";
       }
     }
-
+    
     async function loadMoreTokens() {
       if (currentTokenIndex >= tokenIds.length) {
         loadingMessage.textContent = "No more tokens to load.";
@@ -243,8 +243,14 @@
       for (let i = currentTokenIndex; i < endIndex; i++) {
         const tokenId = tokenIds[i];
         try {
-          const tokenData = await contract.getTokenData(tokenId);
-          createTokenCard(tokenId, tokenData);
+          // Get the tokenURI for this tokenId
+          let uri = await contract.tokenURI(tokenId);
+          // Replace ipfs:// with a gateway URL if needed
+          uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
+          // Fetch metadata from the token URI
+          const response = await fetch(uri);
+          const metadata = await response.json();
+          createTokenCard(tokenId, metadata);
         } catch (error) {
           console.error("Error loading token " + tokenId, error);
         }
@@ -252,53 +258,47 @@
       currentTokenIndex = endIndex;
       loadingMessage.textContent = "";
     }
-
-    function createTokenCard(tokenId, tokenData) {
+    
+    function createTokenCard(tokenId, metadata) {
       const card = document.createElement("div");
       card.className = "token-card";
       const img = document.createElement("img");
-      img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+      img.src = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
       const title = document.createElement("h3");
-      title.textContent = tokenData.name || "Token #" + tokenId;
+      title.textContent = metadata.name || "Token #" + tokenId;
       card.appendChild(img);
       card.appendChild(title);
-      card.addEventListener("click", () => openTokenModal(tokenId, tokenData));
+      card.addEventListener("click", () => openTokenModal(tokenId, metadata));
       tokenContainer.appendChild(card);
     }
-
-    function openTokenModal(tokenId, tokenData) {
-      modalImage.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-      modalTitle.textContent = tokenData.name || "Token #" + tokenId;
-      modalDescription.textContent = tokenData.description || "No description available.";
-      let statusText = "";
-      statusText += tokenData.isListed ? "Listed. " : "Not Listed. ";
-      statusText += tokenData.hasOfferCollection ? "Collection Offer exists. " : "";
-      statusText += tokenData.hasOfferIndividual ? "Individual Offer exists." : "";
-      marketStatus.textContent = statusText;
-      
-      listButton.onclick = () => { console.log("List token " + tokenId + " - trigger approval cascade if needed."); };
-      offerButton.onclick = () => { console.log("Offer on token " + tokenId + " - trigger approval cascade if needed."); };
-      approveButton.onclick = () => { console.log("Approve token " + tokenId + " or collection as needed."); };
-      
+    
+    function openTokenModal(tokenId, metadata) {
+      modalImage.src = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+      modalTitle.textContent = metadata.name || "Token #" + tokenId;
+      modalDescription.textContent = metadata.description || "No description available.";
+      // Placeholder for marketplace buttons – add your logic as needed
+      listButton.onclick = () => { console.log("List token " + tokenId); };
+      offerButton.onclick = () => { console.log("Offer on token " + tokenId); };
+      approveButton.onclick = () => { console.log("Approve token " + tokenId); };
       tokenModal.style.display = "block";
     }
-
+    
     modalClose.onclick = function() {
       tokenModal.style.display = "none";
     };
-
+    
     window.onclick = function(event) {
       if (event.target == tokenModal) {
         tokenModal.style.display = "none";
       }
     };
-
+    
     window.addEventListener("scroll", () => {
       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
         loadMoreTokens();
       }
     });
-
+    
     window.addEventListener("load", async () => {
       if (window.ethereum && window.ethereum.selectedAddress) {
         await connectWallet();
