@@ -28,20 +28,10 @@
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiec4rw7utpdllzerf2hdknrl6ek3xogaau535u4wzwanhnzqnom7i') center center no-repeat;
       background-size: cover;
       background-color: #000;
-      padding: 80px 0;
-      text-align: center;
+      min-height: 500px;
       position: relative;
     }
-    .hero h1 {
-      font-size: 3rem;
-      font-weight: bold;
-      margin: 0;
-      position: absolute;
-      width: 100%;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #fff;
-    }
+    /* Se elimina el texto dentro del hero */
     /* ========== SECTION WRAPPER ========== */
     .section-wrapper {
       max-width: 1200px;
@@ -53,9 +43,15 @@
       border: 1px solid #333;
       padding: 1rem;
       margin-bottom: 1rem;
+      background-color: #111;
     }
     #floorOfferDetails {
       margin-bottom: 1rem;
+    }
+    /* ========== BOTONES SECUNDARIOS (Marketplace / Offers) ========== */
+    .secondary-buttons .btn {
+      width: 100%;
+      border-radius: 0;
     }
     /* ========== NFT GALLERY ========== */
     .nft-gallery-title {
@@ -127,7 +123,7 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
-    /* Mini tokens en el modal de aceptar oferta */
+    /* Mini tarjetas en modal para aceptar floor offer */
     .mini-token {
       display: inline-block;
       margin: 5px;
@@ -141,7 +137,7 @@
       border-radius: 4px;
       border: 1px solid #333;
     }
-    /* ========== HEADER AND FOOTER PLACEHOLDERS ========== */
+    /* ========== HEADER AND FOOTER ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
       color: #fff;
@@ -178,16 +174,13 @@
   </script>
   <script src="components/menu2.js"></script>
 
-  <!-- Hero Section (como antes) -->
-  <section class="hero">
-    <h1>AdrianPunks</h1>
-  </section>
+  <!-- Hero Section -->
+  <section class="hero"></section>
   
   <!-- Floor Offer Section -->
   <div id="floorOfferSection" class="section-wrapper">
     <h3>Floor Offer</h3>
     <div id="floorOfferDetails">
-      <!-- Aquí se mostrará el estado actual del floor offer -->
       <p>No floor offer set.</p>
     </div>
     <button class="btn btn-primary" onclick="openSetFloorOfferForm()">Set Floor Offer</button>
@@ -197,6 +190,18 @@
         <input type="text" id="floorOfferAmount" value="10000">
       </label>
       <button class="btn btn-primary mt-2" onclick="setFloorOffer()">Submit Floor Offer</button>
+    </div>
+  </div>
+
+  <!-- Botones secundarios: Marketplace y Offers -->
+  <div class="section-wrapper">
+    <div class="row secondary-buttons">
+      <div class="col-6">
+        <a href="/marketplace.html" class="btn btn-danger w-100" style="border-radius: 0;">Marketplace</a>
+      </div>
+      <div class="col-6">
+        <a href="/listings.html" class="btn btn-primary w-100" style="border-radius: 0;">Offers and Listings</a>
+      </div>
     </div>
   </div>
 
@@ -220,7 +225,7 @@
     </div>
   </section>
 
-  <!-- Modal para mostrar metadata, acciones y para aceptar floor offer -->
+  <!-- Modal para mostrar metadata y acciones del marketplace -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -235,7 +240,7 @@
     </div>
   </div>
 
-  <!-- Modal para seleccionar token a usar para aceptar la oferta piso -->
+  <!-- Modal para seleccionar token al aceptar floor offer -->
   <div class="modal fade" id="acceptFloorOfferModal" tabindex="-1" aria-labelledby="acceptFloorOfferModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -264,8 +269,6 @@
     // Duración de la caché (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
-    // Función para obtener metadata usando localStorage como caché.
-    // Si la respuesta no es JSON, se asume que tokenURI es la imagen.
     async function getMetadata(tokenURI) {
       const cached = localStorage.getItem(tokenURI);
       if (cached) {
@@ -296,39 +299,33 @@
       }
     }
 
-    // Función para comprimir direcciones (ej: 0x4943...81C6)
     function compressAddress(address) {
       return address.substring(0, 2) + "..." + address.substring(address.length - 4);
     }
 
-    // Variables de conexión y contratos
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
     const collectionAddress = nftCollectionAddress;
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
 
-    // ABI para token ERC20
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para NFT (ERC721; sin Enumerable)
     const nftABI = [
       "function totalMinted() view returns (uint256)",
       "function tokenURI(uint256 tokenId) view returns (string)",
       "function ownerOf(uint256 tokenId) view returns (address)"
     ];
 
-    // ABI para aprobación ERC721
     const erc721Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address owner, address operator) external view returns (bool)"
     ];
 
-    // ABI para AdrianMarket (incluye funciones de floor offer)
     const marketplaceAbi = [
       "constructor(address _paymentToken, address _commissionWallet, uint256 _commissionPercentage)",
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
@@ -381,7 +378,6 @@
       }
     }
 
-    // Cargar NFTs (iterando de 1 a totalMinted)
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
@@ -512,7 +508,6 @@
       }
     }
 
-    // Función para crear listing
     async function createListingForToken(tokenId) {
       if (!marketplaceContract) {
         alert("Marketplace not initialized.");
@@ -627,7 +622,6 @@
       }
     }
 
-    // Floor Offer functions
     async function loadFloorOffer() {
       try {
         const floorOffer = await marketplaceContract.floorOffers(nftCollectionAddress);
@@ -636,9 +630,7 @@
         const active = floorOffer.active;
         const detailsDiv = document.getElementById("floorOfferDetails");
         if (active && offerAmount.gt(0)) {
-          detailsDiv.innerHTML = `
-            <p>Floor Offer: ${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN from ${compressAddress(buyer)}</p>
-          `;
+          detailsDiv.innerHTML = `<p>Floor Offer: ${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN from ${compressAddress(buyer)}</p>`;
         } else {
           detailsDiv.innerHTML = `<p>No floor offer set.</p>`;
         }
@@ -653,21 +645,18 @@
     }
 
     async function openAcceptFloorOfferModal() {
-      // Primero, cargar el floor offer y verificar que esté activo
       try {
         const floorOffer = await marketplaceContract.floorOffers(nftCollectionAddress);
         if (!floorOffer.active || floorOffer.offerAmount.eq(0)) {
           alert("No active floor offer to accept.");
           return;
         }
-        // Cargar los tokens que el usuario posee
         const totalMinted = await nftContract.totalMinted();
         let ownedTokens = [];
         for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
           try {
             let owner = await nftContract.ownerOf(tokenId);
             if (owner.toLowerCase() === userAccount.toLowerCase()) {
-              // Obtener imagen para mini tarjeta
               let tokenURI = await nftContract.tokenURI(tokenId);
               if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
               const metadata = await getMetadata(tokenURI);
@@ -683,7 +672,6 @@
           alert("You don't own any tokens to accept the floor offer.");
           return;
         }
-        // Mostrar las mini tarjetas en el modal
         const container = document.getElementById("floorOfferTokens");
         container.innerHTML = "";
         ownedTokens.forEach(token => {
@@ -704,13 +692,11 @@
     }
 
     async function acceptFloorOffer(tokenId) {
-      // Asumimos nftTypeParam = 0
       const nftTypeParam = 0;
       try {
         const tx = await marketplaceContract.acceptFloorOffer(nftCollectionAddress, tokenId, nftTypeParam, { gasLimit: 1000000 });
         await tx.wait();
         alert("Floor offer accepted successfully using token #" + tokenId);
-        // Cerrar el modal y recargar el estado de floor offer
         var modalEl = document.getElementById('acceptFloorOfferModal');
         var modal = bootstrap.Modal.getInstance(modalEl);
         modal.hide();
