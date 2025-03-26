@@ -153,6 +153,13 @@
   <script src="/market/AdrianPunksABI.js"></script>
   <!-- Now include our custom script -->
   <script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="/market/AdrianPunksABI.js"></script>
+<script>
+  const contractABI = AdrianPunksABI;
+  // Now you can use contractABI to instantiate your contract:
+  // const contract = new ethers.Contract(contractAddress, contractABI, provider);
+</script>
     // Ensure the ABI is available:
     if (typeof AdrianPunksABI === "undefined") {
       console.error("AdrianPunksABI is not defined. Check the /market/AdrianPunksABI.js file.");
