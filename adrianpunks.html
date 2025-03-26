@@ -31,9 +31,8 @@
       min-height: 500px;
       position: relative;
     }
-    /* Se mantiene la imagen completa y se quita el texto interno */
     .hero h1 {
-      display: none;
+      display: none; /* Sin texto interno */
     }
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
@@ -56,7 +55,6 @@
       background-color: #111;
       cursor: pointer;
     }
-    /* El bloque de floor offer se mostrará en azul */
     #floorOfferDisplay {
       background-color: #007bff;
       color: #fff;
@@ -105,12 +103,10 @@
       color: #eee;
       margin-bottom: 0.5rem;
     }
-    /* Ficha de token poseído: fondo azul claro */
     .nft-card.owned {
-      background-color: #add8e6;
+      background-color: #add8e6; /* Fondo azul claro si es poseído */
       color: #000;
     }
-    /* Ficha de token no poseído: fondo oscuro */
     .nft-card.unowned {
       background-color: #1f1f1f;
       color: #ccc;
@@ -149,7 +145,7 @@
       border-radius: 4px;
       border: 1px solid #333;
     }
-    /* ========== MODAL Y FOOTER ========== */
+    /* ========== MODAL & FOOTER ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
       color: #fff;
@@ -175,7 +171,7 @@
   </style>
 </head>
 <body>
-  <!-- Menu (Header) -->
+  <!-- Menú (Header) -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
@@ -188,7 +184,7 @@
   <!-- Hero Section -->
   <section class="hero"></section>
 
-  <!-- Botones superiores (Marketplace y Offers) -->
+  <!-- Botones superiores: Marketplace y Offers (ocupan todo el ancho) -->
   <div class="section-wrapper">
     <div class="row top-buttons">
       <div class="col-6">
@@ -205,7 +201,6 @@
     <div id="floorOfferDisplay">
       <span id="floorOfferText">No floor offer set.</span>
     </div>
-    <!-- También se puede incluir un botón para cambiar la oferta piso -->
     <button class="btn btn-secondary mt-2" onclick="event.stopPropagation(); openSetFloorOfferForm()">Set Floor Offer</button>
     <div id="setFloorOfferForm" style="display:none; margin-top:1rem;">
       <label>Offer Amount (in ADRIAN tokens):
@@ -215,7 +210,7 @@
     </div>
   </div>
 
-  <!-- MAIN CONTENT WRAPPER (Balance, etc.) -->
+  <!-- MAIN CONTENT WRAPPER (Balance y demás) -->
   <div class="section-wrapper" style="padding: 0.5rem 1rem;">
     <header class="text-center">
       <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
@@ -235,7 +230,7 @@
     </div>
   </section>
 
-  <!-- Modal para mostrar metadata y acciones del marketplace -->
+  <!-- Modal de Metadata y acciones (incluye botones para Floor Offer y Token Offer) -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -244,17 +239,17 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- Se inyecta contenido dinámicamente. Incluye botones para: Floor Offer y Token Offer -->
           <div id="modalActionButtons" class="mb-3">
             <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
+          <!-- Aquí se inyecta el contenido específico del token -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal para seleccionar token al aceptar floor offer -->
+  <!-- Modal para seleccionar token al aceptar Floor Offer -->
   <div class="modal fade" id="acceptFloorOfferModal" tabindex="-1" aria-labelledby="acceptFloorOfferModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -701,11 +696,11 @@
         const offerAmount = floorOffer.offerAmount;
         const buyer = floorOffer.buyer;
         const active = floorOffer.active;
-        const detailsDiv = document.getElementById("floorOfferText");
+        const textSpan = document.getElementById("floorOfferText");
         if (active && offerAmount.gt(0)) {
-          detailsDiv.innerText = `${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN`;
+          textSpan.innerText = `${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN`;
         } else {
-          detailsDiv.innerText = "No floor offer set.";
+          textSpan.innerText = "No floor offer set.";
         }
       } catch (error) {
         console.error("Error loading floor offer:", error);
@@ -764,7 +759,7 @@
     async function acceptFloorOffer(tokenId) {
       const nftTypeParam = 0;
       try {
-        // Verificar y solicitar aprobación si no está establecida para la transferencia de NFT
+        // Verificar y solicitar aprobación si es necesario
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
         if (!approved) {
