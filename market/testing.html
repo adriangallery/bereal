@@ -79,6 +79,9 @@
           <option value="15552000">6 months</option>
         </select>
       </div>
+      <!-- Botón para aprobar la colección -->
+      <button type="button" class="btn btn-warning mb-3" onclick="approveCollection()">Approve Collection</button>
+      <!-- Botón para crear el listado -->
       <button type="button" class="btn btn-primary" onclick="createListing()">Create Listing</button>
     </form>
 
@@ -98,13 +101,26 @@
     // Contract address and ABI for AdrianMarket
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
     const marketplaceAbi = [
-      // createListing: parameters (address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam)
-      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
-      // getActiveListings: returns array of listing IDs
+      // createListing: (address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam)
+      "function createListing(address, uint256, uint256, uint256, uint256, uint8) external",
+      // getActiveListings: view returns (uint256[])
       "function getActiveListings() view returns (uint256[])",
-      // listings: mapping(uint256 => Listing) where Listing is:
-      // (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime, uint8 nftType)
+      // listings mapping: returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime, uint8 nftType)
       "function listings(uint256) view returns (uint256, address, address, uint256, uint256, uint256, uint256, uint8)"
+    ];
+
+    // ABI for ERC721 (for approvals)
+    const erc721Abi = [
+      "function ownerOf(uint256 tokenId) view returns (address)",
+      "function getApproved(uint256 tokenId) view returns (address)",
+      "function isApprovedForAll(address owner, address operator) view returns (bool)",
+      "function setApprovalForAll(address operator, bool approved) external"
+    ];
+
+    // ABI for ERC1155 (for approvals)
+    const erc1155Abi = [
+      "function isApprovedForAll(address account, address operator) view returns (bool)",
+      "function setApprovalForAll(address operator, bool approved) external"
     ];
 
     // Connect wallet function
@@ -125,6 +141,39 @@
     }
     document.getElementById("connectButton").addEventListener("click", connectWallet);
 
+    // Función para aprobar la colección
+    async function approveCollection() {
+      const collectionAddr = document.getElementById("collectionAddress").value.trim();
+      const nftTypeParam = parseInt(document.getElementById("nftType").value); // 0 for ERC1155, 1 for ERC721
+      if (!collectionAddr) {
+        alert("Please enter a collection address.");
+        return;
+      }
+      try {
+        let nftContract;
+        if (nftTypeParam === 1) { // ERC721
+          nftContract = new ethers.Contract(collectionAddr, erc721Abi, signer);
+        } else { // ERC1155
+          nftContract = new ethers.Contract(collectionAddr, erc1155Abi, signer);
+        }
+        const approved = await nftContract.isApprovedForAll(userAccount, marketplaceAddress);
+        console.log("Current approval status for collection", collectionAddr, ":", approved);
+        if (!approved) {
+          console.log("Not approved. Calling setApprovalForAll...");
+          const tx = await nftContract.setApprovalForAll(marketplaceAddress, true);
+          console.log("Approval transaction sent. Tx hash:", tx.hash);
+          await tx.wait();
+          console.log("Collection approved successfully.");
+          alert("Collection approved successfully.");
+        } else {
+          alert("Collection is already approved.");
+        }
+      } catch (error) {
+        console.error("Error approving collection:", error);
+        alert("Error approving collection: " + error.message);
+      }
+    }
+
     // Function to create a listing
     async function createListing() {
       console.log("Creating listing...");
@@ -136,19 +185,16 @@
       const nftTypeParam = parseInt(document.getElementById("nftType").value); // 0 for ERC1155, 1 for ERC721
 
       console.log("Form values:", { collectionAddr, tokenId, quantity, pricePerToken, duration, nftTypeParam });
-
       if (!collectionAddr || !tokenId || !quantity || !pricePerToken || !duration) {
         alert("Please fill in all fields.");
         return;
       }
-
-      // Para ERC721 forzamos quantity = 1
+      // Para ERC721, forzamos quantity = 1.
       if (nftTypeParam === 1 && quantity !== 1) {
         console.warn("For ERC721, quantity must be 1. Overriding quantity to 1.");
         quantity = 1;
       }
-
-      // Convertir el precio ingresado (human-readable) a wei usando 18 decimales y multiplicarlo por la cantidad
+      // Convertir el precio (human-readable) a wei (18 decimales) y multiplicarlo por la cantidad.
       let totalPrice;
       try {
         totalPrice = ethers.utils.parseUnits(pricePerToken, 18).mul(quantity);
@@ -158,10 +204,17 @@
         alert("Invalid price value.");
         return;
       }
-
       // Llamar a createListing con un gas manual
       try {
-        const tx = await marketplaceContract.createListing(collectionAddr, tokenId, quantity, totalPrice, duration, nftTypeParam, { gasLimit: 1000000 });
+        const tx = await marketplaceContract.createListing(
+          collectionAddr,
+          tokenId,
+          quantity,
+          totalPrice,
+          duration,
+          nftTypeParam,
+          { gasLimit: 1000000 }
+        );
         console.log("Transaction sent. Tx hash:", tx.hash);
         const receipt = await tx.wait();
         console.log("Transaction confirmed. Receipt:", receipt);
@@ -186,14 +239,12 @@
         container.innerHTML = "";
         for (let i = 0; i < listingIds.length; i++) {
           const id = listingIds[i];
-          // Llamamos a listings(id) para obtener los detalles del listado
+          // Llamar a listings(id) para obtener los detalles
           const listing = await marketplaceContract.listings(id);
           // listing devuelve: id, seller, collection, tokenId, quantity, price, expirationTime, nftType
           const nftType = listing[7] == 1 ? "ERC721" : "ERC1155";
-          // Convertir el precio unitario: totalPrice / quantity en formato legible
           const unitPrice = ethers.utils.formatUnits(listing[5].div(listing[4]), 18);
           const expiration = new Date(listing[6].toNumber() * 1000).toLocaleString();
-          // Crear una tarjeta de listado
           const card = document.createElement("div");
           card.className = "listing-card";
           card.innerHTML = `
