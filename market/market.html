@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>AdrianMarket - Marketplace</title>
+  <style>
+    body {
+      background-color: #fff;
+      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header, footer {
+      background-color: #b2b3b3;
+      color: #fff;
+      padding: 15px;
+      text-align: center;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    main {
+      padding: 20px;
+    }
+    .nft-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .nft-card {
+      background-color: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin: 10px;
+      padding: 10px;
+      width: 200px;
+      text-align: center;
+    }
+    .nft-card img {
+      width: 100%;
+      border-radius: 5px;
+    }
+    .nft-card h3 {
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AdrianMarket</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="market.html">Marketplace</a>
+      <a href="details.html">Detalles NFT</a>
+    </nav>
+  </header>
+  
+  <main>
+    <h2>Marketplace</h2>
+    <div class="nft-container" id="nftContainer">
+      <!-- Aquí se insertarán las cards dinámicamente -->
+    </div>
+  </main>
+  
+  <footer>
+    <p>© 2025 AdrianMarket</p>
+  </footer>
+  
+  <script>
+    // Ejemplo de datos; en la práctica, cargarías el CSV o JSON generado
+    const nftData = [
+      { tokenID: 1, imageUrl: "ipfs://CID_REAL/1.png" },
+      { tokenID: 2, imageUrl: "ipfs://CID_REAL/2.gif" },
+      { tokenID: 3, imageUrl: "ipfs://CID_REAL/3.png" }
+      // ... hasta 1000
+    ];
+
+    const container = document.getElementById("nftContainer");
+    nftData.forEach(nft => {
+      const card = document.createElement("div");
+      card.className = "nft-card";
+      
+      // Se puede incorporar el CID dentro de la URL (asegúrate de que la URL se pueda visualizar correctamente)
+      const img = document.createElement("img");
+      // Si los navegadores no interpretan ipfs://, puedes usar un gateway, por ejemplo: https://ipfs.io/ipfs/CID_REAL/...
+      img.src = nft.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+      
+      const title = document.createElement("h3");
+      title.textContent = "NFT #" + nft.tokenID;
+      
+      card.appendChild(img);
+      card.appendChild(title);
+      container.appendChild(card);
+    });
+  </script>
+</body>
+</html>
