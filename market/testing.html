@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$ADRIAN Marketplace</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS for styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    .container {
+      margin-top: 20px;
+    }
+    .section-title {
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+    .listing-card {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .listing-card p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header: Wallet Connection -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>$ADRIAN Marketplace</h1>
+      <button id="connectButton" class="btn btn-outline-light">Connect Wallet</button>
+    </div>
+
+    <!-- Section: Create New Listing -->
+    <h2 class="section-title">Create New Listing</h2>
+    <form id="createListingForm" class="mb-5">
+      <div class="mb-3">
+        <label for="collectionAddress" class="form-label">Collection Address</label>
+        <input type="text" id="collectionAddress" class="form-control" placeholder="0x...">
+      </div>
+      <div class="mb-3">
+        <label for="tokenId" class="form-label">Token ID</label>
+        <input type="number" id="tokenId" class="form-control" placeholder="Enter token ID">
+      </div>
+      <div class="mb-3">
+        <label for="nftType" class="form-label">NFT Type</label>
+        <select id="nftType" class="form-select">
+          <option value="0" selected>ERC1155</option>
+          <option value="1">ERC721</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="quantity" class="form-label">Quantity</label>
+        <input type="number" id="quantity" class="form-control" placeholder="Enter quantity" value="1" min="1">
+      </div>
+      <div class="mb-3">
+        <label for="pricePerToken" class="form-label">Price per Token ($ADRIAN) (human-readable)</label>
+        <input type="text" id="pricePerToken" class="form-control" placeholder="e.g., 10">
+      </div>
+      <div class="mb-3">
+        <label for="duration" class="form-label">Duration (in seconds)</label>
+        <select id="duration" class="form-select">
+          <option value="3600">1 hour</option>
+          <option value="86400">1 day</option>
+          <option value="172800" selected>2 days</option>
+          <option value="604800">7 days</option>
+          <option value="2592000">30 days</option>
+          <option value="15552000">6 months</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="createListing()">Create Listing</button>
+    </form>
+
+    <!-- Section: Active Listings -->
+    <h2 class="section-title">Active Listings</h2>
+    <div id="listingsContainer"></div>
+    <button id="refreshListings" class="btn btn-secondary mt-3" onclick="loadActiveListings()">Refresh Listings</button>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Global variables
+    let provider, signer, userAccount;
+    let marketplaceContract;
+
+    // Contract address and ABI for AdrianMarket
+    const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
+    const marketplaceAbi = [
+      // createListing: parameters (address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam)
+      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
+      // getActiveListings: returns array of listing IDs
+      "function getActiveListings() view returns (uint256[])",
+      // listings: mapping(uint256 => Listing) where Listing is:
+      // (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime, uint8 nftType)
+      "function listings(uint256) view returns (uint256, address, address, uint256, uint256, uint256, uint256, uint8)"
+    ];
+
+    // Connect wallet function
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAccount = await signer.getAddress();
+        document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
+        marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
+        console.log("Wallet connected:", userAccount);
+        // Cargar listados una vez conectados
+        loadActiveListings();
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+    document.getElementById("connectButton").addEventListener("click", connectWallet);
+
+    // Function to create a listing
+    async function createListing() {
+      console.log("Creating listing...");
+      const collectionAddr = document.getElementById("collectionAddress").value.trim();
+      const tokenId = document.getElementById("tokenId").value;
+      let quantity = parseInt(document.getElementById("quantity").value);
+      const pricePerToken = document.getElementById("pricePerToken").value.trim();
+      const duration = document.getElementById("duration").value;
+      const nftTypeParam = parseInt(document.getElementById("nftType").value); // 0 for ERC1155, 1 for ERC721
+
+      console.log("Form values:", { collectionAddr, tokenId, quantity, pricePerToken, duration, nftTypeParam });
+
+      if (!collectionAddr || !tokenId || !quantity || !pricePerToken || !duration) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      // Para ERC721 forzamos quantity = 1
+      if (nftTypeParam === 1 && quantity !== 1) {
+        console.warn("For ERC721, quantity must be 1. Overriding quantity to 1.");
+        quantity = 1;
+      }
+
+      // Convertir el precio ingresado (human-readable) a wei usando 18 decimales y multiplicarlo por la cantidad
+      let totalPrice;
+      try {
+        totalPrice = ethers.utils.parseUnits(pricePerToken, 18).mul(quantity);
+        console.log("Calculated totalPrice (wei):", totalPrice.toString());
+      } catch (err) {
+        console.error("Price conversion error:", err);
+        alert("Invalid price value.");
+        return;
+      }
+
+      // Llamar a createListing con un gas manual
+      try {
+        const tx = await marketplaceContract.createListing(collectionAddr, tokenId, quantity, totalPrice, duration, nftTypeParam, { gasLimit: 1000000 });
+        console.log("Transaction sent. Tx hash:", tx.hash);
+        const receipt = await tx.wait();
+        console.log("Transaction confirmed. Receipt:", receipt);
+        alert("Listing created successfully.");
+        loadActiveListings();
+      } catch (error) {
+        console.error("Error creating listing:", error);
+        alert("Error creating listing: " + error.message);
+      }
+    }
+
+    // Function to load active listings from the contract
+    async function loadActiveListings() {
+      if (!marketplaceContract) {
+        console.warn("Marketplace contract not initialized.");
+        return;
+      }
+      try {
+        const listingIds = await marketplaceContract.getActiveListings();
+        console.log("Active listing IDs:", listingIds);
+        const container = document.getElementById("listingsContainer");
+        container.innerHTML = "";
+        for (let i = 0; i < listingIds.length; i++) {
+          const id = listingIds[i];
+          // Llamamos a listings(id) para obtener los detalles del listado
+          const listing = await marketplaceContract.listings(id);
+          // listing devuelve: id, seller, collection, tokenId, quantity, price, expirationTime, nftType
+          const nftType = listing[7] == 1 ? "ERC721" : "ERC1155";
+          // Convertir el precio unitario: totalPrice / quantity en formato legible
+          const unitPrice = ethers.utils.formatUnits(listing[5].div(listing[4]), 18);
+          const expiration = new Date(listing[6].toNumber() * 1000).toLocaleString();
+          // Crear una tarjeta de listado
+          const card = document.createElement("div");
+          card.className = "listing-card";
+          card.innerHTML = `
+            <p><strong>Listing ID:</strong> ${listing[0].toString()}</p>
+            <p><strong>Seller:</strong> ${listing[1]}</p>
+            <p><strong>Collection:</strong> ${listing[2]}</p>
+            <p><strong>Token ID:</strong> ${listing[3].toString()}</p>
+            <p><strong>Quantity:</strong> ${listing[4].toString()}</p>
+            <p><strong>Unit Price:</strong> ${unitPrice} $ADRIAN</p>
+            <p><strong>Expires:</strong> ${expiration}</p>
+            <p><strong>Type:</strong> ${nftType}</p>
+          `;
+          container.appendChild(card);
+        }
+      } catch (error) {
+        console.error("Error loading active listings:", error);
+        alert("Error loading listings: " + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
