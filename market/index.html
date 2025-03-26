@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AdrianMarket - Inicio</title>
+  <title>AdrianMarket - Home</title>
   <style>
-    /* Estilos en tonos de gris, blanco y negro; base: #b2b3b3 */
+    /* Color palette: shades of gray, white and black; base color: #b2b3b3 */
     body {
       background-color: #fff;
       color: #333;
@@ -30,18 +30,18 @@
     }
     main {
       padding: 20px;
+      text-align: center;
     }
     .intro {
-      text-align: center;
       margin-top: 50px;
     }
     .collection-preview {
       margin-top: 30px;
-      text-align: center;
     }
     .collection-preview img {
       max-width: 300px;
       border-radius: 8px;
+      cursor: pointer;
     }
     button {
       padding: 10px 20px;
@@ -60,26 +60,28 @@
   <header>
     <h1>AdrianMarket</h1>
     <nav>
-      <a href="index.html">Inicio</a>
-      <a href="market.html">Marketplace</a>
-      <a href="details.html">Detalles NFT</a>
+      <a href="index.html">Home</a>
+      <a href="adrianpunks.html">Adrian Punks</a>
+      <a href="details.html">NFT Details</a>
     </nav>
     <div>
-      <button id="connectWalletBtn">Conectar Wallet</button>
-      <div class="wallet-info" id="walletInfo">No conectada</div>
+      <button id="connectWalletBtn">Connect Wallet</button>
+      <div class="wallet-info" id="walletInfo">Not connected</div>
     </div>
   </header>
   
   <main>
     <section class="intro">
-      <h2>Bienvenido a AdrianMarket</h2>
-      <p>Explora y adquiere tus NFTs favoritos en un entorno elegante en tonos grises, blanco y negro.</p>
+      <h2>Welcome to AdrianMarket</h2>
+      <p>Explore and acquire your favorite NFTs in an elegant environment using shades of gray, white, and black.</p>
     </section>
     <section class="collection-preview">
-      <h3>Colección principal: AdrianPunks</h3>
-      <!-- Se puede usar una imagen representativa de la colección -->
-      <img src="https://via.placeholder.com/300x300?text=AdrianPunks" alt="AdrianPunks">
-      <p>Descubre nuestra colección principal de AdrianPunks, listada y en constante evolución.</p>
+      <h3>Main Collection: Adrian Punks</h3>
+      <!-- The Adrian Punks image linked to the collection page -->
+      <a href="adrianpunks.html">
+        <img src="https://i2.seadn.io/base/0xf7f61b4D7E29d479d284f3fda1fb46188940c3b9/ad029afa6e65ce8b2d119f90d5685f/b5ad029afa6e65ce8b2d119f90d5685f.png?w=1000" alt="Adrian Punks">
+      </a>
+      <p>Discover our main collection, Adrian Punks, which is constantly evolving.</p>
     </section>
   </main>
   
@@ -87,7 +89,7 @@
     <p>© 2025 AdrianMarket</p>
   </footer>
   
-  <!-- Incluir ethers.js -->
+  <!-- Include ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     let provider, signer, userAccount;
@@ -99,13 +101,13 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
-          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
+          document.getElementById("walletInfo").textContent = "Connected: " + userAccount;
         } catch (error) {
-          console.error("Acceso a la cuenta denegado:", error);
-          document.getElementById("walletInfo").textContent = "Conexión denegada";
+          console.error("Account access denied:", error);
+          document.getElementById("walletInfo").textContent = "Connection denied";
         }
       } else {
-        alert("Por favor, instala MetaMask para continuar.");
+        alert("Please install MetaMask to continue.");
       }
     }
 
