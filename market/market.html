@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>AdrianMarket - Marketplace</title>
   <style>
-    /* Estilos en tonos gris, blanco y negro */
     body {
       background-color: #fff;
       color: #333;
@@ -64,7 +63,7 @@
   <main>
     <h2>Marketplace</h2>
     <div class="nft-container" id="nftContainer">
-      <!-- Aquí se insertarán las cards de los NFTs cargados de la blockchain -->
+      <!-- Se insertarán las cards de los NFTs cargados desde la blockchain -->
     </div>
   </main>
   
@@ -75,14 +74,12 @@
   <!-- Incluir ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
-    // Configuración: dirección del contrato y ABI
-    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real
+    // Configuración: dirección del contrato y ABI (ajusta estos datos)
+    const contractAddress = "0xTuContrato"; // Reemplaza con la dirección real de tu contrato
     const contractABI = [
-      // Aquí va el ABI de tu contrato
-      // Ejemplo:
-      // "function getCollections() view returns (address[])",
-      // "function getToken(uint256 tokenId) view returns (string memory imageUrl, string memory description)",
-      // "function getListings() view returns (Listing[])"      
+      // Ejemplo de funciones. Reemplaza con el ABI real de tu contrato:
+      // "function getActiveTokens() view returns (uint256[])",
+      // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
     ];
     
     // Conectar al proveedor (MetaMask)
@@ -93,16 +90,16 @@
           const provider = new ethers.providers.Web3Provider(window.ethereum);
           return provider;
         } catch (error) {
-          console.error("Acceso a la cuenta denegado", error);
+          console.error("Acceso a la cuenta denegado:", error);
           return null;
         }
       } else {
-        alert("Por favor, instala MetaMask.");
+        alert("Por favor, instala MetaMask para continuar.");
         return null;
       }
     }
     
-    // Cargar información del contrato
+    // Cargar los NFTs desde el contrato
     async function loadNFTs() {
       const provider = await connectProvider();
       if (!provider) return;
@@ -111,25 +108,22 @@
       const contract = new ethers.Contract(contractAddress, contractABI, provider);
       
       try {
-        // Ejemplo: obtener un listado de tokens o colecciones (modifica según tu contrato)
-        // Supongamos que existe una función "getActiveTokens" que devuelve un array de tokenIDs
+        // Supongamos que el contrato tiene la función getActiveTokens() que devuelve un array de tokenIDs
         const tokenIDs = await contract.getActiveTokens();
-        
         const container = document.getElementById("nftContainer");
-        container.innerHTML = ""; // Limpiar el contenedor
-
-        // Recorrer los tokenIDs y obtener datos para cada NFT
+        container.innerHTML = "";
+        
+        // Iterar sobre cada token para obtener su información
         for (let tokenId of tokenIDs) {
-          // Supongamos que tenemos una función getTokenData(tokenId) que retorna los datos del token.
+          // Supongamos que la función getTokenData(tokenId) devuelve un objeto con imageUrl y description
           const tokenData = await contract.getTokenData(tokenId);
-          // tokenData puede contener: imageUrl, description, title, etc.
           
-          // Crear la card
+          // Crear la card para el NFT
           const card = document.createElement("div");
           card.className = "nft-card";
           
           const img = document.createElement("img");
-          // Si la URL es ipfs://, reemplazar por un gateway público
+          // Reemplaza "ipfs://" por un gateway para visualizar la imagen en el navegador
           img.src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
           
           const title = document.createElement("h3");
@@ -144,7 +138,7 @@
       }
     }
     
-    // Iniciar la carga
+    // Iniciar la carga de NFTs
     loadNFTs();
   </script>
 </body>
