@@ -189,7 +189,7 @@
     </header>
   </div>
 
-  <!-- NFT Gallery Section (Marketplace) with lateral margins for mobile -->
+  <!-- NFT Gallery Section (Marketplace) -->
   <section>
     <div class="container px-3">
       <div id="loadingSpinner" style="display:none;">
@@ -210,7 +210,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="metadataContent">
-          <!-- El contenido se inyecta dinámicamente mediante JS -->
+          <!-- Content injected dynamically -->
         </div>
       </div>
     </div>
@@ -227,7 +227,7 @@
 
   <!-- Scripts and logic -->
   <script>
-    // Cache duration en milisegundos (2 días)
+    // Cache duration (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
     // Función para obtener metadata utilizando localStorage como caché
@@ -255,40 +255,42 @@
       }
     }
 
-    // Función para comprimir la dirección del wallet (ej: 0x4943...81C6 -> 0x...81C6)
+    // Función para comprimir la dirección del wallet (ej: 0x4943...81C6)
     function compressAddress(address) {
       return address.substring(0, 2) + "..." + address.substring(address.length - 4);
     }
 
     // Variables de conexión y contratos
     let provider, signer, userAccount;
-    // Token ERC20 permanece igual
+    // Dirección del token ERC20 (permanece igual)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    // Nueva colección: AdrianPunks
+    // Nueva colección: AdrianPunks (ERC721)
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // Para usar en el marketplace, se utiliza la misma colección
+    // Para el marketplace se utiliza la misma colección
     const collectionAddress = nftCollectionAddress;
-    // Nueva dirección del marketplace (AdrianMarket)
+    // Dirección del marketplace (AdrianMarket)
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
 
-    // ABI para token (ERC20)
+    // ABI para token ERC20
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para NFT (parcial)
+    // ABI para NFT (ERC721 con Enumerable)
     const nftABI = [
-      "function balanceOf(address account, uint256 id) view returns (uint256)",
-      "function uri(uint256 id) view returns (string)",
-      "function nextEventId() view returns (uint256)"
+      "function totalSupply() view returns (uint256)",
+      "function tokenByIndex(uint256 index) view returns (uint256)",
+      "function tokenURI(uint256 tokenId) view returns (string)",
+      "function balanceOf(address owner) view returns (uint256)",
+      "function ownerOf(uint256 tokenId) view returns (address)"
     ];
 
-    // ABI mínimo para ERC1155 (para aprobaciones)
-    const erc1155Abi = [
+    // ABI para ERC721's setApprovalForAll (mismo formato que ERC1155)
+    const erc721Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
-      "function isApprovedForAll(address account, address operator) external view returns (bool)"
+      "function isApprovedForAll(address owner, address operator) external view returns (bool)"
     ];
 
     // --- ABI actualizado para AdrianMarket ---
@@ -307,7 +309,7 @@
       "function acceptOffer(uint256 offerId) external"
     ];
 
-    // Se elimina la instancia separada de ofertas, ya que el marketplace gestiona ambas funciones.
+    // Instancias de contratos
     let tokenContract, nftContract, marketplaceContract;
 
     //
@@ -330,7 +332,7 @@
       userAccount = window.menuUserAccount;
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
       nftContract = new ethers.Contract(nftCollectionAddress, nftABI, signer);
-      // Inicializamos el contrato del marketplace con el nuevo ABI y dirección
+      // Inicializamos el contrato del marketplace
       marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
       updateTokenBalance();
       loadNFTs();
@@ -347,60 +349,56 @@
       }
     }
 
+    // Función para cargar todos los NFTs de la colección (asumiendo ERC721Enumerable)
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
-        const nextEventId = await nftContract.nextEventId();
-        const totalEvents = nextEventId.toNumber();
-        let uniqueTokens = {};
-        for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-          if (tokenId === 0) continue;
-          let tokenURI = await nftContract.uri(tokenId);
+        const totalSupply = await nftContract.totalSupply();
+        // Obtener todos los tokenIds mediante tokenByIndex
+        let tokenIds = [];
+        for (let i = 0; i < totalSupply; i++) {
+          let tokenId = await nftContract.tokenByIndex(i);
+          tokenIds.push(tokenId);
+        }
+        // Por cada tokenId, obtener metadata y ownership
+        for (let tokenId of tokenIds) {
+          let tokenURI = await nftContract.tokenURI(tokenId);
           if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
           const metadata = await getMetadata(tokenURI);
           let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
           if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          // Ejemplo de imagen personalizada para algún token (puedes quitar o modificar según tus necesidades)
-          if (tokenId === 13) {
-            imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
-          }
           let tokenName = metadata.name || `Token ${tokenId}`;
-          if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
-          let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
-          const balance = await nftContract.balanceOf(userAccount, tokenId);
-          let ownedCount = balance.toNumber();
-          addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount);
-        }
-        for (let key in uniqueTokens) {
-          let token = uniqueTokens[key];
-          let colDiv = document.createElement("div");
-          colDiv.className = "col-6 col-md-3 mb-4";
+          // Verificar si el usuario es dueño del token
+          let owner = await nftContract.ownerOf(tokenId);
+          let owned = (owner.toLowerCase() === userAccount.toLowerCase()) ? 1 : 0;
           let cardHTML = "";
-          if (token.owned > 0) {
+          if (owned > 0) {
             cardHTML = `
-              <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
-                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+              <div class="card nft-card h-100" onclick="showMetadata(${tokenId})">
+                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
                 <div class="card-body">
-                  <h5 class="card-title">${token.tokenName}</h5>
-                  <p class="card-text">Owned: ${token.owned}</p>
+                  <h5 class="card-title">${tokenName}</h5>
+                  <p class="card-text">Owned</p>
                 </div>
-                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
+                <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
               </div>
             `;
           } else {
             cardHTML = `
-              <div class="card nft-card unowned h-100" onclick="showMetadata(${token.ownedRepresentative})">
-                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+              <div class="card nft-card unowned h-100" onclick="showMetadata(${tokenId})">
+                <img src="${imageUrl}" class="card-img-top" alt="${tokenName}">
                 <div class="card-body">
-                  <h5 class="card-title">${token.tokenName}</h5>
+                  <h5 class="card-title">${tokenName}</h5>
                   <p class="card-text">Not owned</p>
                 </div>
-                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
+                <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
               </div>
             `;
           }
+          let colDiv = document.createElement("div");
+          colDiv.className = "col-6 col-md-3 mb-4";
           colDiv.innerHTML = cardHTML;
           galleryDiv.appendChild(colDiv);
         }
@@ -412,23 +410,9 @@
       }
     }
 
-    function addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount) {
-      if (uniqueTokens[tokenKey]) {
-        uniqueTokens[tokenKey].owned += ownedCount;
-      } else {
-        uniqueTokens[tokenKey] = {
-          owned: ownedCount,
-          ownedRepresentative: tokenId,
-          tokenName: tokenName,
-          imageUrl: imageUrl,
-          tokenURI: tokenURI,
-        };
-      }
-    }
-
     async function showMetadata(tokenId) {
       try {
-        let tokenURI = await nftContract.uri(tokenId);
+        let tokenURI = await nftContract.tokenURI(tokenId);
         if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         const metadata = await getMetadata(tokenURI);
         let html = "";
@@ -461,8 +445,7 @@
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
         loadListingsForToken(tokenId);
-        // Si implementas la carga de ofertas, puedes llamarla aquí:
-        // loadOffersForToken(tokenId);
+        // Si implementas carga de ofertas, llámala aquí
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
         alert("Error fetching metadata");
@@ -508,23 +491,20 @@
     async function makeOfferForToken(tokenId) {
       const offerAmount = document.getElementById("offerAmount").value;
       const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
-      // Calcular la comisión del 1%
+      // Calcular comisión del 1%
       const commissionWei = offerAmountWei.div(100);
       const totalApprovalWei = offerAmountWei.add(commissionWei);
       try {
-        // Verificar y aprobar tokens si es necesario
         const allowance = await tokenContract.allowance(userAccount, marketplaceAddress);
         if (allowance.lt(totalApprovalWei)) {
           const txApprove = await tokenContract.approve(marketplaceAddress, totalApprovalWei);
           await txApprove.wait();
           alert("Approved " + ethers.utils.formatUnits(totalApprovalWei, 18) + " ADRIAN (offer + 1% commission).");
         }
-        // Llamamos a setFloorOffer (oferta piso para la colección)
         const tx = await marketplaceContract.setFloorOffer(nftCollectionAddress, offerAmountWei);
         await tx.wait();
         alert("Floor offer created successfully!");
         document.getElementById("offerForm").style.display = "none";
-        // Si implementas visualización de ofertas, recarga aquí
       } catch (error) {
         console.error("Error creating offer:", error);
         alert("Error creating offer: " + error.message);
@@ -539,10 +519,11 @@
       const quantity = document.getElementById("listingQuantity").value;
       const pricePerNFT = document.getElementById("listingPrice").value;
       const durationSeconds = document.getElementById("listingDuration").value;
-      // Se añade nftTypeParam (0 por defecto, cámbialo si es necesario)
+      // Se añade nftTypeParam (0 por defecto)
       const nftTypeParam = 0;
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
-      const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc1155Abi, signer);
+      // Usamos la misma función setApprovalForAll de ERC721
+      const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
       try {
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
         if (!approved) {
@@ -556,7 +537,6 @@
         return;
       }
       try {
-        // Llamada a createListing con el parámetro nftTypeParam adicional
         const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds, nftTypeParam);
         const receipt = await tx.wait();
         let listingId;
