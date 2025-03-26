@@ -23,6 +23,10 @@
       margin: 0 15px;
       font-weight: bold;
     }
+    .wallet-info {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
     main {
       padding: 20px;
       display: flex;
@@ -46,6 +50,17 @@
     .nft-detail p {
       margin: 10px 0;
     }
+    button {
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 <body>
@@ -56,11 +71,14 @@
       <a href="market.html">Marketplace</a>
       <a href="details.html">Detalles NFT</a>
     </nav>
+    <div>
+      <button id="connectWalletBtn">Conectar Wallet</button>
+      <div class="wallet-info" id="walletInfo">No conectada</div>
+    </div>
   </header>
   
   <main>
     <div class="nft-detail" id="nftDetail">
-      <!-- Contenido dinámico del NFT se mostrará aquí -->
       <img id="nftImage" src="" alt="Imagen NFT">
       <h2 id="nftTitle">NFT #</h2>
       <p id="nftDescription">Descripción del NFT.</p>
@@ -74,45 +92,47 @@
   <!-- Incluir ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
-    // Configuración del contrato (reemplaza con tus datos reales)
-    const contractAddress = "0xTuContrato";
-    const contractABI = [
-      // Reemplaza con el ABI real de tu contrato.
-      // Ejemplo: "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
-    ];
+    let provider, signer, userAccount;
     
-    // Función para conectar al proveedor (MetaMask)
-    async function connectProvider() {
+    async function connectWallet() {
       if (window.ethereum) {
         try {
           await window.ethereum.request({ method: "eth_requestAccounts" });
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          return provider;
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
         } catch (error) {
           console.error("Acceso a la cuenta denegado:", error);
-          return null;
+          document.getElementById("walletInfo").textContent = "Conexión denegada";
         }
       } else {
         alert("Por favor, instala MetaMask para continuar.");
-        return null;
       }
     }
     
-    // Función para cargar los detalles del NFT
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+    
+    // Configuración del contrato (AdrianPunks)
+    const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
+    const contractABI = [
+      // Actualiza el ABI con las funciones de tu contrato:
+      // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
+      "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
+    ];
+    
     async function loadNFTDetail() {
-      const provider = await connectProvider();
-      if (!provider) return;
+      if (!provider) {
+        console.warn("Conecta tu wallet para cargar el NFT");
+        return;
+      }
       
-      // Instanciar el contrato
       const contract = new ethers.Contract(contractAddress, contractABI, provider);
       
-      // Obtén el tokenID desde la URL o define uno fijo para el ejemplo
-      const tokenID = 1;  // En una implementación real, extrae el tokenID de window.location.search o similar.
-      
+      // Para este ejemplo se usa un tokenID fijo (1); en producción, extrae el tokenID de la URL u otro mecanismo.
+      const tokenID = 1;
       try {
-        // Supongamos que getTokenData devuelve un objeto con imageUrl y description
         const tokenData = await contract.getTokenData(tokenID);
-        
         document.getElementById("nftTitle").textContent = "NFT #" + tokenID;
         document.getElementById("nftImage").src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
         document.getElementById("nftDescription").textContent = tokenData.description;
@@ -121,8 +141,12 @@
       }
     }
     
-    // Iniciar la carga de detalles
-    loadNFTDetail();
+    window.addEventListener("load", async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+        loadNFTDetail();
+      }
+    });
   </script>
 </body>
 </html>
