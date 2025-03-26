@@ -1,4 +1,4 @@
-[
+var AdrianPunksABI = [
   {
     "inputs": [
       {
@@ -1013,4 +1013,4 @@
     "stateMutability": "nonpayable",
     "type": "function"
   }
-]
+];
