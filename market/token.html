@@ -1,128 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN Marketplace - Token Detail</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Ethers.js -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <title>AdrianMarket - Detalles NFT</title>
   <style>
     body {
-      background-color: #000;
+      background-color: #fff;
+      color: #333;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header, footer {
+      background-color: #b2b3b3;
       color: #fff;
-      font-family: sans-serif;
+      padding: 15px;
+      text-align: center;
     }
-    .nft-card {
-      background-color: #1f1f1f;
-      border: 1px solid #333;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      overflow: hidden;
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
     }
-    .nft-card img {
+    .wallet-info {
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+    main {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .nft-detail {
+      max-width: 400px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      background-color: #f7f7f7;
+    }
+    .nft-detail img {
       width: 100%;
-      object-fit: cover;
-      border-radius: 8px 8px 0 0;
+      border-radius: 5px;
     }
-    .card-body {
-      padding: 1rem;
+    .nft-detail h2 {
+      margin-top: 15px;
+    }
+    .nft-detail p {
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #555;
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <nav class="navbar navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="collections.html">$ADRIAN Marketplace</a>
-      <button id="connectButton" class="btn btn-outline-light">Connect Wallet</button>
+  <header>
+    <h1>AdrianMarket</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="market.html">Marketplace</a>
+      <a href="details.html">Detalles NFT</a>
+    </nav>
+    <div>
+      <button id="connectWalletBtn">Conectar Wallet</button>
+      <div class="wallet-info" id="walletInfo">No conectada</div>
     </div>
-  </nav>
+  </header>
   
-  <!-- Token Detail Section -->
-  <div class="container my-4">
-    <h1 id="tokenTitle" class="mb-4">Token Detail</h1>
-    <div id="tokenDetail" class="mb-4"></div>
-    <!-- Marketplace Actions (placeholders for now) -->
-    <div id="marketplaceActions">
-      <button class="btn btn-primary me-2" onclick="alert('Create Listing functionality')">Create Listing</button>
-      <button class="btn btn-secondary" onclick="alert('Make Offer functionality')">Make Offer</button>
+  <main>
+    <div class="nft-detail" id="nftDetail">
+      <img id="nftImage" src="" alt="Imagen NFT">
+      <h2 id="nftTitle">NFT #</h2>
+      <p id="nftDescription">Descripción del NFT.</p>
     </div>
-  </div>
+  </main>
   
-  <!-- Footer -->
-  <footer class="bg-dark text-center text-light py-3">
-    &copy; 2025 $ADRIAN Marketplace
+  <footer>
+    <p>© 2025 AdrianMarket</p>
   </footer>
   
-  <!-- Scripts -->
+  <!-- Incluir ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script>
     let provider, signer, userAccount;
-    let nftContract;
-    // Get collection address and tokenId from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const collectionAddress = urlParams.get("collection");
-    const tokenId = urlParams.get("tokenId");
-    
-    // Minimal NFT ABI to get token URI
-    const nftAbi = [
-      "function uri(uint256 id) view returns (string)"
-    ];
     
     async function connectWallet() {
       if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner();
-        userAccount = await signer.getAddress();
-        document.getElementById("connectButton").innerText = "Connected: " + userAccount.substring(0,6) + "..." + userAccount.slice(-4);
-        nftContract = new ethers.Contract(collectionAddress, nftAbi, signer);
-        loadTokenDetail();
-      } else {
-        alert("Please install MetaMask!");
-      }
-    }
-    
-    document.getElementById("connectButton").addEventListener("click", connectWallet);
-    
-    // Utility function to fetch metadata from tokenURI
-    async function getMetadata(tokenURI) {
-      try {
-        const response = await fetch(tokenURI);
-        return await response.json();
-      } catch (error) {
-        console.error("Error fetching metadata:", error);
-        return {};
-      }
-    }
-    
-    async function loadTokenDetail() {
-      try {
-        let tokenURI = await nftContract.uri(tokenId);
-        if (tokenURI.startsWith("ipfs://")) {
-          tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        try {
+          await window.ethereum.request({ method: "eth_requestAccounts" });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          userAccount = await signer.getAddress();
+          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
+        } catch (error) {
+          console.error("Acceso a la cuenta denegado:", error);
+          document.getElementById("walletInfo").textContent = "Conexión denegada";
         }
-        const metadata = await getMetadata(tokenURI);
-        document.getElementById("tokenTitle").innerText = metadata.name || ("Token " + tokenId);
-        let detailHtml = `
-          <div class="card nft-card mb-4">
-            <img src="${(metadata.image && metadata.image.startsWith("ipfs://")) ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : (metadata.image || "https://via.placeholder.com/300?text=No+Image")}" alt="${metadata.name}">
-            <div class="card-body">
-              <h5 class="card-title">${metadata.name || ("Token " + tokenId)}</h5>
-              <p class="card-text">${metadata.description || "No description provided."}</p>
-              <p><strong>Token ID:</strong> ${tokenId}</p>
-            </div>
-          </div>
-        `;
-        document.getElementById("tokenDetail").innerHTML = detailHtml;
-      } catch (error) {
-        console.error("Error loading token detail:", error);
-        document.getElementById("tokenDetail").innerHTML = "<p>Error loading token details.</p>";
+      } else {
+        alert("Por favor, instala MetaMask para continuar.");
       }
     }
+    
+    document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
+    
+    // Configuración del contrato (reemplaza con tus datos reales)
+    const contractAddress = "0xTuContrato"; // Dirección del contrato
+    const contractABI = [
+      // Reemplaza con el ABI real de tu contrato:
+      // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
+    ];
+    
+    async function loadNFTDetail() {
+      if (!provider) {
+        console.warn("Conecta tu wallet para cargar el NFT");
+        return;
+      }
+      const contract = new ethers.Contract(contractAddress, contractABI, provider);
+      // En una implementación real, extrae el tokenID de la URL (por ejemplo, usando window.location.search)
+      const tokenID = 1;
+      try {
+        const tokenData = await contract.getTokenData(tokenID);
+        document.getElementById("nftTitle").textContent = "NFT #" + tokenID;
+        document.getElementById("nftImage").src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+        document.getElementById("nftDescription").textContent = tokenData.description;
+      } catch (error) {
+        console.error("Error al cargar los detalles del NFT:", error);
+      }
+    }
+    
+    window.addEventListener("load", async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+        loadNFTDetail();
+      }
+    });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
