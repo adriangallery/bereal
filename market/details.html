@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AdrianMarket - Detalles NFT</title>
+  <title>AdrianMarket - NFT Details</title>
   <style>
     body {
       background-color: #fff;
@@ -67,21 +67,21 @@
   <header>
     <h1>AdrianMarket</h1>
     <nav>
-      <a href="index.html">Inicio</a>
-      <a href="market.html">Marketplace</a>
-      <a href="details.html">Detalles NFT</a>
+      <a href="index.html">Home</a>
+      <a href="adrianpunks.html">Adrian Punks</a>
+      <a href="details.html">NFT Details</a>
     </nav>
     <div>
-      <button id="connectWalletBtn">Conectar Wallet</button>
-      <div class="wallet-info" id="walletInfo">No conectada</div>
+      <button id="connectWalletBtn">Connect Wallet</button>
+      <div class="wallet-info" id="walletInfo">Not connected</div>
     </div>
   </header>
   
   <main>
     <div class="nft-detail" id="nftDetail">
-      <img id="nftImage" src="" alt="Imagen NFT">
+      <img id="nftImage" src="" alt="Token Image">
       <h2 id="nftTitle">NFT #</h2>
-      <p id="nftDescription">Descripción del NFT.</p>
+      <p id="nftDescription">Description...</p>
     </div>
   </main>
   
@@ -89,8 +89,10 @@
     <p>© 2025 AdrianMarket</p>
   </footer>
   
-  <!-- Incluir ethers.js -->
+  <!-- Include ethers.js -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <!-- Include the ABI file -->
+  <script src="/market/AdrianPunksABI.js"></script>
   <script>
     let provider, signer, userAccount;
     
@@ -101,43 +103,38 @@
           provider = new ethers.providers.Web3Provider(window.ethereum);
           signer = provider.getSigner();
           userAccount = await signer.getAddress();
-          document.getElementById("walletInfo").textContent = "Conectada: " + userAccount;
+          document.getElementById("walletInfo").textContent = "Connected: " + userAccount;
         } catch (error) {
-          console.error("Acceso a la cuenta denegado:", error);
-          document.getElementById("walletInfo").textContent = "Conexión denegada";
+          console.error("Account access denied:", error);
+          document.getElementById("walletInfo").textContent = "Connection denied";
         }
       } else {
-        alert("Por favor, instala MetaMask para continuar.");
+        alert("Please install MetaMask to continue.");
       }
     }
     
     document.getElementById("connectWalletBtn").addEventListener("click", connectWallet);
     
-    // Configuración del contrato (AdrianPunks)
     const contractAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    const contractABI = [
-      // Actualiza el ABI con las funciones de tu contrato:
-      // "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
-      "function getTokenData(uint256 tokenId) view returns (string memory imageUrl, string memory description)"
-    ];
+    const contractABI = AdrianPunksABI;
+    let contract;
+    
+    async function initContract() {
+      if (!provider) return;
+      contract = new ethers.Contract(contractAddress, contractABI, provider);
+    }
     
     async function loadNFTDetail() {
-      if (!provider) {
-        console.warn("Conecta tu wallet para cargar el NFT");
-        return;
-      }
-      
-      const contract = new ethers.Contract(contractAddress, contractABI, provider);
-      
-      // Para este ejemplo se usa un tokenID fijo (1); en producción, extrae el tokenID de la URL u otro mecanismo.
+      await initContract();
+      // For this example, we use a fixed tokenId of 1. In production, you can extract this from the URL.
       const tokenID = 1;
       try {
         const tokenData = await contract.getTokenData(tokenID);
-        document.getElementById("nftTitle").textContent = "NFT #" + tokenID;
+        document.getElementById("nftTitle").textContent = tokenData.name || "NFT #" + tokenID;
         document.getElementById("nftImage").src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-        document.getElementById("nftDescription").textContent = tokenData.description;
+        document.getElementById("nftDescription").textContent = tokenData.description || "No description available.";
       } catch (error) {
-        console.error("Error al cargar los detalles del NFT:", error);
+        console.error("Error loading NFT details:", error);
       }
     }
     
