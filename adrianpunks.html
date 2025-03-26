@@ -167,7 +167,7 @@
     </div>
   </section>
   
-  <!-- Sección de botones debajo del Hero sin margen superior -->
+  <!-- Sección de botones debajo del Hero -->
   <section class="mt-0 mb-4">
     <div class="container-fluid px-0">
       <div class="row g-0">
@@ -278,16 +278,14 @@
       "function approve(address spender, uint256 amount) returns (bool)"
     ];
 
-    // ABI para NFT (ERC721 con Enumerable)
+    // ABI para NFT (ERC721; NOTA: este contrato NO extiende ERC721Enumerable)
     const nftABI = [
-      "function totalSupply() view returns (uint256)",
-      "function tokenByIndex(uint256 index) view returns (uint256)",
+      "function totalMinted() view returns (uint256)",
       "function tokenURI(uint256 tokenId) view returns (string)",
-      "function balanceOf(address owner) view returns (uint256)",
       "function ownerOf(uint256 tokenId) view returns (address)"
     ];
 
-    // ABI para ERC721's setApprovalForAll (mismo formato que ERC1155)
+    // ABI para funciones de aprobación de ERC721
     const erc721Abi = [
       "function setApprovalForAll(address operator, bool approved) external",
       "function isApprovedForAll(address owner, address operator) external view returns (bool)"
@@ -349,21 +347,15 @@
       }
     }
 
-    // Función para cargar todos los NFTs de la colección (asumiendo ERC721Enumerable)
+    // Para cargar los NFTs, iteramos desde el tokenId 1 hasta totalMinted
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
-        const totalSupply = await nftContract.totalSupply();
-        // Obtener todos los tokenIds mediante tokenByIndex
-        let tokenIds = [];
-        for (let i = 0; i < totalSupply; i++) {
-          let tokenId = await nftContract.tokenByIndex(i);
-          tokenIds.push(tokenId);
-        }
-        // Por cada tokenId, obtener metadata y ownership
-        for (let tokenId of tokenIds) {
+        const totalMinted = await nftContract.totalMinted();
+        // Iterar desde el token 1 hasta totalMinted (asumiendo que se mintearon de forma secuencial)
+        for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
           let tokenURI = await nftContract.tokenURI(tokenId);
           if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
           const metadata = await getMetadata(tokenURI);
@@ -445,7 +437,7 @@
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
         loadListingsForToken(tokenId);
-        // Si implementas carga de ofertas, llámala aquí
+        // Aquí podrías llamar a loadOffersForToken(tokenId) si implementas esa funcionalidad
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
         alert("Error fetching metadata");
@@ -522,7 +514,7 @@
       // Se añade nftTypeParam (0 por defecto)
       const nftTypeParam = 0;
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
-      // Usamos la misma función setApprovalForAll de ERC721
+      // Usamos la función setApprovalForAll de ERC721 para aprobar la transferencia
       const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
       try {
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
