@@ -126,13 +126,16 @@
     
     async function loadNFTDetail() {
       await initContract();
-      // For this example, we use a fixed tokenId of 1. In production, you can extract this from the URL.
+      // For this example, we use a fixed tokenId of 1. In production, extract this from the URL.
       const tokenID = 1;
       try {
-        const tokenData = await contract.getTokenData(tokenID);
-        document.getElementById("nftTitle").textContent = tokenData.name || "NFT #" + tokenID;
-        document.getElementById("nftImage").src = tokenData.imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-        document.getElementById("nftDescription").textContent = tokenData.description || "No description available.";
+        let uri = await contract.tokenURI(tokenID);
+        uri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
+        const response = await fetch(uri);
+        const metadata = await response.json();
+        document.getElementById("nftTitle").textContent = metadata.name || "NFT #" + tokenID;
+        document.getElementById("nftImage").src = metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+        document.getElementById("nftDescription").textContent = metadata.description || "No description available.";
       } catch (error) {
         console.error("Error loading NFT details:", error);
       }
