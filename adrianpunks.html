@@ -365,7 +365,7 @@
     // Actualiza las direcciones de contrato según corresponda
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // ABI del marketplace actualizado: las funciones que requieren el parámetro extra para indicar el tipo (1 para ERC721)
+    // ABI del marketplace actualizado: todas las funciones que requieren el parámetro extra para indicar el tipo (1 para ERC721)
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -380,7 +380,8 @@
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
       "function cancelListing(uint256 listingId) external",
-      "function buyListing(uint256 listingId, uint256 purchaseQuantity) external",
+      // Actualizamos buyListing para recibir también el token type:
+      "function buyListing(uint256 listingId, uint256 purchaseQuantity, uint8 nftTypeParam) external",
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
       "function setFloorOffer(address collection, uint256 offerAmount) external",
@@ -499,6 +500,7 @@
                    <button class="btn btn-secondary me-2" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
                    <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
                    <button class="btn btn-secondary" onclick="openMakeTokenOfferForm(${tokenId})">Make Token Offer</button>
+                   <button class="btn btn-primary mt-2" onclick="buyListingByIdWrapper(${tokenId})">Buy</button>
                  </div>
                  <div id="createListingForm" style="display:none;"></div>
                  <div id="marketplaceListings" class="mt-3"></div>
@@ -617,7 +619,7 @@
             let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
             listingsDiv.innerHTML += `<li>
                 Price per NFT: ${pricePerNFT} $ADRIAN
-                <button class="btn btn-sm btn-success" onclick="buyListingById(${listing.id.toString()})">Buy</button>
+                <button class="btn btn-sm btn-success" onclick="buyListingByIdWrapper(${listing.id.toString()}, ${listing.tokenId})">Buy</button>
               </li>`;
           });
           listingsDiv.innerHTML += "</ul>";
@@ -626,6 +628,12 @@
         console.error("Error loading listings for token:", error);
         document.getElementById("marketplaceListings").innerHTML = "<p>Error loading listings.</p>";
       }
+    }
+
+    // Envolvemos la función de compra para que reciba tokenId (para mantener consistencia en el popup)
+    async function buyListingByIdWrapper(listingId, tokenId) {
+      await buyListingById(listingId);
+      // Puedes agregar acciones adicionales si fuera necesario, usando tokenId
     }
 
     async function buyListingById(listingId) {
@@ -646,7 +654,8 @@
           await txApprove.wait();
           alert("Approved tokens for purchase.");
         }
-        const tx = await marketplaceContract.buyListing(listingId, 1, { gasLimit: 1000000 });
+        // Se añade el parámetro 1 para indicar ERC721 en la función buyListing
+        const tx = await marketplaceContract.buyListing(listingId, 1, 1, { gasLimit: 1000000 });
         await tx.wait();
         alert("Listing purchased successfully.");
         loadListingsForToken(listing.tokenId);
@@ -800,7 +809,7 @@
       }
     }
 
-    // Función para aceptar floor offer: se envía el parámetro 1 para indicar ERC721
+    // Función para aceptar floor offer: se envía el parámetro 1 para indicar que es un token ERC721
     async function acceptFloorOffer(tokenId) {
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
