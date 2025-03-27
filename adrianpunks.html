@@ -18,16 +18,16 @@
       margin: 0;
       font-family: "Courier New", Courier, monospace;
     }
-    /* El contenido principal tendrá margen superior para no quedar tapado por el menú */
+    /* Contenedor principal sin padding ni margen */
     .section-wrapper {
       max-width: 1200px;
-      margin: 70px auto 0 auto;
-      padding: 2rem 1rem;
+      margin: 0 auto;
+      /* Sin padding */
     }
     /* Título y Balance */
     .header-content {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 0;
     }
     .header-content h1 {
       font-size: 3rem;
@@ -442,7 +442,6 @@
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
-      // Para ERC721, la cantidad se fija en 1
       formDiv.innerHTML = `
           <h5>Create Listing:</h5>
           <label>Price per NFT in $ADRIAN:
@@ -467,7 +466,6 @@
       }
       const pricePerNFT = document.getElementById("listingPrice").value;
       const durationSeconds = document.getElementById("listingDuration").value;
-      // Para ERC721, quantity siempre será 1 y nftTypeParam debe ser 1
       const quantity = 1;
       const nftTypeParam = 1;
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
@@ -584,7 +582,6 @@
       }
     }
     function openFloorOfferForm() {
-      // Función en standby; se puede activar si se requiere hacer una nueva oferta de piso.
       const formDiv = document.getElementById("offerForm");
       formDiv.style.display = formDiv.style.display === "none" ? "block" : "none";
       formDiv.innerHTML = `
@@ -617,7 +614,6 @@
       }
     }
     function openMakeTokenOfferForm(tokenId) {
-      // Para ERC721, forzamos la cantidad a 1
       const formDiv = document.getElementById("offerForm");
       formDiv.style.display = "block";
       formDiv.innerHTML = `
@@ -716,7 +712,6 @@
       })();
     }
     async function acceptFloorOffer(tokenId) {
-      // Para ERC721, usamos nftTypeParam = 1
       const nftTypeParam = 1;
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
