@@ -97,6 +97,7 @@
       cursor: pointer;
       text-align: center;
       font-size: 1rem;
+      width: 100%;
     }
     /* ========== NFT GALLERY ========== */
     .nft-gallery-title {
@@ -137,6 +138,12 @@
     .nft-card .card-title {
       color: #222;
       margin-bottom: 0.5rem;
+    }
+    /* Contenedor para la info del listado activo con altura mínima para mantener uniformidad */
+    .listing-info {
+      font-size: 0.8rem;
+      color: #555;
+      min-height: 1em;
     }
     .nft-card.owned {
       background-color: #e0f7fa;
@@ -257,14 +264,10 @@
     </div>
   </section>
 
-  <!-- My Offers Section -->
-  <section>
-    <div class="container px-3">
-      <div id="myOffersSection" onclick="openMyOffersModal()">
-        <span id="myOffersText">My Offers</span>
-      </div>
-    </div>
-  </section>
+  <!-- My Offers Section (a pantalla completa) -->
+  <div id="myOffersSection" onclick="openMyOffersModal()">
+    <span id="myOffersText">My Offers</span>
+  </div>
 
   <!-- Modal para mostrar metadata y acciones -->
   <div class="modal fade" id="metadataModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
@@ -393,8 +396,8 @@
     ];
     let tokenContract, nftContract, marketplaceContract;
 
-    function formatBalance(balance) {
-      const num = parseFloat(balance);
+    function formatBalance(value) {
+      const num = parseFloat(value);
       if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
       if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
       return num.toString();
@@ -441,12 +444,13 @@
           let owner = await nftContract.ownerOf(tokenId);
           let owned = (owner.toLowerCase() === userAccount.toLowerCase());
           let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
-          // Construir la tarjeta sin onclick inline si es móvil
+          // Construir la tarjeta con un contenedor para la info del listado activo
           let cardHTML = `
             <div class="${cardClass}" data-token-id="${tokenId}">
               <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
               <div class="card-body">
                 <h5 class="card-title">${displayName}</h5>
+                <div class="listing-info"></div>
               </div>
               ${!isMobile ? `<button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>` : ""}
             </div>
@@ -461,6 +465,18 @@
             });
           }
           galleryDiv.appendChild(colDiv);
+
+          // Verificar si existe listado activo para este token y actualizar el contenedor de info
+          (async () => {
+            let listing = await getListingForToken(tokenId);
+            let listingDiv = colDiv.querySelector('.listing-info');
+            if (listing) {
+              let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
+              listingDiv.innerText = `${formatBalance(pricePerNFT)} $A`;
+            } else {
+              listingDiv.innerText = "";
+            }
+          })();
         }
         document.getElementById("loadingSpinner").style.display = "none";
       } catch (error) {
