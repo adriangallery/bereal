@@ -16,13 +16,13 @@
       background-color: #fff;
       color: #222;
       margin: 0;
+      padding-top: 50px; /* Para que el contenido no quede tapado por el menú */
       font-family: "Courier New", Courier, monospace;
     }
-    /* Contenedor principal sin padding ni margen */
+    /* Contenedor principal SIN padding extra */
     .section-wrapper {
       max-width: 1200px;
       margin: 0 auto;
-      /* Sin padding */
     }
     /* Título y Balance */
     .header-content {
@@ -39,8 +39,15 @@
       color: #555;
     }
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
+    .top-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
     .top-buttons .btn {
-      width: 100%;
+      flex: 1 1 45%;
       border-radius: 4px;
       padding: 1rem;
       font-size: 1.25rem;
@@ -195,6 +202,17 @@
       box-sizing: border-box;
       font-family: inherit;
     }
+    /* Estilos para el contenedor de botones en el modal (para móviles) */
+    #modalActionButtons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    #modalActionButtons .btn {
+      flex: 1 1 30%;
+      min-width: 100px;
+    }
   </style>
 </head>
 <body>
@@ -217,6 +235,10 @@
     <!-- Floor Offer Section (al hacer clic se muestra el popup para aceptar la oferta) -->
     <div id="floorOfferSection" onclick="openAcceptFloorOfferModal()">
       <span id="floorOfferText">Highest floor offer 0.0 $ADRIAN</span>
+    </div>
+    <div class="top-buttons">
+      <a href="/marketplace.html" class="btn btn-primary">Marketplace</a>
+      <a href="/listings.html" class="btn btn-danger">Offers</a>
     </div>
   </div>
 
@@ -242,8 +264,8 @@
         </div>
         <div class="modal-body" id="metadataContent">
           <div id="modalActionButtons" class="mb-3">
-            <button class="btn btn-secondary me-2" onclick="openCreateListingForm()">Create Listing</button>
-            <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
+            <button class="btn btn-secondary" onclick="openCreateListingForm()">Create Listing</button>
+            <button class="btn btn-secondary" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
           <!-- Aquí se inyecta contenido específico del token -->
@@ -595,14 +617,12 @@
     async function makeFloorOffer() {
       const offerAmount = document.getElementById("offerAmount").value;
       const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
-      const commissionWei = offerAmountWei.div(100);
-      const totalApprovalWei = offerAmountWei.add(commissionWei);
       try {
-        const allowance = await tokenContract.allowance(userAccount, marketplaceAddress);
-        if (allowance.lt(totalApprovalWei)) {
-          const txApprove = await tokenContract.approve(marketplaceAddress, totalApprovalWei);
+        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
+        if (currentAllowance.lt(offerAmountWei)) {
+          const txApprove = await tokenContract.approve(marketplaceAddress, offerAmountWei);
           await txApprove.wait();
-          alert("Approved " + ethers.utils.formatUnits(totalApprovalWei, 18) + " ADRIAN (offer + 1% commission).");
+          alert("Approved " + ethers.utils.formatUnits(offerAmountWei, 18) + " ADRIAN for the offer.");
         }
         const tx = await marketplaceContract.setFloorOffer(nftCollectionAddress, offerAmountWei);
         await tx.wait();
