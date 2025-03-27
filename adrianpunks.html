@@ -24,17 +24,22 @@
       margin: 0 auto;
     }
 
-   /* ========== HERO SECTION ========== */
-.hero {
-  background: #fff; /* fondo blanco */
-  padding: 80px 0;
-  text-align: center;
-}
-.hero h1 {
-  font-size: 3rem;
-  font-weight: normal; /* sin negrita */
-  margin: 0;
-}
+    /* ========== HERO SECTION ========== */
+    .hero {
+      background: #fff; /* fondo blanco */
+      padding: 80px 0;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: normal; /* sin negrita */
+      margin: 0;
+    }
+    .hero h2 {
+      font-size: 2.2rem; /* unos 4-5 pts menor que el título */
+      font-weight: normal;
+      margin: 0;
+    }
 
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
@@ -64,7 +69,6 @@
       background-color: #a4161a;
       border-color: #a4161a;
     }
-    /* Botón secundario: azul claro */
     .btn-secondary {
       background-color: #a8dadc;
       border-color: #a8dadc;
@@ -74,11 +78,21 @@
       background-color: #89c2d9;
       border-color: #89c2d9;
     }
-    /* ========== FLOOR OFFER SECTION (más pequeño, sin botón) ========== */
+    /* ========== FLOOR OFFER SECTION ========== */
     #floorOfferSection {
       border: 1px solid #ccc;
       padding: 0.75rem;
       margin-bottom: 1rem;
+      background-color: #f8f8f8;
+      cursor: pointer;
+      text-align: center;
+      font-size: 1rem;
+    }
+    /* ========== MY OFFERS SECTION ========== */
+    #myOffersSection {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      margin: 1rem 0;
       background-color: #f8f8f8;
       cursor: pointer;
       text-align: center;
@@ -193,6 +207,17 @@
       box-sizing: border-box;
       font-family: inherit;
     }
+    /* ========== MOBILE STYLES ========== */
+    @media (max-width: 768px) {
+      #modalActionButtons button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      #modalActionButtons button:last-child {
+        margin-bottom: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -206,19 +231,19 @@
   </script>
   <script src="components/menu2.js"></script>
 
-<!-- HERO SECTION -->
-<div class="hero">
-  <h1>AdrianPunks</h1>
-  <h2 id="tokenBalance" style="font-size: 1.8rem; font-weight: normal; margin: 0;">Balance: Loading...</h2>
-</div>
-
-<!-- Contenido Principal -->
-<div class="section-wrapper">
-  <!-- Floor Offer Section -->
-  <div id="floorOfferSection" onclick="openAcceptFloorOfferModal()">
-    <span id="floorOfferText">Highest floor offer 0.0 $ADRIAN</span>
+  <!-- HERO SECTION -->
+  <div class="hero">
+    <h1>AdrianPunks</h1>
+    <h2 id="tokenBalance">Balance: Loading...</h2>
   </div>
-</div>
+
+  <!-- Contenido Principal -->
+  <div class="section-wrapper">
+    <!-- Floor Offer Section -->
+    <div id="floorOfferSection" onclick="openAcceptFloorOfferModal()">
+      <span id="floorOfferText">Highest floor offer 0.0 $ADRIAN</span>
+    </div>
+  </div>
 
   <!-- NFT Gallery Section -->
   <section>
@@ -229,6 +254,15 @@
         </div>
       </div>
       <div id="nftGallery" class="row"></div>
+    </div>
+  </section>
+
+  <!-- My Offers Section -->
+  <section>
+    <div class="container px-3">
+      <div id="myOffersSection" onclick="openMyOffersModal()">
+        <span id="myOffersText">My Offers</span>
+      </div>
     </div>
   </section>
 
@@ -246,7 +280,7 @@
             <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
-          <!-- Aquí se inyecta contenido específico del token -->
+          <!-- Contenido específico del token se inyecta aquí -->
         </div>
       </div>
     </div>
@@ -262,6 +296,21 @@
         </div>
         <div class="modal-body" id="floorOfferTokens">
           <!-- Mini tarjetas de tokens se cargarán aquí -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para My Offers -->
+  <div class="modal fade" id="myOffersModal" tabindex="-1" aria-labelledby="myOffersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="myOffersModalLabel">My Offers</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="myOffersContent">
+          <!-- Listado de ofertas se inyectará aquí -->
         </div>
       </div>
     </div>
@@ -313,7 +362,8 @@
     // Actualiza las direcciones de contrato según corresponda
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // Se actualiza la ABI del marketplace para no incluir lógica de comisión y se añade el parámetro para NFT tipo
+    // ABI del marketplace actualizada: sin lógica de comisión y con funciones para cancelar y modificar ofertas,
+    // además de aceptar floor offer que requiere el parámetro de tipo de NFT (1 para ERC721)
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -325,7 +375,6 @@
       "function tokenURI(uint256 tokenId) view returns (string)",
       "function ownerOf(uint256 tokenId) view returns (address)"
     ];
-    // ABI actualizada del marketplace, incluyendo el parámetro de tipo en acceptFloorOffer
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
       "function cancelListing(uint256 listingId) external",
@@ -338,7 +387,9 @@
       "function offerIdCounter() view returns (uint256)",
       "function offers(uint256, address) view returns (uint256 id, uint256 listingId, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
       "function acceptOffer(uint256 offerId) external",
-      "function floorOffers(address) view returns (uint256 offerAmount, address buyer, bool active)"
+      "function floorOffers(address) view returns (uint256 offerAmount, address buyer, bool active)",
+      "function cancelOffer(uint256 offerId) external",
+      "function modifyOffer(uint256 offerId, uint256 newOfferAmount) external"
     ];
     let tokenContract, nftContract, marketplaceContract;
 
@@ -378,6 +429,8 @@
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
         const totalMinted = await nftContract.totalMinted();
+        // Detectar si es móvil (basado en user agent)
+        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
         for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
           let tokenURI = await nftContract.tokenURI(tokenId);
           if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
@@ -388,18 +441,25 @@
           let owner = await nftContract.ownerOf(tokenId);
           let owned = (owner.toLowerCase() === userAccount.toLowerCase());
           let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
+          // Construir la tarjeta sin onclick inline si es móvil
           let cardHTML = `
-            <div class="${cardClass}" onclick="showMetadata(${tokenId})">
+            <div class="${cardClass}" data-token-id="${tokenId}">
               <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
               <div class="card-body">
                 <h5 class="card-title">${displayName}</h5>
               </div>
-              <button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>
+              ${!isMobile ? `<button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>` : ""}
             </div>
           `;
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           colDiv.innerHTML = cardHTML;
+          // Si es móvil, agregamos un listener para abrir el popup en el primer tap
+          if (isMobile) {
+            colDiv.addEventListener("click", function() {
+              showMetadata(tokenId);
+            });
+          }
           galleryDiv.appendChild(colDiv);
         }
         document.getElementById("loadingSpinner").style.display = "none";
@@ -443,7 +503,7 @@
       }
     }
 
-    // MODIFICADO: Se actualiza la función para crear listing sin lógica de comisión ni parámetro extra
+    // MODIFICADO: Función para crear listing sin lógica de comisión ni parámetro extra
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
@@ -724,7 +784,7 @@
       }
     }
 
-    // MODIFICADO: Se pasa 1 como parámetro para indicar ERC721
+    // MODIFICADO: Se pasa 1 como parámetro para indicar que es un token ERC721
     async function acceptFloorOffer(tokenId) {
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
@@ -735,7 +795,6 @@
           const txApprove = await nftContractForApproval.setApprovalForAll(marketplaceAddress, true);
           await txApprove.wait();
         }
-        // Se pasa 1 para indicar que es un token ERC721
         const tx = await marketplaceContract.acceptFloorOffer(nftCollectionAddress, tokenId, 1, { gasLimit: 1000000 });
         await tx.wait();
         alert("Floor offer accepted successfully using token #" + tokenId);
@@ -746,6 +805,74 @@
       } catch (error) {
         console.error("Error accepting floor offer:", error);
         alert("Error accepting floor offer: " + error.message);
+      }
+    }
+
+    // NUEVAS FUNCIONES PARA "MY OFFERS"
+
+    async function openMyOffersModal() {
+      try {
+        const offerCounter = await marketplaceContract.offerIdCounter();
+        let offersList = [];
+        for (let i = 1; i <= offerCounter.toNumber(); i++) {
+          try {
+            const offer = await marketplaceContract.offers(i, userAccount);
+            if (offer.exists) {
+              offersList.push(offer);
+            }
+          } catch (e) {
+            console.error("Error fetching offer", i, e);
+          }
+        }
+        let contentHtml = "";
+        if (offersList.length === 0) {
+          contentHtml = "<p>No offers found.</p>";
+        } else {
+          contentHtml = "<ul>";
+          offersList.forEach(offer => {
+            const offerAmountFormatted = ethers.utils.formatUnits(offer.offerAmount, 18);
+            contentHtml += `<li>
+              Token #${offer.tokenId} - Offer: ${offerAmountFormatted} $ADRIAN 
+              <button class="btn btn-sm btn-warning" onclick="cancelOffer(${offer.id.toString()})">Cancel</button>
+              <button class="btn btn-sm btn-info" onclick="promptModifyOffer(${offer.id.toString()}, ${offer.offerAmount.toString()}, ${offer.tokenId})">Modify</button>
+            </li>`;
+          });
+          contentHtml += "</ul>";
+        }
+        document.getElementById("myOffersContent").innerHTML = contentHtml;
+        let modal = new bootstrap.Modal(document.getElementById('myOffersModal'));
+        modal.show();
+      } catch (error) {
+        console.error("Error loading my offers:", error);
+        alert("Error loading your offers: " + error.message);
+      }
+    }
+
+    async function cancelOffer(offerId) {
+      try {
+        const tx = await marketplaceContract.cancelOffer(offerId, { gasLimit: 1000000 });
+        await tx.wait();
+        alert("Offer canceled successfully!");
+        openMyOffersModal(); // Recargar la lista
+      } catch (error) {
+        console.error("Error canceling offer:", error);
+        alert("Error canceling offer: " + error.message);
+      }
+    }
+
+    async function promptModifyOffer(offerId, currentOfferAmount, tokenId) {
+      const newOfferAmountStr = prompt("Enter new offer amount:", ethers.utils.formatUnits(currentOfferAmount, 18));
+      if (newOfferAmountStr != null) {
+        try {
+          const newOfferAmountWei = ethers.utils.parseUnits(newOfferAmountStr, 18);
+          const tx = await marketplaceContract.modifyOffer(offerId, newOfferAmountWei, { gasLimit: 1000000 });
+          await tx.wait();
+          alert("Offer modified successfully!");
+          openMyOffersModal();
+        } catch (error) {
+          console.error("Error modifying offer:", error);
+          alert("Error modifying offer: " + error.message);
+        }
       }
     }
   </script>
