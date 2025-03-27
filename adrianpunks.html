@@ -16,12 +16,13 @@
       background-color: #fff;
       color: #222;
       margin: 0;
-      padding-top: 70px; /* Padding para evitar que el menú tape el contenido */
       font-family: "Courier New", Courier, monospace;
     }
-    body > * {
-      margin: 0;
-      padding: 0;
+    /* El contenido principal tendrá margen superior para no quedar tapado por el menú */
+    .section-wrapper {
+      max-width: 1200px;
+      margin: 70px auto 0 auto;
+      padding: 2rem 1rem;
     }
     /* Título y Balance */
     .header-content {
@@ -65,7 +66,7 @@
       background-color: #a4161a;
       border-color: #a4161a;
     }
-    /* Botón secundario pasa a ser azul claro */
+    /* Botón secundario: azul claro */
     .btn-secondary {
       background-color: #a8dadc;
       border-color: #a8dadc;
@@ -74,12 +75,6 @@
     .btn-secondary:hover {
       background-color: #89c2d9;
       border-color: #89c2d9;
-    }
-    /* ========== SECTION WRAPPER ========== */
-    .section-wrapper {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1rem;
     }
     /* ========== FLOOR OFFER SECTION (más pequeño, sin botón) ========== */
     #floorOfferSection {
@@ -313,9 +308,6 @@
         return {};
       }
     }
-    function compressAddress(address) {
-      return address.substring(0, 2) + "..." + address.substring(address.length - 4);
-    }
     let provider, signer, userAccount;
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
@@ -450,11 +442,9 @@
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
+      // Para ERC721, la cantidad se fija en 1
       formDiv.innerHTML = `
           <h5>Create Listing:</h5>
-          <label>Quantity:
-            <input type="number" id="listingQuantity" value="1" min="1">
-          </label>
           <label>Price per NFT in $ADRIAN:
             <input type="text" id="listingPrice" value="10">
           </label>
@@ -470,103 +460,16 @@
           <button class="btn btn-primary mt-2" onclick="createListingForToken(${tokenId})">Approve Collection & Create Listing</button>
       `;
     }
-    function openFloorOfferForm() {
-      // Si se requiere una funcionalidad para establecer una nueva oferta de piso, se puede abrir un formulario aquí.
-      // En este ejemplo se mantiene la funcionalidad actual (aunque se puede dejar en standby).
-      const formDiv = document.getElementById("offerForm");
-      formDiv.style.display = formDiv.style.display === "none" ? "block" : "none";
-      formDiv.innerHTML = `
-          <h5>Make a Floor Offer for the Collection:</h5>
-          <label>Offer Amount (in ADRIAN tokens):
-            <input type="text" id="offerAmount" value="10000">
-          </label>
-          <button class="btn btn-primary mt-2" onclick="makeFloorOffer()">Submit Floor Offer</button>
-      `;
-    }
-    async function makeFloorOffer() {
-      const offerAmount = document.getElementById("offerAmount").value;
-      const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
-      const commissionWei = offerAmountWei.div(100);
-      const totalApprovalWei = offerAmountWei.add(commissionWei);
-      try {
-        const allowance = await tokenContract.allowance(userAccount, marketplaceAddress);
-        if (allowance.lt(totalApprovalWei)) {
-          const txApprove = await tokenContract.approve(marketplaceAddress, totalApprovalWei);
-          await txApprove.wait();
-          alert("Approved " + ethers.utils.formatUnits(totalApprovalWei, 18) + " ADRIAN (offer + 1% commission).");
-        }
-        const tx = await marketplaceContract.setFloorOffer(nftCollectionAddress, offerAmountWei);
-        await tx.wait();
-        alert("Floor offer created successfully!");
-        // Actualiza el texto de la sección floor offer
-        loadFloorOffer();
-      } catch (error) {
-        console.error("Error creating floor offer:", error);
-        alert("Error creating floor offer: " + error.message);
-      }
-    }
-    async function getListingForToken(tokenId) {
-      const counter = await marketplaceContract.listingIdCounter();
-      for (let i = 1; i <= counter.toNumber(); i++) {
-        let listing = await marketplaceContract.listings(i);
-        if (
-          listing.seller !== ethers.constants.AddressZero &&
-          listing.collection.toLowerCase() === nftCollectionAddress.toLowerCase() &&
-          listing.tokenId.toString() === tokenId.toString()
-        ) {
-          return listing;
-        }
-      }
-      return null;
-    }
-    function openMakeTokenOfferForm(tokenId) {
-      const formDiv = document.getElementById("offerForm");
-      formDiv.style.display = "block";
-      formDiv.innerHTML = `
-          <h5>Make a Token Offer for Token #${tokenId}:</h5>
-          <label>Offer Amount (in ADRIAN tokens):
-            <input type="text" id="tokenOfferAmount" value="10000">
-          </label>
-          <label>Quantity:
-            <input type="number" id="tokenOfferQuantity" value="1" min="1">
-          </label>
-          <button class="btn btn-primary mt-2" onclick="makeTokenOffer(${tokenId})">Submit Token Offer</button>
-      `;
-    }
-    async function makeTokenOffer(tokenId) {
-      const offerAmount = document.getElementById("tokenOfferAmount").value;
-      const quantity = document.getElementById("tokenOfferQuantity").value;
-      const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
-      try {
-        const listing = await getListingForToken(tokenId);
-        if (!listing) {
-          alert("No active listing found for this token. Create a listing first.");
-          return;
-        }
-        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
-        if (currentAllowance.lt(offerAmountWei)) {
-          const txApprove = await tokenContract.approve(marketplaceAddress, offerAmountWei);
-          await txApprove.wait();
-          alert("Approved tokens for token offer.");
-        }
-        const tx = await marketplaceContract.makeOffer(listing.id, quantity, offerAmountWei);
-        await tx.wait();
-        alert("Token offer created successfully!");
-        document.getElementById("offerForm").style.display = "none";
-      } catch (error) {
-        console.error("Error creating token offer:", error);
-        alert("Error creating token offer: " + error.message);
-      }
-    }
     async function createListingForToken(tokenId) {
       if (!marketplaceContract) {
         alert("Marketplace not initialized.");
         return;
       }
-      const quantity = document.getElementById("listingQuantity").value;
       const pricePerNFT = document.getElementById("listingPrice").value;
       const durationSeconds = document.getElementById("listingDuration").value;
-      const nftTypeParam = 0;
+      // Para ERC721, quantity siempre será 1 y nftTypeParam debe ser 1
+      const quantity = 1;
+      const nftTypeParam = 1;
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
       const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
       try {
@@ -582,7 +485,7 @@
         return;
       }
       try {
-        const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds, nftTypeParam);
+        const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds, nftTypeParam, { gasLimit: 1000000 });
         const receipt = await tx.wait();
         let listingId;
         for (let event of receipt.events) {
@@ -673,13 +576,96 @@
       try {
         const floorOffer = await marketplaceContract.floorOffers(nftCollectionAddress);
         const offerAmount = floorOffer.offerAmount;
-        // Actualiza el texto de la sección floor offer con formato
         document.getElementById("floorOfferText").innerText = floorOffer.active && offerAmount.gt(0)
           ? `Highest floor offer ${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN`
           : "No floor offer set.";
       } catch (error) {
         console.error("Error loading floor offer:", error);
       }
+    }
+    function openFloorOfferForm() {
+      // Función en standby; se puede activar si se requiere hacer una nueva oferta de piso.
+      const formDiv = document.getElementById("offerForm");
+      formDiv.style.display = formDiv.style.display === "none" ? "block" : "none";
+      formDiv.innerHTML = `
+          <h5>Make a Floor Offer for the Collection:</h5>
+          <label>Offer Amount (in ADRIAN tokens):
+            <input type="text" id="offerAmount" value="10000">
+          </label>
+          <button class="btn btn-primary mt-2" onclick="makeFloorOffer()">Submit Floor Offer</button>
+      `;
+    }
+    async function makeFloorOffer() {
+      const offerAmount = document.getElementById("offerAmount").value;
+      const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
+      const commissionWei = offerAmountWei.div(100);
+      const totalApprovalWei = offerAmountWei.add(commissionWei);
+      try {
+        const allowance = await tokenContract.allowance(userAccount, marketplaceAddress);
+        if (allowance.lt(totalApprovalWei)) {
+          const txApprove = await tokenContract.approve(marketplaceAddress, totalApprovalWei);
+          await txApprove.wait();
+          alert("Approved " + ethers.utils.formatUnits(totalApprovalWei, 18) + " ADRIAN (offer + 1% commission).");
+        }
+        const tx = await marketplaceContract.setFloorOffer(nftCollectionAddress, offerAmountWei);
+        await tx.wait();
+        alert("Floor offer created successfully!");
+        loadFloorOffer();
+      } catch (error) {
+        console.error("Error creating floor offer:", error);
+        alert("Error creating floor offer: " + error.message);
+      }
+    }
+    function openMakeTokenOfferForm(tokenId) {
+      // Para ERC721, forzamos la cantidad a 1
+      const formDiv = document.getElementById("offerForm");
+      formDiv.style.display = "block";
+      formDiv.innerHTML = `
+          <h5>Make a Token Offer for Token #${tokenId}:</h5>
+          <label>Offer Amount (in ADRIAN tokens):
+            <input type="text" id="tokenOfferAmount" value="10000">
+          </label>
+          <input type="hidden" id="tokenOfferQuantity" value="1">
+          <button class="btn btn-primary mt-2" onclick="makeTokenOffer(${tokenId})">Submit Token Offer</button>
+      `;
+    }
+    async function makeTokenOffer(tokenId) {
+      const offerAmount = document.getElementById("tokenOfferAmount").value;
+      const offerAmountWei = ethers.utils.parseUnits(offerAmount, 18);
+      try {
+        const listing = await getListingForToken(tokenId);
+        if (!listing) {
+          alert("No active listing found for this token. Create a listing first.");
+          return;
+        }
+        const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
+        if (currentAllowance.lt(offerAmountWei)) {
+          const txApprove = await tokenContract.approve(marketplaceAddress, offerAmountWei);
+          await txApprove.wait();
+          alert("Approved tokens for token offer.");
+        }
+        const tx = await marketplaceContract.makeOffer(listing.id, 1, offerAmountWei);
+        await tx.wait();
+        alert("Token offer created successfully!");
+        document.getElementById("offerForm").style.display = "none";
+      } catch (error) {
+        console.error("Error creating token offer:", error);
+        alert("Error creating token offer: " + error.message);
+      }
+    }
+    async function getListingForToken(tokenId) {
+      const counter = await marketplaceContract.listingIdCounter();
+      for (let i = 1; i <= counter.toNumber(); i++) {
+        let listing = await marketplaceContract.listings(i);
+        if (
+          listing.seller !== ethers.constants.AddressZero &&
+          listing.collection.toLowerCase() === nftCollectionAddress.toLowerCase() &&
+          listing.tokenId.toString() === tokenId.toString()
+        ) {
+          return listing;
+        }
+      }
+      return null;
     }
     function openAcceptFloorOfferModal() {
       (async () => {
@@ -730,9 +716,9 @@
       })();
     }
     async function acceptFloorOffer(tokenId) {
-      const nftTypeParam = 0;
+      // Para ERC721, usamos nftTypeParam = 1
+      const nftTypeParam = 1;
       try {
-        // Verificar o establecer la aprobación de la colección antes de aceptar la oferta
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
         if (!approved) {
@@ -749,8 +735,6 @@
       } catch (error) {
         console.error("Error accepting floor offer:", error);
         alert("Error accepting floor offer: " + error.message);
-        // Nota: El error CALL_EXCEPTION puede indicar que la transacción falla por condiciones del contrato
-        // o por parámetros de gas/aprobación insuficientes. Se recomienda revisar la lógica del contrato.
       }
     }
   </script>
