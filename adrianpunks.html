@@ -264,7 +264,7 @@
     </div>
   </section>
 
-  <!-- My Offers Section (a pantalla completa) -->
+  <!-- My Offers Section (barra a pantalla completa) -->
   <div id="myOffersSection" onclick="openMyOffersModal()">
     <span id="myOffersText">My Offers</span>
   </div>
@@ -365,8 +365,7 @@
     // Actualiza las direcciones de contrato según corresponda
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // ABI del marketplace actualizada: sin lógica de comisión y con funciones para cancelar y modificar ofertas,
-    // además de aceptar floor offer que requiere el parámetro de tipo de NFT (1 para ERC721)
+    // ABI del marketplace actualizado: las funciones que requieren el parámetro extra para indicar el tipo (1 para ERC721)
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -379,7 +378,7 @@
       "function ownerOf(uint256 tokenId) view returns (address)"
     ];
     const marketplaceAbi = [
-      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
+      "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
       "function cancelListing(uint256 listingId) external",
       "function buyListing(uint256 listingId, uint256 purchaseQuantity) external",
       "function listingIdCounter() view returns (uint256)",
@@ -444,7 +443,7 @@
           let owner = await nftContract.ownerOf(tokenId);
           let owned = (owner.toLowerCase() === userAccount.toLowerCase());
           let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
-          // Construir la tarjeta con un contenedor para la info del listado activo
+          // Construir la tarjeta con contenedor para la info del listado activo
           let cardHTML = `
             <div class="${cardClass}" data-token-id="${tokenId}">
               <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
@@ -458,7 +457,7 @@
           let colDiv = document.createElement("div");
           colDiv.className = "col-6 col-md-3 mb-4";
           colDiv.innerHTML = cardHTML;
-          // Si es móvil, agregamos un listener para abrir el popup en el primer tap
+          // Si es móvil, asignar listener para abrir el popup en el primer tap
           if (isMobile) {
             colDiv.addEventListener("click", function() {
               showMetadata(tokenId);
@@ -519,7 +518,7 @@
       }
     }
 
-    // MODIFICADO: Función para crear listing sin lógica de comisión ni parámetro extra
+    // Función para crear listing: se envía el parámetro 1 para ERC721
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
@@ -566,7 +565,8 @@
         return;
       }
       try {
-        const tx = await marketplaceContract.createListing(nftCollectionAddress, tokenId, quantity, totalPrice, durationSeconds, { gasLimit: 1000000 });
+        // Se envía el parámetro 1 para indicar ERC721
+        const tx = await marketplaceContract.createListing(nftCollectionAddress, tokenId, quantity, totalPrice, durationSeconds, 1, { gasLimit: 1000000 });
         const receipt = await tx.wait();
         let listingId;
         for (let event of receipt.events) {
@@ -800,7 +800,7 @@
       }
     }
 
-    // MODIFICADO: Se pasa 1 como parámetro para indicar que es un token ERC721
+    // Función para aceptar floor offer: se envía el parámetro 1 para indicar ERC721
     async function acceptFloorOffer(tokenId) {
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
