@@ -16,23 +16,26 @@
       background-color: #fff;
       color: #222;
       margin: 0;
-      padding: 0;
+      padding-top: 70px; /* Padding para evitar que el menú tape el contenido */
       font-family: "Courier New", Courier, monospace;
     }
     body > * {
       margin: 0;
       padding: 0;
     }
-    /* ========== HERO SECTION ========== */
-    .hero {
-      background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiec4rw7utpdllzerf2hdknrl6ek3xogaau535u4wzwanhnzqnom7i') center center no-repeat;
-      background-size: cover;
-      background-color: #fff;
-      min-height: 500px;
-      position: relative;
+    /* Título y Balance */
+    .header-content {
+      text-align: center;
+      margin-bottom: 2rem;
     }
-    .hero h1 {
-      display: none; /* Sin texto interno */
+    .header-content h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+    .header-content h2 {
+      font-size: 1.25rem;
+      margin: 0;
+      color: #555;
     }
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
@@ -62,14 +65,15 @@
       background-color: #a4161a;
       border-color: #a4161a;
     }
+    /* Botón secundario pasa a ser azul claro */
     .btn-secondary {
-      background-color: #fca311;
-      border-color: #fca311;
-      color: #fff;
+      background-color: #a8dadc;
+      border-color: #a8dadc;
+      color: #222;
     }
     .btn-secondary:hover {
-      background-color: #e85a4f;
-      border-color: #e85a4f;
+      background-color: #89c2d9;
+      border-color: #89c2d9;
     }
     /* ========== SECTION WRAPPER ========== */
     .section-wrapper {
@@ -77,21 +81,15 @@
       margin: 0 auto;
       padding: 2rem 1rem;
     }
-    /* ========== FLOOR OFFER SECTION ========== */
+    /* ========== FLOOR OFFER SECTION (más pequeño, sin botón) ========== */
     #floorOfferSection {
       border: 1px solid #ccc;
-      padding: 1rem;
+      padding: 0.75rem;
       margin-bottom: 1rem;
       background-color: #f8f8f8;
       cursor: pointer;
-    }
-    #floorOfferDisplay {
-      background-color: #007bff;
-      color: #fff;
-      padding: 0.5rem;
-      border-radius: 4px;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1rem;
     }
     /* ========== NFT GALLERY ========== */
     .nft-gallery-title {
@@ -180,26 +178,20 @@
       width: 100%;
       color: #222;
     }
-    header.text-center.mb-4 {
-      margin-top: 2rem;
-    }
     .modal-content {
       background-color: #fff;
       color: #222;
       border: 1px solid #ccc;
     }
-    .modal-header, .modal-body {
-      border: none;
-    }
     .modal-header .btn-close {
       filter: none;
     }
+    /* Formularios */
     #createListingForm label,
     #offerForm label {
       display: block;
       margin: 5px 0;
     }
-    /* Ajustes para formularios */
     input[type="text"], input[type="number"], select {
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -221,41 +213,16 @@
   </script>
   <script src="components/menu2.js"></script>
 
-  <!-- Hero Section -->
-  <section class="hero"></section>
-
-  <!-- Botones superiores: Marketplace y Offers (todo el ancho) -->
+  <!-- Contenido Principal -->
   <div class="section-wrapper">
-    <div class="row top-buttons">
-      <div class="col-6">
-        <a href="/marketplace.html" class="btn btn-primary">Marketplace</a>
-      </div>
-      <div class="col-6">
-        <a href="/listings.html" class="btn btn-danger">Offers</a>
-      </div>
+    <div class="header-content">
+      <h1>AdrianPunks</h1>
+      <h2 id="tokenBalance">Balance: Loading...</h2>
     </div>
-  </div>
-
-  <!-- Floor Offer Section -->
-  <div id="floorOfferSection" class="section-wrapper" onclick="openAcceptFloorOfferModal()">
-    <div id="floorOfferDisplay">
-      <span id="floorOfferText">No floor offer set.</span>
+    <!-- Floor Offer Section (al hacer clic se muestra el popup para aceptar la oferta) -->
+    <div id="floorOfferSection" onclick="openAcceptFloorOfferModal()">
+      <span id="floorOfferText">Highest floor offer 0.0 $ADRIAN</span>
     </div>
-    <button class="btn btn-secondary mt-2" onclick="event.stopPropagation(); openFloorOfferForm()">Set Floor Offer</button>
-    <div id="setFloorOfferForm" style="display:none; margin-top:1rem;">
-      <label>Offer Amount (in ADRIAN tokens):
-        <input type="text" id="floorOfferAmount" value="10000">
-      </label>
-      <button class="btn btn-primary mt-2" onclick="makeFloorOffer()">Submit Floor Offer</button>
-    </div>
-  </div>
-
-  <!-- MAIN CONTENT WRAPPER (Balance, etc.) -->
-  <div class="section-wrapper" style="padding: 0.5rem 1rem;">
-    <header class="text-center">
-      <h2 id="tokenBalance" class="display-4">Balance: Loading...</h2>
-      <p id="accountDisplay" class="mt-2"></p>
-    </header>
   </div>
 
   <!-- NFT Gallery Section -->
@@ -280,10 +247,11 @@
         </div>
         <div class="modal-body" id="metadataContent">
           <div id="modalActionButtons" class="mb-3">
+            <button class="btn btn-secondary me-2" onclick="openCreateListingForm()">Create Listing</button>
             <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
-          <!-- Contenido específico del token se inyecta aquí -->
+          <!-- Aquí se inyecta contenido específico del token -->
         </div>
       </div>
     </div>
@@ -389,10 +357,6 @@
       if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
       return num.toString();
     }
-    function formatWithCommasAndDecimals(amount) {
-      const numeric = Number(amount);
-      return numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
     window.onMenuWalletConnected = async function() {
       provider = window.menuProvider;
       signer = window.menuSigner;
@@ -468,8 +432,7 @@
                  </div>
                  <div id="createListingForm" style="display:none;"></div>
                  <div id="marketplaceListings" class="mt-3"></div>
-                 <div id="offerForm" style="display:none;"></div>
-                 <div id="marketplaceOffers" class="mt-3"></div>`;
+                 <div id="offerForm" style="display:none;"></div>`;
         html += `<hr>
                  <p><strong>Name:</strong> ${metadata.name || ('#' + tokenId)}</p>
                  <p><strong>Description:</strong> ${metadata.description || 'No description provided'}</p>
@@ -508,6 +471,8 @@
       `;
     }
     function openFloorOfferForm() {
+      // Si se requiere una funcionalidad para establecer una nueva oferta de piso, se puede abrir un formulario aquí.
+      // En este ejemplo se mantiene la funcionalidad actual (aunque se puede dejar en standby).
       const formDiv = document.getElementById("offerForm");
       formDiv.style.display = formDiv.style.display === "none" ? "block" : "none";
       formDiv.innerHTML = `
@@ -533,7 +498,7 @@
         const tx = await marketplaceContract.setFloorOffer(nftCollectionAddress, offerAmountWei);
         await tx.wait();
         alert("Floor offer created successfully!");
-        document.getElementById("offerForm").style.display = "none";
+        // Actualiza el texto de la sección floor offer
         loadFloorOffer();
       } catch (error) {
         console.error("Error creating floor offer:", error);
@@ -578,10 +543,9 @@
           alert("No active listing found for this token. Create a listing first.");
           return;
         }
-        const requiredAmount = offerAmountWei;
         const currentAllowance = await tokenContract.allowance(userAccount, marketplaceAddress);
-        if (currentAllowance.lt(requiredAmount)) {
-          const txApprove = await tokenContract.approve(marketplaceAddress, requiredAmount);
+        if (currentAllowance.lt(offerAmountWei)) {
+          const txApprove = await tokenContract.approve(marketplaceAddress, offerAmountWei);
           await txApprove.wait();
           alert("Approved tokens for token offer.");
         }
@@ -709,14 +673,10 @@
       try {
         const floorOffer = await marketplaceContract.floorOffers(nftCollectionAddress);
         const offerAmount = floorOffer.offerAmount;
-        const buyer = floorOffer.buyer;
-        const active = floorOffer.active;
-        const textSpan = document.getElementById("floorOfferText");
-        if (active && offerAmount.gt(0)) {
-          textSpan.innerText = `${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN`;
-        } else {
-          textSpan.innerText = "No floor offer set.";
-        }
+        // Actualiza el texto de la sección floor offer con formato
+        document.getElementById("floorOfferText").innerText = floorOffer.active && offerAmount.gt(0)
+          ? `Highest floor offer ${ethers.utils.formatUnits(offerAmount, 18)} $ADRIAN`
+          : "No floor offer set.";
       } catch (error) {
         console.error("Error loading floor offer:", error);
       }
@@ -772,6 +732,7 @@
     async function acceptFloorOffer(tokenId) {
       const nftTypeParam = 0;
       try {
+        // Verificar o establecer la aprobación de la colección antes de aceptar la oferta
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, erc721Abi, signer);
         const approved = await nftContractForApproval.isApprovedForAll(userAccount, marketplaceAddress);
         if (!approved) {
@@ -788,6 +749,8 @@
       } catch (error) {
         console.error("Error accepting floor offer:", error);
         alert("Error accepting floor offer: " + error.message);
+        // Nota: El error CALL_EXCEPTION puede indicar que la transacción falla por condiciones del contrato
+        // o por parámetros de gas/aprobación insuficientes. Se recomienda revisar la lógica del contrato.
       }
     }
   </script>
