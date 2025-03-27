@@ -13,11 +13,11 @@
   <style>
     /* ========== GLOBAL STYLES ========== */
     body {
-      background-color: #000;
-      color: #fff;
+      background-color: #fff;
+      color: #222;
       margin: 0;
       padding: 0;
-      font-family: sans-serif;
+      font-family: "Courier New", Courier, monospace;
     }
     body > * {
       margin: 0;
@@ -27,7 +27,7 @@
     .hero {
       background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafkreiec4rw7utpdllzerf2hdknrl6ek3xogaau535u4wzwanhnzqnom7i') center center no-repeat;
       background-size: cover;
-      background-color: #000;
+      background-color: #fff;
       min-height: 500px;
       position: relative;
     }
@@ -37,9 +37,39 @@
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
       width: 100%;
-      border-radius: 0;
+      border-radius: 4px;
       padding: 1rem;
       font-size: 1.25rem;
+      border: 2px solid transparent;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .top-buttons .btn:hover {
+      border-color: #007bff;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+      border-color: #0056b3;
+    }
+    .btn-danger {
+      background-color: #d62828;
+      border-color: #d62828;
+    }
+    .btn-danger:hover {
+      background-color: #a4161a;
+      border-color: #a4161a;
+    }
+    .btn-secondary {
+      background-color: #fca311;
+      border-color: #fca311;
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background-color: #e85a4f;
+      border-color: #e85a4f;
     }
     /* ========== SECTION WRAPPER ========== */
     .section-wrapper {
@@ -49,10 +79,10 @@
     }
     /* ========== FLOOR OFFER SECTION ========== */
     #floorOfferSection {
-      border: 1px solid #333;
+      border: 1px solid #ccc;
       padding: 1rem;
       margin-bottom: 1rem;
-      background-color: #111;
+      background-color: #f8f8f8;
       cursor: pointer;
     }
     #floorOfferDisplay {
@@ -75,10 +105,10 @@
     }
     /* ========== NFT CARD STYLES ========== */
     .nft-card {
-      background-color: #1f1f1f;
-      color: #ccc;
+      background-color: #f5f5f5;
+      color: #222;
       border-radius: 8px;
-      border: 1px solid #333;
+      border: 1px solid #ccc;
       position: relative;
       overflow: hidden;
       transition: transform 0.2s ease-in-out;
@@ -100,16 +130,16 @@
       padding: 1rem;
     }
     .nft-card .card-title {
-      color: #eee;
+      color: #222;
       margin-bottom: 0.5rem;
     }
     .nft-card.owned {
-      background-color: #add8e6;
-      color: #000;
+      background-color: #e0f7fa;
+      color: #222;
     }
     .nft-card.unowned {
-      background-color: #1f1f1f;
-      color: #ccc;
+      background-color: #f5f5f5;
+      color: #222;
     }
     .see-details-btn {
       position: absolute;
@@ -143,30 +173,40 @@
       height: 50px;
       object-fit: cover;
       border-radius: 4px;
-      border: 1px solid #333;
+      border: 1px solid #ccc;
     }
     /* ========== MODAL & FOOTER ========== */
     #menu-placeholder, #footer-placeholder {
       width: 100%;
-      color: #fff;
+      color: #222;
     }
     header.text-center.mb-4 {
       margin-top: 2rem;
     }
     .modal-content {
-      background-color: #1c1c1c;
-      color: #fff;
+      background-color: #fff;
+      color: #222;
+      border: 1px solid #ccc;
     }
     .modal-header, .modal-body {
       border: none;
     }
     .modal-header .btn-close {
-      filter: invert(100%);
+      filter: none;
     }
     #createListingForm label,
     #offerForm label {
       display: block;
       margin: 5px 0;
+    }
+    /* Ajustes para formularios */
+    input[type="text"], input[type="number"], select {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5rem;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
     }
   </style>
 </head>
@@ -222,7 +262,7 @@
   <section>
     <div class="container px-3">
       <div id="loadingSpinner" style="display:none;">
-        <div class="spinner-border text-light" role="status">
+        <div class="spinner-border text-dark" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
