@@ -23,20 +23,19 @@
       max-width: 1200px;
       margin: 0 auto;
     }
-    /* Título y Balance */
-    .header-content {
+
+    /* ========== HERO SECTION ========== */
+    .hero {
+      background: #d3d3d3; /* fondo gris claro */
+      padding: 80px 0;
       text-align: center;
-      margin-bottom: 0;
     }
-    .header-content h1 {
+    .hero h1 {
       font-size: 3rem;
-      margin-bottom: 0.5rem;
-    }
-    .header-content h2 {
-      font-size: 1.25rem;
+      font-weight: bold;
       margin: 0;
-      color: #555;
     }
+
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
       width: 100%;
@@ -65,6 +64,7 @@
       background-color: #a4161a;
       border-color: #a4161a;
     }
+    /* Botón secundario: azul claro */
     .btn-secondary {
       background-color: #a8dadc;
       border-color: #a8dadc;
@@ -74,7 +74,7 @@
       background-color: #89c2d9;
       border-color: #89c2d9;
     }
-    /* ========== FLOOR OFFER SECTION ========== */
+    /* ========== FLOOR OFFER SECTION (más pequeño, sin botón) ========== */
     #floorOfferSection {
       border: 1px solid #ccc;
       padding: 0.75rem;
@@ -89,10 +89,12 @@
       text-align: center;
       margin-bottom: 2rem;
     }
+    /* Loading Spinner */
     #loadingSpinner {
       text-align: center;
       margin: 10px 0;
     }
+    /* ========== NFT CARD STYLES ========== */
     .nft-card {
       background-color: #f5f5f5;
       color: #222;
@@ -150,6 +152,7 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
+    /* Mini tarjetas en modal para aceptar floor offer */
     .mini-token {
       display: inline-block;
       margin: 5px;
@@ -203,6 +206,11 @@
   </script>
   <script src="components/menu2.js"></script>
 
+  <!-- HERO SECTION -->
+  <div class="hero">
+    <h1>Bienvenido a AdrianPunks</h1>
+  </div>
+
   <!-- Contenido Principal -->
   <div class="section-wrapper">
     <div class="header-content">
@@ -241,7 +249,7 @@
             <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
-          <!-- Contenido específico del token se inyecta aquí -->
+          <!-- Aquí se inyecta contenido específico del token -->
         </div>
       </div>
     </div>
@@ -308,7 +316,7 @@
     // Actualiza las direcciones de contrato según corresponda
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // Se actualiza la ABI del marketplace para no incluir comisiones ni el parámetro extra
+    // Se actualiza la ABI del marketplace para no incluir lógica de comisión y se añade el parámetro para NFT tipo
     const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
@@ -320,7 +328,7 @@
       "function tokenURI(uint256 tokenId) view returns (string)",
       "function ownerOf(uint256 tokenId) view returns (address)"
     ];
-    // ABI simplificada sin comisiones ni parámetros extras
+    // ABI actualizada del marketplace, incluyendo el parámetro de tipo en acceptFloorOffer
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration) external",
       "function cancelListing(uint256 listingId) external",
@@ -328,7 +336,7 @@
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
       "function setFloorOffer(address collection, uint256 offerAmount) external",
-      "function acceptFloorOffer(address collection, uint256 tokenId) external",
+      "function acceptFloorOffer(address collection, uint256 tokenId, uint8 nftTypeParam) external",
       "function makeOffer(uint256 listingId, uint256 quantity, uint256 offerAmount) external",
       "function offerIdCounter() view returns (uint256)",
       "function offers(uint256, address) view returns (uint256 id, uint256 listingId, address buyer, uint256 tokenId, uint256 quantity, uint256 offerAmount, bool exists)",
@@ -438,7 +446,7 @@
       }
     }
 
-    // MODIFICADO: Se actualiza la función para crear listing (sin comisiones ni parámetro extra)
+    // MODIFICADO: Se actualiza la función para crear listing sin lógica de comisión ni parámetro extra
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
@@ -468,11 +476,8 @@
       const pricePerNFT = document.getElementById("listingPrice").value;
       const durationSeconds = document.getElementById("listingDuration").value;
       const quantity = 1;
-      // Calcular el precio total en wei (price por token * cantidad)
       const totalPrice = ethers.utils.parseUnits(pricePerNFT, 18).mul(quantity);
-      // Se asume que el usuario debe aprobar la colección antes de crear el listing
       const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
-        // Usamos la ABI de ERC721/1155 para aprobación (isApprovedForAll)
         ["function setApprovalForAll(address operator, bool approved) external", "function isApprovedForAll(address owner, address operator) view returns (bool)"],
         signer);
       try {
@@ -488,8 +493,7 @@
         return;
       }
       try {
-        // Se llama a la función createListing sin el parámetro extra
-        const tx = await marketplaceContract.createListing(collectionAddress, tokenId, quantity, totalPrice, durationSeconds, { gasLimit: 1000000 });
+        const tx = await marketplaceContract.createListing(nftCollectionAddress, tokenId, quantity, totalPrice, durationSeconds, { gasLimit: 1000000 });
         const receipt = await tx.wait();
         let listingId;
         for (let event of receipt.events) {
@@ -579,7 +583,6 @@
       }
     }
 
-    // MODIFICADO: Función para floor offer sin lógica de comisión
     async function openFloorOfferForm() {
       const formDiv = document.getElementById("offerForm");
       formDiv.style.display = formDiv.style.display === "none" ? "block" : "none";
@@ -724,7 +727,7 @@
       }
     }
 
-    // MODIFICADO: Se elimina el parámetro extra en la función de aceptar floor offer
+    // MODIFICADO: Se pasa 1 como parámetro para indicar ERC721
     async function acceptFloorOffer(tokenId) {
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
@@ -735,7 +738,8 @@
           const txApprove = await nftContractForApproval.setApprovalForAll(marketplaceAddress, true);
           await txApprove.wait();
         }
-        const tx = await marketplaceContract.acceptFloorOffer(nftCollectionAddress, tokenId, { gasLimit: 1000000 });
+        // Se pasa 1 para indicar que es un token ERC721
+        const tx = await marketplaceContract.acceptFloorOffer(nftCollectionAddress, tokenId, 1, { gasLimit: 1000000 });
         await tx.wait();
         alert("Floor offer accepted successfully using token #" + tokenId);
         var modalEl = document.getElementById('acceptFloorOfferModal');
