@@ -2,21 +2,65 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Timestamps para Contrato</title>
+  <title>Calculadora de Timestamps</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .timestamp {
+      margin-bottom: 10px;
+    }
+    input[type="number"] {
+      padding: 5px;
+      margin-right: 5px;
+      width: 100px;
+    }
+    button {
+      padding: 5px 10px;
+    }
+  </style>
 </head>
 <body>
+  <h1>Calculadora de Timestamps</h1>
+  <div id="info">
+    <div class="timestamp" id="currentTimestamp"></div>
+    <div class="timestamp" id="timestamp24"></div>
+    <div class="timestamp" id="timestamp26"></div>
+    <div class="timestamp" id="timestamp28"></div>
+    <div class="timestamp" id="timestamp30"></div>
+  </div>
+
+  <h2>Calcula tu timestamp personalizado</h2>
+  <label for="inputHours">Ingrese la cantidad de horas:</label>
+  <input type="number" id="inputHours" placeholder="Horas">
+  <button id="calcButton">Calcular Timestamp</button>
+  <div class="timestamp" id="customTimestamp"></div>
+
   <script>
-    // Obtener el timestamp actual en segundos (Unix timestamp)
-    const now = Math.floor(Date.now() / 1000);
-    console.log("Tiempo actual (timestamp):", now);
+    // Función para actualizar los timestamps predefinidos
+    function updateTimestamps() {
+      const now = Math.floor(Date.now() / 1000);
+      document.getElementById("currentTimestamp").textContent = "Tiempo actual (timestamp): " + now;
+      document.getElementById("timestamp24").textContent = "Timestamp +24 horas: " + (now + 24 * 3600);
+      document.getElementById("timestamp26").textContent = "Timestamp +26 horas: " + (now + 26 * 3600);
+      document.getElementById("timestamp28").textContent = "Timestamp +28 horas: " + (now + 28 * 3600);
+      document.getElementById("timestamp30").textContent = "Timestamp +30 horas: " + (now + 30 * 3600);
+    }
 
-    // Definir los incrementos en horas
-    const horas = [24, 26, 28, 30];
+    // Actualizar los timestamps al cargar la página
+    updateTimestamps();
 
-    // Calcular y mostrar los timestamps para cada incremento de horas
-    horas.forEach(horasAdicionales => {
-      const timestamp = now + (horasAdicionales * 3600);
-      console.log(`Timestamp +${horasAdicionales} horas:`, timestamp);
+    // Evento para calcular el timestamp personalizado
+    document.getElementById("calcButton").addEventListener("click", function() {
+      const inputHours = parseFloat(document.getElementById("inputHours").value);
+      if (!isNaN(inputHours)) {
+        const now = Math.floor(Date.now() / 1000);
+        const customTimestamp = now + (inputHours * 3600);
+        document.getElementById("customTimestamp").textContent = "Timestamp +" + inputHours + " horas: " + customTimestamp;
+      } else {
+        document.getElementById("customTimestamp").textContent = "Por favor, ingrese un número válido.";
+      }
     });
   </script>
 </body>
