@@ -18,7 +18,6 @@
       margin: 0;
       font-family: "Courier New", Courier, monospace;
     }
-    /* Contenedor principal sin padding ni margen */
     .section-wrapper {
       max-width: 1200px;
       margin: 0 auto;
@@ -39,7 +38,7 @@
       font-weight: normal;
       margin: 0;
     }
-    /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
+    /* ========== BOTONES SUPERIORES ========== */
     .top-buttons .btn {
       width: 100%;
       border-radius: 4px;
@@ -137,7 +136,6 @@
       color: #222;
       margin-bottom: 0.5rem;
     }
-    /* Contenedor para la info del listado activo con altura mínima para mantener uniformidad */
     .listing-info {
       font-size: 0.8rem;
       color: #555;
@@ -171,7 +169,6 @@
     .nft-card:hover .see-details-btn {
       display: block;
     }
-    /* Mini tarjetas en modal para aceptar floor offer */
     .mini-token {
       display: inline-block;
       margin: 5px;
@@ -212,7 +209,6 @@
       box-sizing: border-box;
       font-family: inherit;
     }
-    /* ========== MOBILE STYLES ========== */
     @media (max-width: 768px) {
       #modalActionButtons button {
         display: block;
@@ -244,7 +240,6 @@
 
   <!-- Contenido Principal -->
   <div class="section-wrapper">
-    <!-- Floor Offer Section -->
     <div id="floorOfferSection" onclick="openAcceptFloorOfferModal()">
       <span id="floorOfferText">Highest floor offer 0.0 $ADRIAN</span>
     </div>
@@ -262,7 +257,7 @@
     </div>
   </section>
 
-  <!-- My Offers Section (barra a pantalla completa) -->
+  <!-- My Offers Section -->
   <div id="myOffersSection" onclick="openMyOffersModal()">
     <span id="myOffersText">My Offers</span>
   </div>
@@ -281,7 +276,6 @@
             <button class="btn btn-secondary me-2" onclick="openFloorOfferForm()">Make Floor Offer</button>
             <button class="btn btn-secondary" onclick="openMakeTokenOfferForm()">Make Token Offer</button>
           </div>
-          <!-- Contenido específico del token se inyecta aquí -->
         </div>
       </div>
     </div>
@@ -360,11 +354,13 @@
     }
 
     let provider, signer, userAccount;
-    // Actualiza las direcciones de contrato según corresponda
+    // Direcciones de contrato
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
-    const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // Se actualiza la dirección del marketplace a la nueva dirección
-    const marketplaceAddress = "0x4b9afc775d3D1969F727e81BA970B19b9e8054EF";
+    // Dirección actualizada de la colección AdrianPunks
+    const nftCollectionAddress = "0x4b9afc775d3D1969F727e81BA970B19b9e8054EF";
+    // La dirección del marketplace se mantiene sin cambios
+    const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
+
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -423,18 +419,17 @@
       }
     }
 
-    // Función actualizada para cargar NFTs en lotes y evitar saturar el navegador
+    // Carga de NFTs en lotes para evitar saturar el navegador
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
         const totalMinted = await nftContract.totalMinted();
-        const batchSize = 20; // Puedes ajustar el tamaño del lote
+        const batchSize = 20;
         for (let start = 1; start <= totalMinted; start += batchSize) {
           const end = Math.min(start + batchSize - 1, totalMinted);
           await loadNFTBatch(start, end);
-          // Pausa breve para evitar saturar el navegador
           await new Promise(resolve => setTimeout(resolve, 100));
         }
         document.getElementById("loadingSpinner").style.display = "none";
