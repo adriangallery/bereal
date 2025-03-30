@@ -23,24 +23,22 @@
       max-width: 1200px;
       margin: 0 auto;
     }
-
     /* ========== HERO SECTION ========== */
     .hero {
-      background: #fff; /* fondo blanco */
+      background: #fff;
       padding: 80px 0;
       text-align: center;
     }
     .hero h1 {
       font-size: 3rem;
-      font-weight: normal; /* sin negrita */
-      margin: 0;
-    }
-    .hero h2 {
-      font-size: 2.2rem; /* unos 4-5 pts menor que el título */
       font-weight: normal;
       margin: 0;
     }
-
+    .hero h2 {
+      font-size: 2.2rem;
+      font-weight: normal;
+      margin: 0;
+    }
     /* ========== BOTONES SUPERIORES (Marketplace y Offers) ========== */
     .top-buttons .btn {
       width: 100%;
@@ -365,8 +363,8 @@
     // Actualiza las direcciones de contrato según corresponda
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xF7f61b4D7E29d479d284f3fDa1FB46188940C3b9";
-    // ABI del marketplace actualizado: todas las funciones que requieren el parámetro extra para indicar el tipo (1 para ERC721)
-    const marketplaceAddress = "0xAe8e31f48530b2894e9F8B99Aa2067EBA131ce25";
+    // Se actualiza la dirección del marketplace a la nueva dirección
+    const marketplaceAddress = "0x4b9afc775d3D1969F727e81BA970B19b9e8054EF";
     const tokenABI = [
       "function balanceOf(address account) view returns (uint256)",
       "function allowance(address owner, address spender) view returns (uint256)",
@@ -380,7 +378,6 @@
     const marketplaceAbi = [
       "function createListing(address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 duration, uint8 nftTypeParam) external",
       "function cancelListing(uint256 listingId) external",
-      // Actualizamos buyListing para recibir también el token type:
       "function buyListing(uint256 listingId, uint256 purchaseQuantity, uint8 nftTypeParam) external",
       "function listingIdCounter() view returns (uint256)",
       "function listings(uint256) external view returns (uint256 id, address seller, address collection, uint256 tokenId, uint256 quantity, uint256 price, uint256 expirationTime)",
@@ -426,63 +423,70 @@
       }
     }
 
+    // Función actualizada para cargar NFTs en lotes y evitar saturar el navegador
     async function loadNFTs() {
       try {
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
         const totalMinted = await nftContract.totalMinted();
-        // Detectar si es móvil (basado en user agent)
-        const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-        for (let tokenId = 1; tokenId <= totalMinted; tokenId++) {
-          let tokenURI = await nftContract.tokenURI(tokenId);
-          if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          const metadata = await getMetadata(tokenURI);
-          let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
-          if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          let displayName = "#" + tokenId;
-          let owner = await nftContract.ownerOf(tokenId);
-          let owned = (owner.toLowerCase() === userAccount.toLowerCase());
-          let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
-          // Construir la tarjeta con contenedor para la info del listado activo
-          let cardHTML = `
-            <div class="${cardClass}" data-token-id="${tokenId}">
-              <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
-              <div class="card-body">
-                <h5 class="card-title">${displayName}</h5>
-                <div class="listing-info"></div>
-              </div>
-              ${!isMobile ? `<button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>` : ""}
-            </div>
-          `;
-          let colDiv = document.createElement("div");
-          colDiv.className = "col-6 col-md-3 mb-4";
-          colDiv.innerHTML = cardHTML;
-          // Si es móvil, asignar listener para abrir el popup en el primer tap
-          if (isMobile) {
-            colDiv.addEventListener("click", function() {
-              showMetadata(tokenId);
-            });
-          }
-          galleryDiv.appendChild(colDiv);
-
-          // Verificar si existe listado activo para este token y actualizar el contenedor de info
-          (async () => {
-            let listing = await getListingForToken(tokenId);
-            let listingDiv = colDiv.querySelector('.listing-info');
-            if (listing) {
-              let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
-              listingDiv.innerText = `${formatBalance(pricePerNFT)} $A`;
-            } else {
-              listingDiv.innerText = "";
-            }
-          })();
+        const batchSize = 20; // Puedes ajustar el tamaño del lote
+        for (let start = 1; start <= totalMinted; start += batchSize) {
+          const end = Math.min(start + batchSize - 1, totalMinted);
+          await loadNFTBatch(start, end);
+          // Pausa breve para evitar saturar el navegador
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         document.getElementById("loadingSpinner").style.display = "none";
       } catch (error) {
         console.error("Error loading NFTs:", error);
         document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
         document.getElementById("loadingSpinner").style.display = "none";
+      }
+    }
+
+    async function loadNFTBatch(start, end) {
+      const galleryDiv = document.getElementById("nftGallery");
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      for (let tokenId = start; tokenId <= end; tokenId++) {
+        let tokenURI = await nftContract.tokenURI(tokenId);
+        if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        const metadata = await getMetadata(tokenURI);
+        let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+        if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+        let displayName = "#" + tokenId;
+        let owner = await nftContract.ownerOf(tokenId);
+        let owned = (owner.toLowerCase() === userAccount.toLowerCase());
+        let cardClass = owned ? "card nft-card owned h-100" : "card nft-card unowned h-100";
+        let cardHTML = `
+          <div class="${cardClass}" data-token-id="${tokenId}">
+            <img src="${imageUrl}" class="card-img-top" alt="${displayName}">
+            <div class="card-body">
+              <h5 class="card-title">${displayName}</h5>
+              <div class="listing-info"></div>
+            </div>
+            ${!isMobile ? `<button class="see-details-btn" onclick="showMetadata(${tokenId}); event.stopPropagation();">Listings</button>` : ""}
+          </div>
+        `;
+        let colDiv = document.createElement("div");
+        colDiv.className = "col-6 col-md-3 mb-4";
+        colDiv.innerHTML = cardHTML;
+        if (isMobile) {
+          colDiv.addEventListener("click", function() {
+            showMetadata(tokenId);
+          });
+        }
+        galleryDiv.appendChild(colDiv);
+        (async () => {
+          let listing = await getListingForToken(tokenId);
+          let listingDiv = colDiv.querySelector('.listing-info');
+          if (listing) {
+            let pricePerNFT = ethers.utils.formatUnits(listing.price.div(listing.quantity), 18);
+            listingDiv.innerText = `${formatBalance(pricePerNFT)} $A`;
+          } else {
+            listingDiv.innerText = "";
+          }
+        })();
       }
     }
 
@@ -520,7 +524,6 @@
       }
     }
 
-    // Función para crear listing: se envía el parámetro 1 para ERC721
     function openCreateListingForm(tokenId) {
       const formDiv = document.getElementById("createListingForm");
       formDiv.style.display = "block";
@@ -567,7 +570,6 @@
         return;
       }
       try {
-        // Se envía el parámetro 1 para indicar ERC721
         const tx = await marketplaceContract.createListing(nftCollectionAddress, tokenId, quantity, totalPrice, durationSeconds, 1, { gasLimit: 1000000 });
         const receipt = await tx.wait();
         let listingId;
@@ -630,10 +632,8 @@
       }
     }
 
-    // Envolvemos la función de compra para que reciba tokenId (para mantener consistencia en el popup)
     async function buyListingByIdWrapper(listingId, tokenId) {
       await buyListingById(listingId);
-      // Puedes agregar acciones adicionales si fuera necesario, usando tokenId
     }
 
     async function buyListingById(listingId) {
@@ -654,7 +654,6 @@
           await txApprove.wait();
           alert("Approved tokens for purchase.");
         }
-        // Se añade el parámetro 1 para indicar ERC721 en la función buyListing
         const tx = await marketplaceContract.buyListing(listingId, 1, 1, { gasLimit: 1000000 });
         await tx.wait();
         alert("Listing purchased successfully.");
@@ -809,7 +808,6 @@
       }
     }
 
-    // Función para aceptar floor offer: se envía el parámetro 1 para indicar que es un token ERC721
     async function acceptFloorOffer(tokenId) {
       try {
         const nftContractForApproval = new ethers.Contract(nftCollectionAddress, 
@@ -832,8 +830,6 @@
         alert("Error accepting floor offer: " + error.message);
       }
     }
-
-    // NUEVAS FUNCIONES PARA "MY OFFERS"
 
     async function openMyOffersModal() {
       try {
@@ -878,7 +874,7 @@
         const tx = await marketplaceContract.cancelOffer(offerId, { gasLimit: 1000000 });
         await tx.wait();
         alert("Offer canceled successfully!");
-        openMyOffersModal(); // Recargar la lista
+        openMyOffersModal();
       } catch (error) {
         console.error("Error canceling offer:", error);
         alert("Error canceling offer: " + error.message);
