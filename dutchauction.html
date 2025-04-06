@@ -148,9 +148,10 @@
         } else {
           currentPrice = await auctionContract.getCurrentPrice();
         }
-        // Format currentPrice to 3 decimals and append $ADRIAN
-        document.getElementById("currentPrice").innerText =
-          parseFloat(ethers.utils.formatUnits(currentPrice, 18)).toFixed(3) + " $ADRIAN";
+        // Formatear currentPrice a 3 decimales con separadores de miles y agregar $ADRIAN
+        let priceValue = parseFloat(ethers.utils.formatUnits(currentPrice, 18));
+        let formattedPrice = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(priceValue);
+        document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
         
         // Update user's token balance
         await loadTokenBalance();
@@ -172,14 +173,15 @@
         // Fetch finalPrice and winner info
         const finalPrice = await auctionContract.finalPrice();
         const winner = await auctionContract.getWinner();
-        const formattedPrice = parseFloat(ethers.utils.formatUnits(finalPrice, 18)).toFixed(3);
+        let finalPriceValue = parseFloat(ethers.utils.formatUnits(finalPrice, 18));
+        let formattedFinalPrice = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(finalPriceValue);
         // Format winner wallet: show last 4 characters
         const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
         document.getElementById("timeRemaining").innerText = "Auction Ended";
-        // Here we update the main price display with the final price
-        document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
+        // Actualiza el precio principal con el precio final formateado
+        document.getElementById("currentPrice").innerText = formattedFinalPrice + " $ADRIAN";
         document.getElementById("auctionStatus").innerText =
-          "Auction Ended. Final Price: " + formattedPrice + " $ADRIAN. Winner: " + formattedWinner;
+          "Auction Ended. Final Price: " + formattedFinalPrice + " $ADRIAN. Winner: " + formattedWinner;
         document.getElementById("buyBtn").disabled = true;
         return;
       }
@@ -197,8 +199,10 @@
       try {
         const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         const balance = await tokenContract.balanceOf(userAddress);
-        document.getElementById("tokenBalance").innerText =
-          parseFloat(ethers.utils.formatUnits(balance, 18)).toFixed(3) + " $ADRIAN";
+        // Formatear balance a 3 decimales con separadores de miles y agregar $ADRIAN
+        let balanceValue = parseFloat(ethers.utils.formatUnits(balance, 18));
+        let formattedBalance = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(balanceValue);
+        document.getElementById("tokenBalance").innerText = formattedBalance + " $ADRIAN";
       } catch (error) {
         console.error("Error loading token balance:", error);
         document.getElementById("tokenBalance").innerText = "Error";
