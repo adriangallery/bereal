@@ -148,9 +148,9 @@
         } else {
           currentPrice = await auctionContract.getCurrentPrice();
         }
-        // Formatear currentPrice a 3 decimales con separadores de miles y agregar $ADRIAN
+        // Formatear currentPrice a 2 decimales con separadores de miles y agregar $ADRIAN
         let priceValue = parseFloat(ethers.utils.formatUnits(currentPrice, 18));
-        let formattedPrice = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(priceValue);
+        let formattedPrice = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(priceValue);
         document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
         
         // Update user's token balance
@@ -174,7 +174,7 @@
         const finalPrice = await auctionContract.finalPrice();
         const winner = await auctionContract.getWinner();
         let finalPriceValue = parseFloat(ethers.utils.formatUnits(finalPrice, 18));
-        let formattedFinalPrice = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(finalPriceValue);
+        let formattedFinalPrice = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(finalPriceValue);
         // Format winner wallet: show last 4 characters
         const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
         document.getElementById("timeRemaining").innerText = "Auction Ended";
@@ -199,9 +199,9 @@
       try {
         const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
         const balance = await tokenContract.balanceOf(userAddress);
-        // Formatear balance a 3 decimales con separadores de miles y agregar $ADRIAN
+        // Formatear balance a 2 decimales con separadores de miles y agregar $ADRIAN
         let balanceValue = parseFloat(ethers.utils.formatUnits(balance, 18));
-        let formattedBalance = new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(balanceValue);
+        let formattedBalance = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balanceValue);
         document.getElementById("tokenBalance").innerText = formattedBalance + " $ADRIAN";
       } catch (error) {
         console.error("Error loading token balance:", error);
