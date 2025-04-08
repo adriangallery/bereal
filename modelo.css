@@ -1,0 +1,149 @@
+/* Estilos base */
+:root {
+  --bg-color: #000000;
+  --text-color: #00ff00;
+  --card-bg: #1a1a1a;
+  --border-color: #00ff00;
+  --modal-bg: #1a1a1a;
+  --modal-header-bg: #000000;
+  --dropdown-bg: #1a1a1a;
+  --dropdown-text: #00ff00;
+  --badge-bg: #00ff00;
+  --badge-text: #000000;
+  --list-group-bg: #1a1a1a;
+  --list-group-text: #00ff00;
+  --list-group-border: #00ff00;
+  --font-terminal: 'Share Tech Mono', monospace;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-terminal);
+  background-image: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+
+.container {
+  background-color: rgba(0, 0, 0, 0.8);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.card {
+  background-color: rgba(26, 26, 26, 0.9);
+  border-color: var(--border-color);
+  color: var(--text-color);
+  transition: transform 0.2s;
+  border-radius: 0;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(5px);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.dapp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.dapp-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dapp-card .card-body {
+  flex-grow: 1;
+  padding: 1.5rem;
+}
+
+.dapp-card .card-footer {
+  background-color: transparent;
+  border-top: 1px solid var(--border-color);
+  padding: 1rem;
+}
+
+.dapp-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.buy-token-card {
+  background: linear-gradient(45deg, #1a1a1a, #003300);
+  color: #00ff00;
+  border: 1px solid #00ff00;
+}
+
+.buy-token-card:hover {
+  background: linear-gradient(45deg, #003300, #1a1a1a);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+.btn-primary {
+  background-color: transparent;
+  border: 1px solid var(--text-color);
+  color: var(--text-color);
+  font-family: var(--font-terminal);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.5rem 1.5rem;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+}
+
+.card-title {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.dapp-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .dapp-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .dapp-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+} 
