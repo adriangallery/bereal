@@ -14,6 +14,7 @@
   --list-group-text: #00ff00;
   --list-group-border: #00ff00;
   --font-terminal: 'Share Tech Mono', monospace;
+  --navbar-height: 60px; /* Altura del menú */
 }
 
 body {
@@ -24,6 +25,7 @@ body {
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
+  padding-top: var(--navbar-height); /* Agregado padding para el menú fijo */
 }
 
 .container {
