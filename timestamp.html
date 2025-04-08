@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Calculadora de Timestamps</title>
+  <title>Calculadora de Timestamps Flexible</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,53 +14,86 @@
     input[type="number"] {
       padding: 5px;
       margin-right: 5px;
-      width: 100px;
+      width: 80px;
     }
     button {
       padding: 5px 10px;
+      margin: 5px;
+    }
+    #presets button {
+      margin: 5px;
     }
   </style>
 </head>
 <body>
-  <h1>Calculadora de Timestamps</h1>
+  <h1>Calculadora de Timestamps Flexible</h1>
+  <!-- Muestra el timestamp actual -->
   <div id="info">
     <div class="timestamp" id="currentTimestamp"></div>
-    <div class="timestamp" id="timestamp24"></div>
-    <div class="timestamp" id="timestamp26"></div>
-    <div class="timestamp" id="timestamp28"></div>
-    <div class="timestamp" id="timestamp30"></div>
   </div>
 
+  <!-- Sección de opciones predefinidas -->
+  <h2>Opciones predeterminadas</h2>
+  <div id="presets">
+    <button class="preset-btn" data-days="0" data-hours="24">+24 Horas</button>
+    <button class="preset-btn" data-days="0" data-hours="26">+26 Horas</button>
+    <button class="preset-btn" data-days="0" data-hours="28">+28 Horas</button>
+    <button class="preset-btn" data-days="0" data-hours="30">+30 Horas</button>
+    <button class="preset-btn" data-days="1" data-hours="0">+1 Día</button>
+    <button class="preset-btn" data-days="1" data-hours="12">+1 Día 12 Horas</button>
+    <button class="preset-btn" data-days="2" data-hours="0">+2 Días</button>
+  </div>
+  <div class="timestamp" id="presetTimestamp"></div>
+
+  <!-- Sección de cálculo personalizado -->
   <h2>Calcula tu timestamp personalizado</h2>
-  <label for="inputHours">Ingrese la cantidad de horas:</label>
-  <input type="number" id="inputHours" placeholder="Horas">
+  <div>
+    <label for="inputDays">Ingrese la cantidad de días:</label>
+    <input type="number" id="inputDays" placeholder="Días" value="0">
+  </div>
+  <div>
+    <label for="inputHours">Ingrese la cantidad de horas:</label>
+    <input type="number" id="inputHours" placeholder="Horas" value="0">
+  </div>
   <button id="calcButton">Calcular Timestamp</button>
   <div class="timestamp" id="customTimestamp"></div>
 
   <script>
-    // Función para actualizar los timestamps predefinidos
-    function updateTimestamps() {
+    // Actualiza y muestra el timestamp actual al cargar la página
+    function updateCurrentTimestamp() {
       const now = Math.floor(Date.now() / 1000);
       document.getElementById("currentTimestamp").textContent = "Tiempo actual (timestamp): " + now;
-      document.getElementById("timestamp24").textContent = "Timestamp +24 horas: " + (now + 24 * 3600);
-      document.getElementById("timestamp26").textContent = "Timestamp +26 horas: " + (now + 26 * 3600);
-      document.getElementById("timestamp28").textContent = "Timestamp +28 horas: " + (now + 28 * 3600);
-      document.getElementById("timestamp30").textContent = "Timestamp +30 horas: " + (now + 30 * 3600);
     }
 
-    // Actualizar los timestamps al cargar la página
-    updateTimestamps();
+    updateCurrentTimestamp();
 
-    // Evento para calcular el timestamp personalizado
+    // Función que recibe días y horas para calcular el timestamp correspondiente
+    function calcularTimestamp(days, hours) {
+      const now = Math.floor(Date.now() / 1000);
+      const segundosDias = days * 86400;   // 86400 segundos en un día
+      const segundosHoras = hours * 3600;    // 3600 segundos en una hora
+      return now + segundosDias + segundosHoras;
+    }
+
+    // Evento para calcular el timestamp personalizado con los valores ingresados
     document.getElementById("calcButton").addEventListener("click", function() {
-      const inputHours = parseFloat(document.getElementById("inputHours").value);
-      if (!isNaN(inputHours)) {
-        const now = Math.floor(Date.now() / 1000);
-        const customTimestamp = now + (inputHours * 3600);
-        document.getElementById("customTimestamp").textContent = "Timestamp +" + inputHours + " horas: " + customTimestamp;
-      } else {
-        document.getElementById("customTimestamp").textContent = "Por favor, ingrese un número válido.";
-      }
+      const days = parseFloat(document.getElementById("inputDays").value) || 0;
+      const hours = parseFloat(document.getElementById("inputHours").value) || 0;
+      const resultado = calcularTimestamp(days, hours);
+      document.getElementById("customTimestamp").textContent =
+        "Timestamp +" + days + " días y " + hours + " horas: " + resultado;
+    });
+
+    // Agregar eventos a los botones predefinidos para calcular el timestamp según sus valores
+    const presetButtons = document.querySelectorAll(".preset-btn");
+    presetButtons.forEach(function(button) {
+      button.addEventListener("click", function() {
+        const days = parseFloat(button.getAttribute("data-days")) || 0;
+        const hours = parseFloat(button.getAttribute("data-hours")) || 0;
+        const resultado = calcularTimestamp(days, hours);
+        document.getElementById("presetTimestamp").textContent =
+          "Timestamp +" + days + " días y " + hours + " horas: " + resultado;
+      });
     });
   </script>
 </body>
