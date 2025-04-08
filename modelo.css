@@ -25,13 +25,12 @@ body {
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
-  padding-top: var(--navbar-height); /* Agregado padding para el menú fijo */
 }
 
 .container {
   background-color: rgba(0, 0, 0, 0.8);
   max-width: 1400px;
-  margin: 0 auto;
+  margin: var(--navbar-height) auto 0; /* Agregado margen superior para compensar el menú fijo */
   padding: 2rem;
   border: 1px solid var(--border-color);
 }
