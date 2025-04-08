@@ -17,12 +17,12 @@
   <div id="menu-container"></div>
   <script>
     // Load the menu
-    fetch('menu.html')
+    fetch('components/menu3.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-container').innerHTML = html;
         const script = document.createElement('script');
-        script.src = 'menu.js';
+        script.src = 'components/menu2.js';
         document.head.appendChild(script);
       })
       .catch(error => console.error('Error loading menu:', error));
