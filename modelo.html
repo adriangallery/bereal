@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdrianGallery - DApps</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* Estilos base */
+    :root {
+      --bg-color: #000000;
+      --text-color: #00ff00;
+      --card-bg: #1a1a1a;
+      --border-color: #00ff00;
+      --modal-bg: #1a1a1a;
+      --modal-header-bg: #000000;
+      --dropdown-bg: #1a1a1a;
+      --dropdown-text: #00ff00;
+      --badge-bg: #00ff00;
+      --badge-text: #000000;
+      --list-group-bg: #1a1a1a;
+      --list-group-text: #00ff00;
+      --list-group-border: #00ff00;
+      --font-terminal: 'Share Tech Mono', monospace;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-terminal);
+      background-image: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi');
+      background-size: cover;
+      background-attachment: fixed;
+      background-position: center;
+    }
+
+    .container {
+      background-color: rgba(0, 0, 0, 0.8);
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .card {
+      background-color: rgba(26, 26, 26, 0.9);
+      border-color: var(--border-color);
+      color: var(--text-color);
+      transition: transform 0.2s;
+      border-radius: 0;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(5px);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    }
+
+    .dapp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    .dapp-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dapp-card .card-body {
+      flex-grow: 1;
+      padding: 1.5rem;
+    }
+
+    .dapp-card .card-footer {
+      background-color: transparent;
+      border-top: 1px solid var(--border-color);
+      padding: 1rem;
+    }
+
+    .dapp-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--text-color);
+    }
+
+    .buy-token-card {
+      background: linear-gradient(45deg, #1a1a1a, #003300);
+      color: #00ff00;
+      border: 1px solid #00ff00;
+    }
+
+    .buy-token-card:hover {
+      background: linear-gradient(45deg, #003300, #1a1a1a);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+    }
+
+    .btn-primary {
+      background-color: transparent;
+      border: 1px solid var(--text-color);
+      color: var(--text-color);
+      font-family: var(--font-terminal);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0.5rem 1.5rem;
+      transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--text-color);
+      color: var(--bg-color);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .dapp-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .dapp-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+      }
+      
+      .card {
+        margin-bottom: 1rem;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .dapp-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+  <!-- Load ethers.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <!-- Include the menu -->
+  <div id="menu-container"></div>
+  <script>
+    // Load the menu
+    fetch('menu.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-container').innerHTML = html;
+        const script = document.createElement('script');
+        script.src = 'menu.js';
+        document.head.appendChild(script);
+      })
+      .catch(error => console.error('Error loading menu:', error));
+  </script>
+
+  <!-- Main Container -->
+  <div class="container">
+    <div class="dapp-grid">
+      <!-- Marketplace -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Marketplace">
+        <div class="card-body">
+          <i class="bi bi-shop dapp-icon"></i>
+          <h5 class="card-title">Marketplace</h5>
+          <p class="card-text">Trade NFTs in our primary marketplace. Buy, sell, and make offers on unique digital assets.</p>
+        </div>
+        <div class="card-footer">
+          <a href="marketplace.html" class="btn btn-primary">Enter Marketplace</a>
+        </div>
+      </div>
+
+      <!-- Auction V2 -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Auction">
+        <div class="card-body">
+          <i class="bi bi-gavel dapp-icon"></i>
+          <h5 class="card-title">Auction V2</h5>
+          <p class="card-text">Participate in NFT auctions with our enhanced bidding system. Place your bids and win unique digital assets.</p>
+        </div>
+        <div class="card-footer">
+          <a href="auctionv2.html" class="btn btn-primary">Enter Auctions</a>
+        </div>
+      </div>
+
+      <!-- Dutch Auction -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Dutch Auction">
+        <div class="card-body">
+          <i class="bi bi-arrow-down dapp-icon"></i>
+          <h5 class="card-title">Dutch Auction</h5>
+          <p class="card-text">Experience descending price auctions. Prices start high and decrease until a buyer is found.</p>
+        </div>
+        <div class="card-footer">
+          <a href="dutchauction.html" class="btn btn-primary">Enter Dutch Auction</a>
+        </div>
+      </div>
+
+      <!-- Lottery -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Lottery">
+        <div class="card-body">
+          <i class="bi bi-ticket-perforated dapp-icon"></i>
+          <h5 class="card-title">Lottery</h5>
+          <p class="card-text">Join our lottery system for a chance to win exclusive NFTs and prizes. Test your luck today!</p>
+        </div>
+        <div class="card-footer">
+          <a href="lottery.html" class="btn btn-primary">Enter Lottery</a>
+        </div>
+      </div>
+
+      <!-- Pump It -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Pump It">
+        <div class="card-body">
+          <i class="bi bi-graph-up dapp-icon"></i>
+          <h5 class="card-title">Pump It</h5>
+          <p class="card-text">Token incentive system designed to promote growth and community engagement.</p>
+        </div>
+        <div class="card-footer">
+          <a href="pumpit.html" class="btn btn-primary">Enter Pump It</a>
+        </div>
+      </div>
+
+      <!-- Filthy Rich -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Filthy Rich">
+        <div class="card-body">
+          <i class="bi bi-cash-stack dapp-icon"></i>
+          <h5 class="card-title">Filthy Rich</h5>
+          <p class="card-text">NFT-based wealth accumulation game. Build your empire and compete with other players.</p>
+        </div>
+        <div class="card-footer">
+          <a href="filthyrich.html" class="btn btn-primary">Enter Filthy Rich</a>
+        </div>
+      </div>
+
+      <!-- Ascension -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Ascension">
+        <div class="card-body">
+          <i class="bi bi-arrow-up-circle dapp-icon"></i>
+          <h5 class="card-title">Ascension</h5>
+          <p class="card-text">NFT evolution and enhancement system. Upgrade your digital assets to unlock new features.</p>
+        </div>
+        <div class="card-footer">
+          <a href="ascension.html" class="btn btn-primary">Enter Ascension</a>
+        </div>
+      </div>
+
+      <!-- Tax Reaper -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Tax Reaper">
+        <div class="card-body">
+          <i class="bi bi-calculator dapp-icon"></i>
+          <h5 class="card-title">Tax Reaper</h5>
+          <p class="card-text">Tax management and reward distribution system. Optimize your token holdings.</p>
+        </div>
+        <div class="card-footer">
+          <a href="taxreaper.html" class="btn btn-primary">Enter Tax Reaper</a>
+        </div>
+      </div>
+
+      <!-- Burn Stats -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Burn Stats">
+        <div class="card-body">
+          <i class="bi bi-fire dapp-icon"></i>
+          <h5 class="card-title">Burn Stats</h5>
+          <p class="card-text">Track token and NFT burn statistics. Monitor the deflationary mechanisms of the ecosystem.</p>
+        </div>
+        <div class="card-footer">
+          <a href="burnstats.html" class="btn btn-primary">Enter Burn Stats</a>
+        </div>
+      </div>
+
+      <!-- The Offering Seats -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="The Offering Seats">
+        <div class="card-body">
+          <i class="bi bi-trophy dapp-icon"></i>
+          <h5 class="card-title">The Offering Seats</h5>
+          <p class="card-text">VIP reward system and exclusive seating. Access premium features and benefits.</p>
+        </div>
+        <div class="card-footer">
+          <a href="theofferingseats.html" class="btn btn-primary">Enter The Offering Seats</a>
+        </div>
+      </div>
+
+      <!-- Pimp Killer -->
+      <div class="card dapp-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Pimp Killer">
+        <div class="card-body">
+          <i class="bi bi-shield dapp-icon"></i>
+          <h5 class="card-title">Pimp Killer</h5>
+          <p class="card-text">NFT-based defense and strategy game. Protect your assets and outsmart your opponents.</p>
+        </div>
+        <div class="card-footer">
+          <a href="pimpkiller.html" class="btn btn-primary">Enter Pimp Killer</a>
+        </div>
+      </div>
+
+      <!-- Buy $ADRIAN -->
+      <div class="card dapp-card buy-token-card">
+        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiabnekmlc67nxf6jboa6ndu7n6k4ci7qfobkcinzu3pmtwe54ovmi" class="dapp-image" alt="Buy $ADRIAN">
+        <div class="card-body">
+          <i class="bi bi-currency-exchange dapp-icon"></i>
+          <h5 class="card-title">Buy $ADRIAN</h5>
+          <p class="card-text">Purchase $ADRIAN tokens on Uniswap. Join the ecosystem and start trading.</p>
+        </div>
+        <div class="card-footer">
+          <a href="https://app.uniswap.org/swap?chain=base&inputCurrency=ETH&outputCurrency=0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea" target="_blank" class="btn btn-primary">Buy on Uniswap</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Main Script -->
+  <script>
+    // Función para cambiar el tema
+    function toggleTheme() {
+      const html = document.documentElement;
+      const themeButton = document.getElementById('themeButton');
+      const themeButtonText = document.getElementById('themeButtonText');
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      
+      if (!isDark) {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeButtonText.textContent = 'LightMode';
+        themeButton.classList.remove('btn-outline-dark');
+        themeButton.classList.add('btn-dark');
+      } else {
+        html.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        themeButtonText.textContent = 'DarkMode';
+        themeButton.classList.remove('btn-dark');
+        themeButton.classList.add('btn-secondary');
+      }
+    }
+
+    // Cargar el tema guardado
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme');
+      const html = document.documentElement;
+      const themeButton = document.getElementById('themeButton');
+      const themeButtonText = document.getElementById('themeButtonText');
+      
+      if (savedTheme === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+        themeButtonText.textContent = 'LightMode';
+        themeButton.classList.remove('btn-outline-dark');
+        themeButton.classList.add('btn-dark');
+      } else {
+        themeButtonText.textContent = 'DarkMode';
+        themeButton.classList.remove('btn-dark');
+        themeButton.classList.add('btn-secondary');
+      }
+    });
+  </script>
+</body>
+</html>
