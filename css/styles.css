@@ -7,9 +7,161 @@
 
 /* Base styling */
 body {
-  background-color: #f8f9fa;
-  font-family: 'Open Sans', sans-serif;
-  color: #333;
+  margin: 0;
+  padding: 0;
+  font-family: 'Share Tech Mono', monospace;
+  background-color: #000;
+  color: #0f0;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 2px);
+  background-size: 100% 100%, 100% 20px;
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes scanline {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 100%, 0 20px; }
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #0f0;
+  box-shadow: 0 0 10px #0f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #0f0, transparent);
+  animation: glitch 2s linear infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  text-shadow: 0 0 5px #0f0;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { text-shadow: 0 0 5px #0f0, 0 0 10px #0f0, 0 0 15px #0f0; }
+  to { text-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0; }
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 1rem;
+  border: 1px solid #0f0;
+  background: transparent;
+  color: #0f0;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Share Tech Mono', monospace;
+  position: relative;
+  overflow: hidden;
+}
+
+button:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 10px #0f0;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(0, 255, 0, 0.1), transparent);
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+#tokenInfo {
+  margin-top: 30px;
+  font-size: 1.3rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 15px;
+  border: 1px solid #0f0;
+  text-align: left;
+  line-height: 1.5;
+  position: relative;
+}
+
+#tokenInfo::before {
+  content: '>';
+  position: absolute;
+  left: -20px;
+  top: 0;
+  color: #0f0;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+#chartContainer {
+  margin-top: 30px;
+  width: 100%;
+  height: 300px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #0f0;
+  padding: 10px;
+}
+
+.burn-animation {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  animation: burn 2s forwards;
+}
+
+@keyframes burn {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 10px;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  #tokenInfo {
+    font-size: 1rem;
+    padding: 10px;
+  }
+  #chartContainer {
+    height: 400px;
+  }
 }
 
 /* Navbar - Aseguramos que no tenga márgenes ni bordes redondeados */
