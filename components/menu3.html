@@ -1,46 +1,34 @@
 <!-- components/menu3.html -->
-<nav class="navbar" style="background-color: #000; border-bottom: 1px solid #333;">
-  <div class="container-fluid">
-    <!-- Botón hamburguesa (siempre visible, incluso en escritorio) -->
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" style="border: none;">
-      <span class="navbar-toggler-icon" style="filter: invert(100%);"></span>
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <img src="https://files.catbox.moe/ffvdjy.svg" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
+      $ADRIAN
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
     </button>
-    <style>
-  .navbar {
-    position: fixed;
-    width: 100%;
-    z-index: 100;
-  }
-    </style>
-    <!-- Marca -->
-    <a class="navbar-brand ms-2" href="index.html" style="color: #fff; font-size: 1.3rem;">$ADRIAN</a>
-    <!-- Menú colapsable -->
-    <div class="collapse" id="navbarNav">
-      <ul class="navbar-nav ms-3">
-        <li class="nav-item"><a class="nav-link text-white" href="index.html">Index</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="https://adrianpunks.com">AdrianPunks</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="https://app.uniswap.org/#/swap?chain=base&inputCurrency=ETH&outputCurrency=0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea" target="_blank">Buy $ADRIAN</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="marketplace.html">Marketplace</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="auctionv2.html">Adrian Auction</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="dutchauction.html">DUTCH Auction</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="lottery.html">Lottery</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="pumpit.html">Pump your ADRIANS</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="filthyrich.html">Filthy Rich</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="ascension.html">ASCENSION</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="taxreaper.html">The TAX reaper</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="burnstats.html">Burn Stats</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="theofferingseats.html">THE OFFERING</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="pimpkiller.html">PimpKiller</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="https://twitter.com/adriancerda" target="_blank">Twitter</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="https://discord.gg/YHc5Sh65Hm" target="_blank">Discord</a></li>
-        <li class="nav-item"><a class="nav-link text-white" href="https://opensea.io/collection/adriangallery" target="_blank">OpenSea</a></li>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="index.html">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="theofferingseats2.html">THE OFFERING</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="burnstats2.html">BURNSTATS</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://twitter.com/adriangallery" target="_blank">Twitter</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://t.me/adriangallery" target="_blank">Telegram</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://opensea.io/collection/the-offering-by-adrian-gallery" target="_blank">OpenSea</a>
+        </li>
       </ul>
     </div>
-    <!-- Botón "Connect Wallet" siempre visible, con emojis -->
-    <button class="btn d-flex align-items-center me-2" id="menuConnectButton" onclick="menuConnectWallet()"
-      style="background-color: #f6851b; color: #fff; border: none; font-weight: 600; gap: 0.5rem;">
-      🟦🟥 Connect Wallet
-    </button>
   </div>
 </nav> 
