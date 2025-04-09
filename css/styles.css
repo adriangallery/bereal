@@ -450,11 +450,19 @@ footer {
 
 /* The Offering Specific Styles */
 body.the-offering {
-  background-color: #000;
+  background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
   color: #fff;
   font-family: 'Press Start 2P', cursive;
   overflow-x: hidden;
   position: relative;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 body.the-offering::before {
