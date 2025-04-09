@@ -60,7 +60,7 @@
     <!-- Seat status indicator -->
     <p id="seatStatus" class="text-center">Seat Status: Not claimed</p>
     <!-- Displayed when the wallet is connected -->
-    <div id="claimInfo" style="display: none;">
+    <div id="claimInfo" class="text-center">
       <div class="mb-3">
         <strong>Total Seats Claimed:</strong> <span id="totalHolders">Loading...</span>
       </div>
@@ -111,10 +111,15 @@
     // Initialize ethers
     async function initEthers() {
       if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(contractAddress, contractABI, signer);
-        refreshInfo();
+        try {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+          contract = new ethers.Contract(contractAddress, contractABI, signer);
+          refreshInfo();
+        } catch (error) {
+          console.error("Error initializing ethers:", error);
+          alert("Error connecting to wallet. Please try again.");
+        }
       } else {
         alert("Please install MetaMask!");
       }
@@ -122,11 +127,17 @@
 
     // Callback cuando se conecta el wallet vía el menú
     window.onMenuWalletConnected = async function() {
-      userAddress = window.menuUserAccount;
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      contract = new ethers.Contract(contractAddress, contractABI, signer);
-      refreshInfo();
+      try {
+        userAddress = window.menuUserAccount;
+        provider = window.menuProvider;
+        signer = window.menuSigner;
+        contract = new ethers.Contract(contractAddress, contractABI, signer);
+        document.getElementById("claimInfo").style.display = "block";
+        refreshInfo();
+      } catch (error) {
+        console.error("Error in onMenuWalletConnected:", error);
+        alert("Error connecting to wallet. Please try again.");
+      }
     };
 
     // Callback cuando se desconecta el wallet
@@ -136,8 +147,8 @@
       signer = null;
       contract = null;
       document.getElementById("walletStatus").innerText = "Wallet not connected";
-      document.getElementById("seatStatus").innerText = "Loading...";
-      document.getElementById("stats").innerText = "Loading...";
+      document.getElementById("seatStatus").innerText = "Seat Status: Not claimed";
+      document.getElementById("claimInfo").style.display = "none";
     };
 
     // Refresh contract information
@@ -152,10 +163,17 @@
         ]);
 
         document.getElementById("walletStatus").innerText = "Connected: " + address;
-        document.getElementById("seatStatus").innerText = hasClaimed ? "Seat claimed" : "Seat not claimed";
-        document.getElementById("stats").innerText = `Total Seats: ${stats[0]}, Claimed Seats: ${stats[1]}, Total Tokens: ${stats[2]}, Distributed Tokens: ${stats[3]}`;
+        document.getElementById("seatStatus").innerText = hasClaimed ? "Seat Status: Claimed" : "Seat Status: Not claimed";
+        document.getElementById("totalHolders").innerText = stats[0].toString();
+        document.getElementById("activeSeats").innerText = stats[1].toString();
+        document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats[2]) + " ADRIAN";
       } catch (error) {
         console.error("Error refreshing info:", error);
+        if (error.code === "CALL_EXCEPTION") {
+          document.getElementById("statusMessage").innerText = "Error: Contract call failed. Please check your connection.";
+        } else {
+          document.getElementById("statusMessage").innerText = "Error: " + error.message;
+        }
       }
     }
 
@@ -169,11 +187,11 @@
       try {
         const tx = await contract.claimSeat();
         await tx.wait();
-        document.getElementById("seatStatus").innerText = "Seat claimed successfully!";
+        document.getElementById("statusMessage").innerText = "Seat claimed successfully!";
         refreshInfo();
       } catch (error) {
         console.error("Error claiming seat:", error);
-        document.getElementById("seatStatus").innerText = "Error: " + error.message;
+        document.getElementById("statusMessage").innerText = "Error: " + error.message;
       }
     }
 
@@ -187,13 +205,17 @@
       try {
         const tx = await contract.distributeTokens();
         await tx.wait();
-        document.getElementById("stats").innerText = "Tokens distributed successfully!";
+        document.getElementById("statusMessage").innerText = "Tokens distributed successfully!";
         refreshInfo();
       } catch (error) {
         console.error("Error distributing tokens:", error);
-        document.getElementById("stats").innerText = "Error: " + error.message;
+        document.getElementById("statusMessage").innerText = "Error: " + error.message;
       }
     }
+
+    // Add event listeners for buttons
+    document.getElementById("claimSeatBtn").addEventListener("click", claimSeat);
+    document.getElementById("distributeBtn").addEventListener("click", distributeTokens);
 
     // Initialize when the page loads
     window.onload = initEthers;
