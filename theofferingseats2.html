@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>$ADRIAN CLAIM - THE OFFERING</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Favicon -->
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Ethers.js UMD (v5) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Load menu from components/menu2.html if available.
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading menu:', error));
+  </script>
+  <script src="components/menu2.js"></script>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>THE OFFERING</h1>
+      <p>
+        Not everyone will claim it. But those who do, will be remembered.<br><br>
+      </p>
+    </div>
+  </section>
+
+  <!-- Explanation Section -->
+  <div class="container" id="explanation">
+    <h3>Seat Claim Requirements & Distribution</h3>
+    <p>
+      To claim an active seat and be eligible to receive ADRIAN tokens, your wallet must hold both:
+      <ul>
+        <li>At least <strong>2 THE OFFERING</strong> NFTs (token id 15)</li>
+        <li>At least <strong>1 GENESIS</strong> NFT (token id 1)</li>
+      </ul>
+      The distribution of ADRIAN tokens is proportional to the number of THE OFFERING NFTs you hold.
+      For example, if one wallet holds 2 THE OFFERING tokens and another holds 1, the total weight is 3, and the wallet with 2 tokens will receive approximately 66.67% of the distribution.
+    </p>
+  </div>
+
+  <!-- Claim Section -->
+  <div class="container my-5" id="claimSection">
+    <h2 class="text-center">Claim Your Seat & Distribute Tokens</h2>
+    <p id="walletStatus" class="text-center">Wallet not connected.</p>
+    <!-- Seat status indicator -->
+    <p id="seatStatus" class="text-center">Seat Status: Not claimed</p>
+    <!-- Displayed when the wallet is connected -->
+    <div id="claimInfo" style="display: none;">
+      <div class="mb-3">
+        <strong>Total Seats Claimed:</strong> <span id="totalHolders">Loading...</span>
+      </div>
+      <div class="mb-3">
+        <strong>Active Seats:</strong> <span id="activeSeats">Loading...</span>
+      </div>
+      <div class="mb-3">
+        <strong>Tokens Available:</strong> <span id="tokensAvailable">Loading...</span>
+      </div>
+      <div class="mb-3 d-flex justify-content-center gap-2">
+        <button id="claimSeatBtn" class="btn btn-primary">CLAIM SEAT</button>
+        <button id="distributeBtn" class="btn btn-warning">DISTRIBUTE TOKENS</button>
+      </div>
+      <p id="statusMessage" class="mt-3 text-center"></p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    // Load footer from components/footer.html if available.
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  </script>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Contract Interaction Script -->
+  <script>
+    // New contract address with updated requirements
+    const claimContractAddress = "0x80d088af3a53820e43ce80e30d12b919ce1aaf8b";
+    const claimContractABI = [
+      "function claimSeat() public",
+      "function distributeTokens() public",
+      "function getStats() view returns (uint256 totalHolders, uint256 activeHolders, uint256 tokensAvailable)",
+      "function seatClaimed(address) view returns (bool)"
+    ];
+
+    let provider, signer, claimContract, userAddress;
+
+    async function initEthers() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        userAddress = await signer.getAddress();
+        claimContract = new ethers.Contract(claimContractAddress, claimContractABI, signer);
+        document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+        document.getElementById("claimInfo").style.display = "block";
+        refreshInfo();
+        refreshSeatStatus();
+      } else {
+        alert("Please install MetaMask.");
+      }
+    }
+
+    async function refreshInfo() {
+      try {
+        // Get contract statistics
+        const stats = await claimContract.getStats();
+        document.getElementById("totalHolders").innerText = stats.totalHolders;
+        document.getElementById("activeSeats").innerText = stats.activeHolders;
+        document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats.tokensAvailable).split('.')[0] + " ADRIAN";
+      } catch (error) {
+        console.error("Error loading stats:", error);
+        document.getElementById("totalHolders").innerText = "Error";
+        document.getElementById("activeSeats").innerText = "Error";
+        document.getElementById("tokensAvailable").innerText = "Error";
+      }
+    }
+
+    async function refreshSeatStatus() {
+      try {
+        const claimed = await claimContract.seatClaimed(userAddress);
+        document.getElementById("seatStatus").innerText = claimed ? "Seat Status: Claimed" : "Seat Status: Not claimed";
+      } catch (error) {
+        console.error("Error checking seat status:", error);
+        document.getElementById("seatStatus").innerText = "Seat Status: Error";
+      }
+    }
+
+    async function claimSeat() {
+      document.getElementById("statusMessage").innerText = "Processing seat claim...";
+      try {
+        const tx = await claimContract.claimSeat();
+        await tx.wait();
+        document.getElementById("statusMessage").innerText = "Seat claimed successfully!";
+        refreshInfo();
+        refreshSeatStatus();
+      } catch (error) {
+        console.error("Claim Seat failed:", error);
+        document.getElementById("statusMessage").innerText = "Claim Seat failed: " + (error.data?.message || error.message);
+      }
+    }
+
+    async function distributeTokens() {
+      document.getElementById("statusMessage").innerText = "Processing token distribution...";
+      try {
+        const tx = await claimContract.distributeTokens();
+        await tx.wait();
+        document.getElementById("statusMessage").innerText = "Tokens distributed successfully!";
+        refreshInfo();
+      } catch (error) {
+        console.error("Distribution failed:", error);
+        document.getElementById("statusMessage").innerText = "Distribution failed: " + (error.data?.message || error.message);
+      }
+    }
+
+    document.getElementById("claimSeatBtn").addEventListener("click", claimSeat);
+    document.getElementById("distributeBtn").addEventListener("click", distributeTokens);
+
+    window.addEventListener("load", initEthers);
+  </script>
+</body>
+</html> 
