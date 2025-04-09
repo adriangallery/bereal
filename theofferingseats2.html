@@ -94,89 +94,112 @@
 
   <!-- Contract Interaction Script -->
   <script>
-    // New contract address with updated requirements
-    const claimContractAddress = "0x80d088af3a53820e43ce80e30d12b919ce1aaf8b";
-    const claimContractABI = [
+    // Contract address and ABI
+    const contractAddress = "0x80d088af3a53820e43ce80e30d12b919ce1aaf8b";
+    const contractABI = [
       "function claimSeat() public",
       "function distributeTokens() public",
-      "function getStats() view returns (uint256 totalHolders, uint256 activeHolders, uint256 tokensAvailable)",
-      "function seatClaimed(address) view returns (bool)"
+      "function getStats() public view returns (uint256, uint256, uint256, uint256)",
+      "function hasClaimedSeat(address) public view returns (bool)"
     ];
 
-    let provider, signer, claimContract, userAddress;
+    let contract;
+    let provider;
+    let signer;
+    let userAddress;
 
+    // Initialize ethers
     async function initEthers() {
       if (window.ethereum) {
-        provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        await provider.send("eth_requestAccounts", []);
+        provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
-        userAddress = await signer.getAddress();
-        claimContract = new ethers.Contract(claimContractAddress, claimContractABI, signer);
-        document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
-        document.getElementById("claimInfo").style.display = "block";
+        contract = new ethers.Contract(contractAddress, contractABI, signer);
         refreshInfo();
-        refreshSeatStatus();
       } else {
-        alert("Please install MetaMask.");
+        alert("Please install MetaMask!");
       }
     }
 
+    // Callback cuando se conecta el wallet vía el menú
+    window.onMenuWalletConnected = async function() {
+      userAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      contract = new ethers.Contract(contractAddress, contractABI, signer);
+      refreshInfo();
+    };
+
+    // Callback cuando se desconecta el wallet
+    window.onMenuWalletDisconnected = function() {
+      userAddress = null;
+      provider = null;
+      signer = null;
+      contract = null;
+      document.getElementById("walletStatus").innerText = "Wallet not connected";
+      document.getElementById("seatStatus").innerText = "Loading...";
+      document.getElementById("stats").innerText = "Loading...";
+    };
+
+    // Refresh contract information
     async function refreshInfo() {
+      if (!contract) return;
+
       try {
-        // Get contract statistics
-        const stats = await claimContract.getStats();
-        document.getElementById("totalHolders").innerText = stats.totalHolders;
-        document.getElementById("activeSeats").innerText = stats.activeHolders;
-        document.getElementById("tokensAvailable").innerText = ethers.utils.formatEther(stats.tokensAvailable).split('.')[0] + " ADRIAN";
+        const address = await signer.getAddress();
+        const [hasClaimed, stats] = await Promise.all([
+          contract.hasClaimedSeat(address),
+          contract.getStats()
+        ]);
+
+        document.getElementById("walletStatus").innerText = "Connected: " + address;
+        document.getElementById("seatStatus").innerText = hasClaimed ? "Seat claimed" : "Seat not claimed";
+        document.getElementById("stats").innerText = `Total Seats: ${stats[0]}, Claimed Seats: ${stats[1]}, Total Tokens: ${stats[2]}, Distributed Tokens: ${stats[3]}`;
       } catch (error) {
-        console.error("Error loading stats:", error);
-        document.getElementById("totalHolders").innerText = "Error";
-        document.getElementById("activeSeats").innerText = "Error";
-        document.getElementById("tokensAvailable").innerText = "Error";
+        console.error("Error refreshing info:", error);
       }
     }
 
-    async function refreshSeatStatus() {
-      try {
-        const claimed = await claimContract.seatClaimed(userAddress);
-        document.getElementById("seatStatus").innerText = claimed ? "Seat Status: Claimed" : "Seat Status: Not claimed";
-      } catch (error) {
-        console.error("Error checking seat status:", error);
-        document.getElementById("seatStatus").innerText = "Seat Status: Error";
-      }
-    }
-
+    // Claim seat function
     async function claimSeat() {
-      document.getElementById("statusMessage").innerText = "Processing seat claim...";
+      if (!contract) {
+        alert("Please connect your wallet first!");
+        return;
+      }
+
       try {
-        const tx = await claimContract.claimSeat();
+        const tx = await contract.claimSeat();
         await tx.wait();
-        document.getElementById("statusMessage").innerText = "Seat claimed successfully!";
+        document.getElementById("seatStatus").innerText = "Seat claimed successfully!";
         refreshInfo();
-        refreshSeatStatus();
       } catch (error) {
-        console.error("Claim Seat failed:", error);
-        document.getElementById("statusMessage").innerText = "Claim Seat failed: " + (error.data?.message || error.message);
+        console.error("Error claiming seat:", error);
+        document.getElementById("seatStatus").innerText = "Error: " + error.message;
       }
     }
 
+    // Distribute tokens function
     async function distributeTokens() {
-      document.getElementById("statusMessage").innerText = "Processing token distribution...";
+      if (!contract) {
+        alert("Please connect your wallet first!");
+        return;
+      }
+
       try {
-        const tx = await claimContract.distributeTokens();
+        const tx = await contract.distributeTokens();
         await tx.wait();
-        document.getElementById("statusMessage").innerText = "Tokens distributed successfully!";
+        document.getElementById("stats").innerText = "Tokens distributed successfully!";
         refreshInfo();
       } catch (error) {
-        console.error("Distribution failed:", error);
-        document.getElementById("statusMessage").innerText = "Distribution failed: " + (error.data?.message || error.message);
+        console.error("Error distributing tokens:", error);
+        document.getElementById("stats").innerText = "Error: " + error.message;
       }
     }
 
-    document.getElementById("claimSeatBtn").addEventListener("click", claimSeat);
-    document.getElementById("distributeBtn").addEventListener("click", distributeTokens);
+    // Initialize when the page loads
+    window.onload = initEthers;
 
-    window.addEventListener("load", initEthers);
+    // Refresh info every 10 seconds
+    setInterval(refreshInfo, 10000);
   </script>
 </body>
 </html> 
