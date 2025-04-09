@@ -3,12 +3,12 @@
 <head>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <meta charset="UTF-8">
-  <title>$ADRIAN DUTCH AUCTION</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap CSS (v5.3.0) -->
+  <title>DUTCH Auction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Custom CSS -->
-  <link href="css/styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
   <style>
     body {
       background-color: #f8f9fa;
@@ -41,240 +41,154 @@
       font-size: 1.5rem;
     }
   </style>
-  <!-- Ethers.js UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu (loaded from components/menu2.html) -->
+  <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
+    // Load menu from components/menu2.html if available.
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
-      .catch(error => { console.error('Error loading menu:', error); });
+      .catch(error => console.error('Error loading menu:', error));
   </script>
   <script src="components/menu2.js"></script>
-  
+
   <!-- Hero Section -->
-  <section class="hero text-center">
+  <section class="hero">
     <div class="container">
-      <h1>$ADRIAN DUTCH AUCTION</h1>
-      <p class="lead">The auction where the price drops over time. Buy at your perfect moment!</p>
+      <h1>DUTCH Auction</h1>
+      <p>
+        The price starts high and decreases over time.<br>
+        Buy when you think the price is right!
+      </p>
     </div>
   </section>
-  
-  <!-- Auction Section -->
-  <div class="container my-5">
-    <div id="auctionSection" class="text-center">
-      <h2>Auction Details</h2>
-      <!-- Auction info visible when wallet is connected -->
-      <div id="auctionInfo" style="display: none;">
-        <div class="mb-4">
-          <div class="auction-label">Time Remaining:</div>
-          <div id="timeRemaining" class="auction-info">Loading...</div>
+
+  <!-- Auction Info Section -->
+  <section class="info-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="info-box">
+            <h2>Auction Status</h2>
+            <p id="auctionStatus">Loading...</p>
+            <p>Current Price: <span id="currentPrice">Loading...</span></p>
+            <p>Time Remaining: <span id="timeRemaining">Loading...</span></p>
+            <button class="btn btn-primary" onclick="purchase()">Purchase</button>
+          </div>
         </div>
-        <div class="mb-4">
-          <div class="auction-label">Current Price:</div>
-          <div id="currentPrice" class="auction-info">Loading...</div>
+        <div class="col-md-6">
+          <div class="info-box">
+            <h2>Your Balance</h2>
+            <p>ADRIAN Balance: <span id="adrianBalance">Loading...</span></p>
+            <p>ETH Balance: <span id="ethBalance">Loading...</span></p>
+          </div>
         </div>
-        <div class="mb-4">
-          <div class="auction-label">Your Token Balance:</div>
-          <div id="tokenBalance" class="auction-info">Loading...</div>
-        </div>
-        <button id="buyBtn" class="btn btn-warning btn-lg">Buy at Current Price</button>
-        <div id="auctionStatus" class="mt-3"></div>
       </div>
     </div>
-  </div>
-  
-  <!-- Footer (loaded from components/footer.html) -->
+  </section>
+
+  <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
+    // Load footer from components/footer.html if available.
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('footer-placeholder').innerHTML = html;
       })
-      .catch(error => { console.error('Error loading footer:', error); });
+      .catch(error => console.error('Error loading footer:', error));
   </script>
-  
-  <!-- Bootstrap JS Bundle -->
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
-  <!-- Contract Interaction Script -->
   <script>
-    // Dutch Auction contract address and ABI (nueva dirección)
-    const auctionContractAddress = "0xCE131591a16DADcAc2bBaBE412a5C136dAE217ab";
-    const auctionContractABI = [
+    // Contract address and ABI
+    const contractAddress = "0xCE131591a16DADcAc2bBaBE412a5C136dAE217ab";
+    const contractABI = [
+      "function purchase() public",
       "function getCurrentPrice() public view returns (uint256)",
-      "function getTimeRemaining() external view returns (uint256)",
-      "function auctionStartTime() public view returns (uint256)",
-      "function startPrice() public view returns (uint256)",
-      "function auctionEndTime() public view returns (uint256)",
-      "function finalPrice() public view returns (uint256)",
-      "function auctionEnded() public view returns (bool)",
-      "function buy() external",
-      "function getWinner() external view returns (address)"
+      "function getTimeRemaining() public view returns (uint256)",
+      "function getAuctionStatus() public view returns (string memory)"
     ];
-    
-    // ADRIAN Token contract address and minimal ABI (ERC20)
-    const tokenContractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea"; // Replace if needed
-    const tokenABI = [
-      "function approve(address spender, uint256 amount) public returns (bool)",
-      "function allowance(address owner, address spender) public view returns (uint256)",
-      "function balanceOf(address account) public view returns (uint256)"
-    ];
-    
-    let provider, signer, auctionContract, userAddress, auctionEndTimestamp;
-    let countdownInterval; // To clear the countdown when auction ends
-    
-    // Load auction info from the contract (price, endTime, etc.)
-    async function loadAuctionInfo() {
+
+    let contract;
+    let provider;
+    let signer;
+
+    // Initialize ethers
+    async function initEthers() {
+      if (window.ethereum) {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(contractAddress, contractABI, signer);
+        refreshInfo();
+      } else {
+        alert("Please install MetaMask!");
+      }
+    }
+
+    // Refresh auction information
+    async function refreshInfo() {
+      if (!contract) return;
+
       try {
-        // Read auction start time and start price from the contract
-        const contractAuctionStartTime = await auctionContract.auctionStartTime();
-        const contractStartPrice = await auctionContract.startPrice();
-        // Get auctionEndTime and store as global variable for the countdown
-        const contractAuctionEndTime = await auctionContract.auctionEndTime();
-        auctionEndTimestamp = contractAuctionEndTime.toNumber();
-        
-        const now = Math.floor(Date.now() / 1000);
-        let currentPrice;
-        // If auction hasn't started yet, use startPrice; else use getCurrentPrice()
-        if (now < contractAuctionStartTime.toNumber()) {
-          currentPrice = contractStartPrice;
-        } else {
-          currentPrice = await auctionContract.getCurrentPrice();
-        }
-        // Formatear currentPrice a 2 decimales con separadores de miles y agregar $ADRIAN
-        let priceValue = parseFloat(ethers.utils.formatUnits(currentPrice, 18));
-        let formattedPrice = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(priceValue);
-        document.getElementById("currentPrice").innerText = formattedPrice + " $ADRIAN";
-        
-        // Update user's token balance
-        await loadTokenBalance();
+        const [price, timeRemaining, status] = await Promise.all([
+          contract.getCurrentPrice(),
+          contract.getTimeRemaining(),
+          contract.getAuctionStatus()
+        ]);
+
+        document.getElementById("currentPrice").innerText = ethers.utils.formatEther(price) + " ADRIAN";
+        document.getElementById("timeRemaining").innerText = timeRemaining.toString() + " seconds";
+        document.getElementById("auctionStatus").innerText = status;
+
+        // Get balances
+        const address = await signer.getAddress();
+        const adrianToken = new ethers.Contract(
+          "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea",
+          ["function balanceOf(address) view returns (uint256)"],
+          provider
+        );
+        const adrianBalance = await adrianToken.balanceOf(address);
+        const ethBalance = await provider.getBalance(address);
+
+        document.getElementById("adrianBalance").innerText = ethers.utils.formatEther(adrianBalance) + " ADRIAN";
+        document.getElementById("ethBalance").innerText = ethers.utils.formatEther(ethBalance) + " ETH";
       } catch (error) {
-        console.error("Error loading auction info:", error);
+        console.error("Error refreshing info:", error);
       }
     }
-    
-    // Function to update the countdown every second using the stored auctionEndTimestamp.
-    // If the auction has ended, it stops updating and fixes the displayed price to finalPrice.
-    async function updateCountdown() {
-      if (!auctionEndTimestamp) return;
-      const now = Math.floor(Date.now() / 1000);
-      
-      // Check if auction has ended via time or contract state
-      const ended = await auctionContract.auctionEnded();
-      if (ended || now >= auctionEndTimestamp) {
-        clearInterval(countdownInterval);
-        // Fetch finalPrice and winner info
-        const finalPrice = await auctionContract.finalPrice();
-        const winner = await auctionContract.getWinner();
-        let finalPriceValue = parseFloat(ethers.utils.formatUnits(finalPrice, 18));
-        let formattedFinalPrice = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(finalPriceValue);
-        // Format winner wallet: show last 4 characters
-        const formattedWinner = winner ? "..." + winner.slice(-4) : "N/A";
-        document.getElementById("timeRemaining").innerText = "Auction Ended";
-        // Actualiza el precio principal con el precio final formateado
-        document.getElementById("currentPrice").innerText = formattedFinalPrice + " $ADRIAN";
-        document.getElementById("auctionStatus").innerText =
-          "Auction Ended. Final Price: " + formattedFinalPrice + " $ADRIAN. Winner: " + formattedWinner;
-        document.getElementById("buyBtn").disabled = true;
-        return;
-      }
-      
-      let remaining = auctionEndTimestamp - now;
-      const days = Math.floor(remaining / (3600 * 24));
-      remaining -= days * 3600 * 24;
-      const hrs = Math.floor(remaining / 3600);
-      remaining -= hrs * 3600;
-      const mnts = Math.floor(remaining / 60);
-      document.getElementById("timeRemaining").innerText = `${days}d ${hrs}h ${mnts}m`;
-    }
-    
-    async function loadTokenBalance() {
+
+    // Purchase function
+    async function purchase() {
       try {
-        const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
-        const balance = await tokenContract.balanceOf(userAddress);
-        // Formatear balance a 2 decimales con separadores de miles y agregar $ADRIAN
-        let balanceValue = parseFloat(ethers.utils.formatUnits(balance, 18));
-        let formattedBalance = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balanceValue);
-        document.getElementById("tokenBalance").innerText = formattedBalance + " $ADRIAN";
-      } catch (error) {
-        console.error("Error loading token balance:", error);
-        document.getElementById("tokenBalance").innerText = "Error";
-      }
-    }
-    
-    // Start updating the countdown every second
-    countdownInterval = setInterval(() => { updateCountdown(); }, 1000);
-    // Refresh auction info (price and token balance) every 10 seconds
-    setInterval(() => {
-      if (auctionContract) loadAuctionInfo();
-    }, 10000);
-    
-    // Buy button handler: performs an approve if necessary, then calls buy()
-    document.getElementById("buyBtn").addEventListener("click", async () => {
-      try {
-        const now = Math.floor(Date.now() / 1000);
-        const contractAuctionStartTime = await auctionContract.auctionStartTime();
-        // Check if auction hasn't started
-        if (now < contractAuctionStartTime.toNumber()) {
-          document.getElementById("auctionStatus").innerText = "Auction hasn't started yet.";
-          return;
-        }
-        // Check if auction has ended
-        if (now >= auctionEndTimestamp || await auctionContract.auctionEnded()) {
-          document.getElementById("auctionStatus").innerText = "Auction has ended.";
-          return;
-        }
-        
-        document.getElementById("auctionStatus").innerText = "Processing purchase...";
-        // Get current price (auction is active)
-        const currentPrice = await auctionContract.getCurrentPrice();
-        const tokenContract = new ethers.Contract(tokenContractAddress, tokenABI, signer);
-        const allowance = await tokenContract.allowance(userAddress, auctionContractAddress);
-        
-        if (allowance.lt(currentPrice)) {
-          document.getElementById("auctionStatus").innerText = "Approving tokens...";
-          const approveTx = await tokenContract.approve(auctionContractAddress, currentPrice);
-          await approveTx.wait();
-        }
-        
-        document.getElementById("auctionStatus").innerText = "Buying...";
-        const tx = await auctionContract.buy();
+        const tx = await contract.purchase();
         await tx.wait();
-        document.getElementById("auctionStatus").innerText = "Purchase successful!";
-        // After purchase, update auction info immediately (the countdown will then be fixed)
-        loadAuctionInfo();
+        updateStatus("Purchase successful!");
+        refreshInfo();
       } catch (error) {
         console.error("Error during purchase:", error);
         if (error.message.includes("arithmetic underflow or overflow")) {
-          document.getElementById("auctionStatus").innerText = "Error: You don't have enough $ADRIAN tokens to make this purchase. Please check your balance and the current auction price.";
+          updateStatus("Error: You don't have enough $ADRIAN tokens to make this purchase. Please check your balance and the current auction price.");
         } else {
-          document.getElementById("auctionStatus").innerText = "Error during purchase: " + error.message;
+          updateStatus("Error during purchase: " + error.message);
         }
       }
-    });
-    
-    // Callback when wallet is connected via the menu (menu2.js)
-    window.onMenuWalletConnected = async function() {
-      userAddress = window.menuUserAccount;
-      provider = window.menuProvider;
-      signer = window.menuSigner;
-      // Show auction info section (wallet info is handled by the menu)
-      document.getElementById("auctionInfo").style.display = "block";
-      auctionContract = new ethers.Contract(auctionContractAddress, auctionContractABI, signer);
-      loadAuctionInfo();
-    };
-    
-    // Callback when wallet is disconnected
-    window.onMenuWalletDisconnected = function() {
-      document.getElementById("auctionInfo").style.display = "none";
-    };
+    }
+
+    // Update status message
+    function updateStatus(message) {
+      document.getElementById("auctionStatus").innerText = message;
+    }
+
+    // Initialize when the page loads
+    window.onload = initEthers;
+
+    // Refresh info every 10 seconds
+    setInterval(refreshInfo, 10000);
   </script>
 </body>
 </html>

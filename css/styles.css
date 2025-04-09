@@ -229,3 +229,177 @@ footer {
   border-top: 1px solid #ccc;
   margin-top: 2rem;
 }
+
+/* The Offering Seats Specific Styles */
+#claimSection {
+  background: rgba(0, 0, 0, 0.8);
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 20px;
+  padding-top: 80px;
+  box-shadow: 0 0 10px #0f0;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+#claimSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #0f0, transparent);
+  animation: glitch 2s linear infinite;
+}
+
+.hero {
+  background: url('https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/97c5f4a5878798578622345bd7b586/4b97c5f4a5878798578622345bd7b586.png?w=1000') no-repeat center center;
+  background-size: cover;
+  padding: 4rem 0;
+  color: #0f0;
+  text-shadow: 0 0 5px #000;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.hero .container {
+  position: relative;
+  z-index: 2;
+}
+
+.hero h1 {
+  font-weight: bold;
+  font-size: 3rem;
+  text-shadow: 0 0 10px #0f0;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.hero p {
+  font-size: 1.5rem;
+  text-shadow: 0 0 5px #0f0;
+}
+
+#explanation {
+  background: rgba(0, 0, 0, 0.8);
+  color: #0f0;
+  border: 1px solid #0f0;
+  padding: 20px;
+  margin: 2rem 0;
+  box-shadow: 0 0 10px #0f0;
+}
+
+#explanation h3 {
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+  margin-bottom: 1rem;
+}
+
+#explanation ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+#explanation ul li {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+#explanation ul li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: #0f0;
+  animation: blink 1s infinite;
+}
+
+.btn-warning {
+  background: transparent;
+  border: 1px solid #0f0;
+  color: #0f0;
+}
+
+.btn-warning:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 10px #0f0;
+}
+
+#statusMessage {
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+}
+
+#walletStatus, #seatStatus {
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+}
+
+#claimInfo {
+  color: #0f0;
+}
+
+#claimInfo strong {
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+}
+
+#claimInfo span {
+  color: #0f0;
+}
+
+/* Info Section Styles */
+.info-section {
+  padding: 2rem 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+.info-box {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  border-radius: 5px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.info-box h2 {
+  color: #f6851b;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-family: 'VT323', monospace;
+}
+
+.info-box p {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.info-box button {
+  margin-top: 1rem;
+  background-color: #f6851b;
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 3px;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+}
+
+.info-box button:hover {
+  background-color: #e67e1a;
+}
