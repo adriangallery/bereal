@@ -117,6 +117,7 @@
     let contract;
     let provider;
     let signer;
+    let userAddress;
 
     // Initialize ethers
     async function initEthers() {
@@ -129,6 +130,28 @@
         alert("Please install MetaMask!");
       }
     }
+
+    // Callback cuando se conecta el wallet vía el menú
+    window.onMenuWalletConnected = async function() {
+      userAddress = window.menuUserAccount;
+      provider = window.menuProvider;
+      signer = window.menuSigner;
+      contract = new ethers.Contract(contractAddress, contractABI, signer);
+      refreshInfo();
+    };
+
+    // Callback cuando se desconecta el wallet
+    window.onMenuWalletDisconnected = function() {
+      userAddress = null;
+      provider = null;
+      signer = null;
+      contract = null;
+      document.getElementById("auctionStatus").innerText = "Wallet not connected";
+      document.getElementById("currentPrice").innerText = "Loading...";
+      document.getElementById("timeRemaining").innerText = "Loading...";
+      document.getElementById("adrianBalance").innerText = "Loading...";
+      document.getElementById("ethBalance").innerText = "Loading...";
+    };
 
     // Refresh auction information
     async function refreshInfo() {
@@ -164,6 +187,11 @@
 
     // Purchase function
     async function purchase() {
+      if (!contract) {
+        alert("Please connect your wallet first!");
+        return;
+      }
+
       try {
         const tx = await contract.purchase();
         await tx.wait();
