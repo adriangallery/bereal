@@ -19,15 +19,15 @@
   <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load menu from components/menu3.html if available.
-    fetch('components/menu3.html')
+    // Load menu from components/menu2.html if available.
+    fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
       .catch(error => console.error('Error loading menu:', error));
   </script>
-  <script src="components/menu3.js"></script>
+  <script src="components/menu2.js"></script>
 
   <!-- Empty Box -->
   <div style="height: 80px; width: 100%;"></div>
