@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADRIAN Lottery v4 Frontend</title>
+  <title>ADRIAN Lottery</title>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
   <style>
     /* El body ya no tiene padding para que el menú ocupe todo el ancho */
     body {
@@ -16,6 +19,7 @@
     /* Contenedor general para el contenido principal con padding independiente */
     .content-container {
       padding: 20px;
+      padding-top: 80px; /* Ajusta este valor según el alto del menú */
     }
     .container {
       max-width: 800px;
@@ -41,22 +45,59 @@
   </style>
 </head>
 <body>
-  <!-- Menu (Header) sin padding -->
+  <!-- Menu (Header) -->
   <div id="menu-placeholder"></div>
   <script>
+    // Load menu from components/menu2.html if available.
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
-      .catch(error => { console.error('Error loading menu:', error); });
+      .catch(error => console.error('Error loading menu:', error));
   </script>
   <script src="components/menu2.js"></script>
-  
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Lottery</h1>
+      <p>
+        Buy tickets and win big!<br>
+        The more tickets you buy, the higher your chances!
+      </p>
+    </div>
+  </section>
+
+  <!-- Lottery Info Section -->
+  <section class="info-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="info-box">
+            <h2>Lottery Status</h2>
+            <p id="lotteryStatus">Loading...</p>
+            <p>Current Prize: <span id="currentPrize">Loading...</span></p>
+            <p>Time Remaining: <span id="timeRemaining">Loading...</span></p>
+            <button class="btn btn-primary" onclick="buyTicket()">Buy Ticket</button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="info-box">
+            <h2>Your Info</h2>
+            <p>Your Tickets: <span id="yourTickets">Loading...</span></p>
+            <p>ADRIAN Balance: <span id="adrianBalance">Loading...</span></p>
+            <p>ETH Balance: <span id="ethBalance">Loading...</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Contenedor de contenido principal -->
   <div class="content-container">
     <div class="container">
-      <h1 class="mb-4">ADRIAN Lottery v4 Frontend</h1>
+      <h1 class="mb-4">ADRIAN Lottery</h1>
       
       <!-- Wallet Status (controlado por el menú) -->
       <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
@@ -168,12 +209,13 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
+    // Load footer from components/footer.html if available.
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('footer-placeholder').innerHTML = html;
       })
-      .catch(error => { console.error('Error loading footer:', error); });
+      .catch(error => console.error('Error loading footer:', error));
   </script>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

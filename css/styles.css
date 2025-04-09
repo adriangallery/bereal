@@ -403,3 +403,47 @@ footer {
 .info-box button:hover {
   background-color: #e67e1a;
 }
+
+/* Lottery Section Styles */
+.lottery-section {
+  padding: 2rem 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+.lottery-box {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  border-radius: 5px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.lottery-box h2 {
+  color: #f6851b;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-family: 'VT323', monospace;
+}
+
+.lottery-box p {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.lottery-box button {
+  margin-top: 1rem;
+  background-color: #f6851b;
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 3px;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+}
+
+.lottery-box button:hover {
+  background-color: #e67e1a;
+}
