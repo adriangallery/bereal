@@ -252,7 +252,11 @@
         loadAuctionInfo();
       } catch (error) {
         console.error("Error during purchase:", error);
-        document.getElementById("auctionStatus").innerText = "Purchase failed. Check console.";
+        if (error.message.includes("arithmetic underflow or overflow")) {
+          document.getElementById("auctionStatus").innerText = "Error: You don't have enough $ADRIAN tokens to make this purchase. Please check your balance and the current auction price.";
+        } else {
+          document.getElementById("auctionStatus").innerText = "Error during purchase: " + error.message;
+        }
       }
     });
     
