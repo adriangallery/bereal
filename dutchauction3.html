@@ -9,9 +9,25 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="css/styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/retro.css">
   <style>
     body {
-      background-color: #f8f9fa;
+      background: 
+        linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d),
+        radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+        repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 2px);
+      background-size: 400% 400%, 100% 100%, 100% 20px;
+      animation: gradientBG 15s ease infinite, scanline 8s linear infinite;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%, 0 0, 0 0; }
+      50% { background-position: 100% 50%, 0 0, 0 0; }
+      100% { background-position: 0% 50%, 0 0, 0 0; }
+    }
+    @keyframes scanline {
+      0% { background-position: 0% 50%, 0 0, 0 0; }
+      100% { background-position: 0% 50%, 0 100%, 0 20px; }
     }
     /* Auction Section Style */
     #auctionSection {
