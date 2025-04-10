@@ -8,15 +8,17 @@
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link href="css/styles.css" rel="stylesheet">
   <style>
-    /* Hero Section Styles */
+    /* Estilos específicos para el hero, se pueden mover a css/styles.css si lo prefieres */
     .hero {
       background: url('https://adriangallery.com/images/adrian.GIF?w=1000') no-repeat center center;
       background-size: cover;
       padding: 4rem 0;
-      padding-top: 80px; /* Ajusta este valor según el alto del menú */
+      padding-top: 80px; /* Ajusta según el alto del menú */
       color: #fff;
       text-shadow: 0 0 5px #000;
     }
@@ -24,7 +26,7 @@
       margin-top: 2rem;
       margin-bottom: 1rem;
     }
-    /* Accordion header styling to include an image preview */
+    /* Estilos para el Accordion con imagen de vista previa */
     .accordion-button {
       display: flex;
       align-items: center;
@@ -36,17 +38,16 @@
       margin-right: 15px;
       border-radius: 5px;
     }
-    /* Optional: style the accordion body for extra visual appeal */
     .accordion-body {
       background-color: #f8f9fa;
       border-radius: 5px;
     }
   </style>
-  <!-- Cargar ethers.js UMD (asegúrate de no cargar la versión module) -->
+  <!-- Cargar ethers.js UMD -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
-  <!-- Menu: se usa el menú nuevo -->
+  <!-- Menú: se usa el menú compartido -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
@@ -61,7 +62,7 @@
   <!-- Hero Section -->
   <section class="hero text-center">
     <div class="container">
-      <!-- Puedes agregar aquí contenido adicional en el hero si lo deseas -->
+      <!-- Aquí puedes agregar contenido adicional para el hero si lo deseas -->
     </div>
   </section>
 
@@ -243,7 +244,9 @@
   <script>
     fetch('components/footer.html')
       .then(response => response.text())
-      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .then(html => { 
+        document.getElementById('footer-placeholder').innerHTML = html;
+      })
       .catch(error => { console.error('Error loading footer:', error); });
   </script>
 
