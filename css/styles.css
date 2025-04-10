@@ -614,3 +614,10 @@ body.the-offering::before {
   0% { background-position: 0% 50%, 0 0, 0 0; }
   100% { background-position: 0% 50%, 0 100%, 0 20px; }
 }
+
+/* Transparent Box */
+.transparent-box {
+  height: 80px;
+  width: 100%;
+  background: transparent;
+}
