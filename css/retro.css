@@ -47,8 +47,9 @@ a:hover {
     text-decoration: underline;
 }
 
-/* Buttons */
-.btn {
+/* Botones (aplicables tanto a .btn como a elementos <button>) */
+.btn,
+button {
     background-color: transparent;
     border: 2px solid var(--primary-color);
     color: var(--primary-color);
@@ -61,211 +62,50 @@ a:hover {
     letter-spacing: 1px;
 }
 
-.btn:hover {
+.btn:hover,
+button:hover {
     background-color: var(--primary-color);
     color: var(--background-dark);
     transform: translateY(-2px);
 }
 
-.btn:disabled {
+.btn:disabled,
+button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Terminal Box */
-.terminal-box {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 2px solid var(--primary-color);
-    border-radius: 5px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+/* Contenedor Base */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 
-/* Status Messages */
-.status-message {
-    padding: 1rem;
-    margin: 1rem 0;
-    border-radius: 5px;
-    font-size: 0.8rem;
-}
-
-.status-message.error {
-    background-color: rgba(255, 0, 0, 0.2);
-    border: 1px solid var(--error-color);
-    color: var(--error-color);
-}
-
-.status-message.success {
-    background-color: rgba(0, 255, 0, 0.2);
-    border: 1px solid var(--success-color);
-    color: var(--success-color);
-}
-
-.status-message.warning {
-    background-color: rgba(255, 255, 0, 0.2);
-    border: 1px solid var(--warning-color);
-    color: var(--warning-color);
-}
-
-.status-message.info {
-    background-color: rgba(0, 255, 255, 0.2);
-    border: 1px solid var(--info-color);
-    color: var(--info-color);
-}
-
-/* Forms */
-.form-control {
-    background-color: rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--primary-color);
-    color: var(--text-color);
-    padding: 0.5rem;
-    font-family: 'Press Start 2P', cursive;
-    font-size: 0.8rem;
-    width: 100%;
-    margin-bottom: 1rem;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-}
-
-/* Tables */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1rem;
-}
-
-.table th,
-.table td {
-    padding: 0.75rem;
-    border: 1px solid var(--primary-color);
-    text-align: left;
-}
-
-.table th {
-    background-color: rgba(0, 255, 0, 0.1);
-    color: var(--primary-color);
-}
-
-/* Animations */
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-}
-
-.blink {
-    animation: blink 1s infinite;
-}
-
-@keyframes glow {
-    0%, 100% { text-shadow: 0 0 5px var(--primary-color); }
-    50% { text-shadow: 0 0 20px var(--primary-color); }
-}
-
-.glow {
-    animation: glow 2s infinite;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .terminal-box {
-        padding: 1rem;
-    }
-    
-    h1, h2, h3 {
-        font-size: 1.2rem;
-    }
-    
-    .btn {
-        font-size: 0.7rem;
-        padding: 0.4rem 0.8rem;
-    }
-}
-
-/* Special Pages */
-body.the-offering {
-    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-}
-
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Lottery Specific Styles */
-.lottery-section {
-    padding: 2rem 0;
-}
-
-.lottery-box {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 2px solid var(--primary-color);
-    border-radius: 5px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.lottery-box h3 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
-
-.lottery-box p {
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
-}
-
-/* Info Section Styles */
-.info-section {
-    padding: 2rem 0;
-}
-
-.info-box {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 2px solid var(--primary-color);
-    border-radius: 5px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.info-box h3 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
-
-.info-box p {
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
-}
-
-/* Hero Section */
-.hero-section {
-    padding: 4rem 0;
-    text-align: center;
+/* Contenedor para el gráfico de Burnstats */
+#chartContainer {
     position: relative;
-    overflow: hidden;
+    height: 400px; /* Altura fija, ajusta si fuera necesario */
+    margin-top: 2rem;
 }
 
-.hero-section h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 0 10px var(--primary-color);
+/* Animación para el efecto Burn (se aplica a los elementos generados dinámicamente) */
+.burn-animation {
+    position: absolute;
+    animation: fadeOut 2s forwards;
 }
 
-.hero-section p {
-    font-size: 1.2rem;
-    max-width: 800px;
-    margin: 0 auto 2rem;
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
-/* Navigation */
+/* Utilidad: Espaciador de 80px (sustituye el inline style) */
+.spacer-80 {
+    height: 80px;
+}
+
+/* Estilos para la navegación (si el menú lo utiliza) */
 .navbar {
     background-color: rgba(0, 0, 0, 0.9);
     border-bottom: 2px solid var(--primary-color);
@@ -286,7 +126,7 @@ body.the-offering {
     color: var(--primary-color);
 }
 
-/* Footer */
+/* Estilos para el Footer (se usarán en el componente footer) */
 .footer {
     background-color: rgba(0, 0, 0, 0.9);
     border-top: 2px solid var(--primary-color);
@@ -300,18 +140,15 @@ body.the-offering {
     margin: 0;
 }
 
-/* Loading Spinner */
-.loading-spinner {
-    border: 4px solid rgba(0, 255, 0, 0.3);
-    border-radius: 50%;
-    border-top: 4px solid var(--primary-color);
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 2rem auto;
+/* Diseño responsivo para Burnstats */
+@media (max-width: 768px) {
+    h1, h2, h3 {
+        font-size: 1.2rem;
+    }
+    
+    .btn,
+    button {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.8rem;
+    }
 }
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-} 
