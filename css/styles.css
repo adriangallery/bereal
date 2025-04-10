@@ -564,3 +564,53 @@ body.the-offering::before {
   font-size: 0.95rem;
   line-height: 1.4;
 }
+
+/* Dutch Auction Styles */
+.dutch-auction-body {
+  background: 
+    linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d),
+    radial-gradient(circle at 50% 50%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 2px);
+  background-size: 400% 400%, 100% 100%, 100% 20px;
+  animation: gradientBG 15s ease infinite, scanline 8s linear infinite;
+}
+
+#auctionSection {
+  background: #222;
+  color: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.1);
+  margin-bottom: 2rem;
+}
+
+.dutch-hero {
+  background: url('https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeie5dwecousapfovtqpbtvquhc5lqr6asfmmrimbjph4r2mowbdyua') no-repeat center center;
+  background-size: cover;
+  padding: 4rem 0;
+  color: #fff;
+  text-shadow: 0 0 5px #000;
+}
+
+.dutch-hero h1 {
+  font-weight: bold;
+}
+
+.auction-info {
+  font-size: 2rem;
+}
+
+.auction-label {
+  font-size: 1.5rem;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%, 0 0, 0 0; }
+  50% { background-position: 100% 50%, 0 0, 0 0; }
+  100% { background-position: 0% 50%, 0 0, 0 0; }
+}
+
+@keyframes scanline {
+  0% { background-position: 0% 50%, 0 0, 0 0; }
+  100% { background-position: 0% 50%, 0 100%, 0 20px; }
+}
