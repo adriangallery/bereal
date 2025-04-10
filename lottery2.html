@@ -15,8 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body class="lottery-body">
-  <div class="transparent-box"></div>
-  <!-- Menú (Header) -->
+  <!-- Menu (loaded from components/menu2.html) -->
   <div id="menu-placeholder"></div>
   <script>
     fetch('components/menu2.html')
@@ -27,6 +26,8 @@
       .catch(error => { console.error('Error loading menu:', error); });
   </script>
   <script src="components/menu2.js"></script>
+  
+  <div class="transparent-box"></div>
   
   <!-- Contenedor de contenido principal -->
   <div class="content-container">
