@@ -5,104 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ADRIAN Lottery</title>
   <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <!-- Bootstrap CSS (v5.3.0) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/retro.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Ethers.js UMD -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
-  <style>
-    /* El body ya no tiene padding para que el menú ocupe todo el ancho */
-    body {
-      background-color: #f7f7f7;
-      margin: 0;
-    }
-    /* Contenedor general para el contenido principal con padding independiente */
-    .content-container {
-      padding: 20px;
-      padding-top: 80px; /* Ajusta este valor según el alto del menú */
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-    }
-    .section {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .admin-section {
-      border: 2px solid #f44336;
-    }
-    label {
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    .input-group .form-control {
-      flex: 1 1 auto;
-    }
-  </style>
 </head>
 <body>
-  <!-- Menu (Header) -->
+  <!-- Menú (Header) -->
   <div id="menu-placeholder"></div>
   <script>
-    // Load menu from components/menu2.html if available.
     fetch('components/menu2.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('menu-placeholder').innerHTML = html;
       })
-      .catch(error => console.error('Error loading menu:', error));
+      .catch(error => { console.error('Error loading menu:', error); });
   </script>
   <script src="components/menu2.js"></script>
-
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <h1>Lottery</h1>
-      <p>
-        Buy tickets and win big!<br>
-        The more tickets you buy, the higher your chances!
-      </p>
-    </div>
-  </section>
-
-  <!-- Lottery Info Section -->
-  <section class="info-section">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-6">
-          <div class="info-box">
-            <h2>Lottery Status</h2>
-            <p id="lotteryStatus">Loading...</p>
-            <p>Current Prize: <span id="currentPrize">Loading...</span></p>
-            <p>Time Remaining: <span id="timeRemaining">Loading...</span></p>
-            <button class="btn btn-primary" onclick="buyTicket()">Buy Ticket</button>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="info-box">
-            <h2>Your Info</h2>
-            <p>Your Tickets: <span id="yourTickets">Loading...</span></p>
-            <p>ADRIAN Balance: <span id="adrianBalance">Loading...</span></p>
-            <p>ETH Balance: <span id="ethBalance">Loading...</span></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
+  
   <!-- Contenedor de contenido principal -->
   <div class="content-container">
     <div class="container">
       <h1 class="mb-4">ADRIAN Lottery</h1>
       
-      <!-- Wallet Status (controlado por el menú) -->
+      <!-- Estado de la Wallet (controlado vía menú) -->
       <p id="walletStatus" class="mb-4">Wallet not connected. Connect via menu.</p>
       
-      <!-- Nueva sección para Odds -->
+      <!-- Sección de Odds -->
       <div class="section" id="oddsSection" style="display: none;">
         <h2>Your Odds</h2>
         <div class="progress">
@@ -118,7 +51,7 @@
         <div id="winnersInfo"></div>
       </div>
       
-      <!-- Sección de User Functions (sin título) -->
+      <!-- Sección de User Functions -->
       <div class="section">
         <div class="mb-3">
           <h4>Buy Regular Tickets</h4>
@@ -138,13 +71,13 @@
         </div>
       </div>
       
-      <!-- Nueva sección: Current Round Info -->
+      <!-- Sección de Current Round Info -->
       <div class="section" id="currentRoundSection" style="display: none;">
         <h2>Current Round Info</h2>
         <div id="currentRoundInfo"></div>
       </div>
       
-      <!-- Admin Functions Section -->
+      <!-- Sección de Admin Functions -->
       <div class="section admin-section" id="adminSection">
         <h2>Admin Functions</h2>
         
@@ -209,18 +142,20 @@
   <!-- Footer -->
   <div id="footer-placeholder"></div>
   <script>
-    // Load footer from components/footer.html if available.
     fetch('components/footer.html')
       .then(response => response.text())
       .then(html => {
         document.getElementById('footer-placeholder').innerHTML = html;
       })
-      .catch(error => console.error('Error loading footer:', error));
+      .catch(error => { console.error('Error loading footer:', error); });
   </script>
   
+  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
+  <!-- Scripts de interacción con el contrato de Lottery -->
   <script>
+    // Inicialización de variables y contratos
     let provider;
     let signer;
     let userAddress;
@@ -229,7 +164,7 @@
     
     const SCALING = ethers.BigNumber.from("1000000000000000000");
     
-    // Dirección del contrato de Lottery (actualiza si es necesario)
+    // Dirección y ABI del contrato de Lottery (ajusta según necesidad)
     const lotteryAddress = "0x6bc46dbdcba0b8cb5959c740a26a8462e65b47c2";
     const lotteryABI = [
       "function claimTickets(uint256 numTickets) external",
@@ -258,7 +193,7 @@
       "function roundSnapshot(uint256 roundId) view returns (uint256)"
     ];
     
-    // Dirección del token ADRIAN
+    // Dirección y ABI del token ADRIAN (ERC20)
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const erc20ABI = [
       "function approve(address spender, uint256 amount) external returns (bool)",
@@ -268,25 +203,19 @@
       "event Snapshot(uint256 id)"
     ];
     
-    // Para los valores ya escalados (ticket cost, complementary price, fixed prize)
+    // Funciones de formateo y utilidades
     function formatTokenAmount(amount) {
       const num = parseFloat(amount.toString());
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
-    
-    // Para el Snapshot Balance (necesita dividir por 10^18)
     function formatSnapshotBalance(amount) {
       const num = parseFloat(ethers.utils.formatUnits(amount, 18));
       return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
     }
-    
-    // Función para comprimir (truncar) direcciones de wallet
     function shortenAddress(address) {
       if (!address) return "";
       return address.substring(0, 6) + "..." + address.substring(address.length - 4);
     }
-    
-    // Función para calcular la combinatoria C(n, k)
     function combination(n, k) {
       if (k > n) return 0;
       let result = 1;
@@ -296,15 +225,13 @@
       return result;
     }
     
-    // Función para actualizar la visualización de las odds, incluyendo los tickets complementarios
+    // Actualización de las odds de los tickets del usuario
     async function updateOdds() {
       try {
         const roundId = await lotteryContract.currentRoundId();
-        // Total de tickets = regulares + complementarios
         const totalRegular = parseInt((await lotteryContract.getTotalRegularTickets()).toString());
         const totalComplementary = parseInt((await lotteryContract.getTotalComplementaryTickets()).toString());
         const totalTickets = totalRegular + totalComplementary;
-        // Tickets del usuario = regulares + complementarios
         const userRegular = parseInt((await lotteryContract.regularTickets(roundId, userAddress)).toString());
         const userComplementary = parseInt((await lotteryContract.complementaryTickets(roundId, userAddress)).toString());
         const userTickets = userRegular + userComplementary;
@@ -324,7 +251,7 @@
       }
     }
     
-    // Función de conexión
+    // Conexión a la Wallet
     async function connectWallet() {
       if (window.ethereum) {
         try {
@@ -360,7 +287,6 @@
       }
     }
     
-    // Función para cargar y reordenar la información del round actual
     async function loadRoundInfo() {
       try {
         const roundId = await lotteryContract.currentRoundId();
@@ -406,7 +332,6 @@
         const totalClaimed = regularClaimed.add(complementaryClaimed);
         const availableTickets = allowedTickets.sub(regularClaimed);
         
-        // Actualizamos el input con el máximo disponible y su valor por defecto
         document.getElementById("numRegularTickets").setAttribute("max", availableTickets.toString());
         document.getElementById("numRegularTickets").value = availableTickets.toString();
         
@@ -418,7 +343,6 @@
           <p><strong>Total Tickets Claimed:</strong> ${totalClaimed.toString()}</p>
           <p><strong>Available Regular Tickets to Claim:</strong> ${availableTickets.toString()}</p>
         `;
-        // Actualizamos las odds después de actualizar la info de tickets
         updateOdds();
       } catch (e) {
         console.error(e);
@@ -641,7 +565,7 @@
       }
     }
     
-    // Callback cuando se conecta el wallet vía el menú (definido en menu2.js)
+    // Callbacks para la conexión/desconexión de wallet vía menu2.js
     window.onMenuWalletConnected = async function() {
       userAddress = window.menuUserAccount;
       provider = window.menuProvider;
