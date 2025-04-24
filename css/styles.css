@@ -621,3 +621,15 @@ body.the-offering::before {
   width: 100%;
   background: transparent;
 }
+
+/* Featured Image Styles */
+.featured-image {
+  margin-bottom: 2rem;
+}
+
+.featured-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
