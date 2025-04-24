@@ -16,21 +16,28 @@
       font-weight: bold;
       font-size: 1.5rem;
     }
-    .hero {
+    .hero-section {
       background-color: #000;
       padding: 4rem 0;
-      padding-top: 80px; /* Ajusta este valor según el alto del menú */
+      padding-top: 80px;
       color: #fff;
       text-align: center;
       margin: 5px 0;
     }
-    .hero h1 {
+    .hero-section h1 {
       font-weight: bold;
       margin: 5px 0;
     }
-    .token-img {
-      aspect-ratio: 4 / 3;
-      object-fit: cover;
+    .featured-image {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .featured-image img {
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
     }
     .card {
       margin-bottom: 1.5rem;
@@ -109,18 +116,6 @@
     <!-- Connected Account Display -->
     <div class="text-center mb-4">
       <p id="accountDisplay" class="mt-2"></p>
-    </div>
-    
-    <!-- Token Images Row (imágenes actualizadas) -->
-    <div class="row mb-4">
-      <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeidz2fd3ad5ctqlfk2e4ibtsg6xutngsddjkrvtrn2w56gntfr64ji" 
-             class="img-fluid rounded token-img" alt="Token 1" loading="lazy">
-      </div>
-      <div class="col-6">
-        <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeiaz5u7jqbhlutesrmitkmkp63ukcacbppzub3d7kvqjjjpnkktnbi" 
-             class="img-fluid rounded token-img" alt="Token 2" loading="lazy">
-      </div>
     </div>
     
     <!-- Auction Stats Card -->
