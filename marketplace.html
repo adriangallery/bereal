@@ -350,26 +350,82 @@
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
-        const nextEventId = await nftContract.nextEventId();
+        
+        // Implementar reintento con delay para evitar rate limits
+        const fetchWithRetry = async (func, ...args) => {
+          const maxRetries = 3;
+          const baseDelay = 1000; // 1 segundo
+          
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+              return await func(...args);
+            } catch (error) {
+              if (attempt === maxRetries - 1) throw error;
+              
+              // Si el error incluye "rate limit" o un código 429, esperar más tiempo
+              const isRateLimit = error.message && 
+                (error.message.includes("rate limit") || 
+                 error.message.includes("429") ||
+                 error.code === -32016);
+              
+              const delay = isRateLimit ? 
+                baseDelay * Math.pow(2, attempt) + Math.random() * 1000 : 
+                baseDelay;
+              
+              console.log(`Reintentando en ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        };
+        
+        const nextEventId = await fetchWithRetry(async () => await nftContract.nextEventId());
         const totalEvents = nextEventId.toNumber();
         let uniqueTokens = {};
-        for (let tokenId = 0; tokenId < totalEvents; tokenId++) {
-          if (tokenId === 0) continue;
-          let tokenURI = await nftContract.uri(tokenId);
-          if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
-          const metadata = await getMetadata(tokenURI);
-          let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
-          if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
-          if (tokenId === 13) {
-            imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
+        
+        // Procesamos los tokens en bloques para evitar demasiadas solicitudes simultáneas
+        const batchSize = 5;
+        for (let batchStart = 1; batchStart < totalEvents; batchStart += batchSize) {
+          const batchEnd = Math.min(batchStart + batchSize, totalEvents);
+          const batchPromises = [];
+          
+          for (let tokenId = batchStart; tokenId < batchEnd; tokenId++) {
+            if (tokenId === 0) continue;
+            
+            batchPromises.push((async () => {
+              try {
+                let tokenURI = await fetchWithRetry(async () => await nftContract.uri(tokenId));
+                if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+                
+                const metadata = await getMetadata(tokenURI);
+                let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
+                if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+                if (tokenId === 13) {
+                  imageUrl = "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000";
+                }
+                
+                let tokenName = metadata.name || `Token ${tokenId}`;
+                if (tokenName.trim() === "#0006 THE BURNED FORTUNE") return;
+                
+                let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
+                const balance = await fetchWithRetry(async () => await nftContract.balanceOf(userAccount, tokenId));
+                let ownedCount = balance.toNumber();
+                
+                addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount);
+              } catch (error) {
+                console.error(`Error procesando token ${tokenId}:`, error);
+              }
+            })());
           }
-          let tokenName = metadata.name || `Token ${tokenId}`;
-          if (tokenName.trim() === "#0006 THE BURNED FORTUNE") continue;
-          let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
-          const balance = await nftContract.balanceOf(userAccount, tokenId);
-          let ownedCount = balance.toNumber();
-          addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount);
+          
+          // Esperamos a que terminen todas las promesas del batch
+          await Promise.allSettled(batchPromises);
+          
+          // Pequeña pausa entre batches para evitar rate limits
+          if (batchEnd < totalEvents) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
+        
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
@@ -404,7 +460,11 @@
         document.getElementById("loadingSpinner").style.display = "none";
       } catch (error) {
         console.error("Error loading NFTs:", error);
-        document.getElementById("nftGallery").innerHTML = "<p>Error loading your NFTs.</p>";
+        document.getElementById("nftGallery").innerHTML = 
+          `<div class="col-12 text-center">
+            <p>Error loading your NFTs: ${error.message}</p>
+            <button class="btn btn-primary mt-3" onclick="loadNFTs()">Retry</button>
+          </div>`;
         document.getElementById("loadingSpinner").style.display = "none";
       }
     }
@@ -425,12 +485,42 @@
 
     async function showMetadata(tokenId) {
       try {
-        let tokenURI = await nftContract.uri(tokenId);
+        // Reutilizamos la función fetchWithRetry definida en loadNFTs
+        const fetchWithRetry = async (func, ...args) => {
+          const maxRetries = 3;
+          const baseDelay = 1000; // 1 segundo
+          
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+              return await func(...args);
+            } catch (error) {
+              if (attempt === maxRetries - 1) throw error;
+              
+              const isRateLimit = error.message && 
+                (error.message.includes("rate limit") || 
+                 error.message.includes("429") ||
+                 error.code === -32016);
+              
+              const delay = isRateLimit ? 
+                baseDelay * Math.pow(2, attempt) + Math.random() * 1000 : 
+                baseDelay;
+              
+              console.log(`Reintentando en ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        };
+        
+        let tokenURI = await fetchWithRetry(async () => await nftContract.uri(tokenId));
         if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
+        
         const metadata = await getMetadata(tokenURI);
+        let imageUrl = metadata.image || 'https://via.placeholder.com/300?text=No+Image';
+        if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
+        
         let html = "";
         html += `<div class="text-center mb-3">
-                   <img src="${metadata.image ? metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : 'https://via.placeholder.com/300?text=No+Image'}" 
+                   <img src="${imageUrl}" 
                         class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
                  </div>`;
         html += `<div id="marketplaceActions">
@@ -457,11 +547,17 @@
         document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
         var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
         myModal.show();
-        loadListingsForToken(tokenId);
-        loadOffersForToken(tokenId);
+        
+        // Cargar listados y ofertas con un pequeño retraso entre ellas
+        setTimeout(() => {
+          loadListingsForToken(tokenId);
+          setTimeout(() => {
+            loadOffersForToken(tokenId);
+          }, 500);
+        }, 100);
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
-        alert("Error fetching metadata");
+        alert("Error fetching metadata: " + (error.message || 'Unknown error'));
       }
     }
 
@@ -573,30 +669,74 @@
       }
     }
 
+    // Función de reintento reutilizable
+    const fetchWithRetry = async (func, ...args) => {
+      const maxRetries = 3;
+      const baseDelay = 1000; // 1 segundo
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          return await func(...args);
+        } catch (error) {
+          if (attempt === maxRetries - 1) throw error;
+          
+          const isRateLimit = error.message && 
+            (error.message.includes("rate limit") || 
+             error.message.includes("429") ||
+             error.code === -32016);
+          
+          const delay = isRateLimit ? 
+            baseDelay * Math.pow(2, attempt) + Math.random() * 1000 : 
+            baseDelay;
+          
+          console.log(`Reintentando en ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    };
+    
     async function loadListingsForToken(tokenId) {
       if (!marketplaceContract) {
         console.error("Marketplace not initialized.");
         return;
       }
       try {
-        const counter = await marketplaceContract.listingIdCounter();
+        const counter = await fetchWithRetry(async () => await marketplaceContract.listingIdCounter());
         const listingsDiv = document.getElementById("marketplaceListings");
         listingsDiv.innerHTML = "<h5>Active Listings:</h5><ul>";
         let listingsFound = [];
-        for (let i = 1; i <= counter.toNumber(); i++) {
-          try {
-            let listing = await marketplaceContract.listings(i);
-            if (
-              listing.seller !== ethers.constants.AddressZero &&
-              listing.collection.toLowerCase() === collectionAddress.toLowerCase() &&
-              listing.tokenId.toString() === tokenId.toString()
-            ) {
-              listingsFound.push(listing);
-            }
-          } catch (e) {
-            console.error("Error fetching listing", i, e);
+        
+        // Procesar en lotes para evitar sobrecargar la RPC
+        const batchSize = 5;
+        for (let batchStart = 1; batchStart <= counter.toNumber(); batchStart += batchSize) {
+          const batchEnd = Math.min(batchStart + batchSize, counter.toNumber() + 1);
+          const batchPromises = [];
+          
+          for (let i = batchStart; i < batchEnd; i++) {
+            batchPromises.push((async () => {
+              try {
+                let listing = await fetchWithRetry(async () => await marketplaceContract.listings(i));
+                if (
+                  listing.seller !== ethers.constants.AddressZero &&
+                  listing.collection.toLowerCase() === collectionAddress.toLowerCase() &&
+                  listing.tokenId.toString() === tokenId.toString()
+                ) {
+                  listingsFound.push(listing);
+                }
+              } catch (e) {
+                console.error("Error fetching listing", i, e);
+              }
+            })());
+          }
+          
+          await Promise.allSettled(batchPromises);
+          
+          // Pausar entre lotes si hay más que procesar
+          if (batchEnd <= counter.toNumber()) {
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
+        
         if (listingsFound.length === 0) {
           listingsDiv.innerHTML += "<p>No listings for this token.</p>";
         } else {
@@ -611,7 +751,9 @@
         }
       } catch (error) {
         console.error("Error loading listings for token:", error);
-        document.getElementById("marketplaceListings").innerHTML = "<p>Error loading listings.</p>";
+        document.getElementById("marketplaceListings").innerHTML = 
+          `<p>Error loading listings: ${error.message || 'Unknown error'}. 
+          <button class="btn btn-sm btn-primary" onclick="loadListingsForToken(${tokenId})">Retry</button></p>`;
       }
     }
 
@@ -621,20 +763,38 @@
         return;
       }
       try {
-        const counter = await offersContract.offerCounter();
+        const counter = await fetchWithRetry(async () => await offersContract.offerCounter());
         const offersDiv = document.getElementById("marketplaceOffers");
         offersDiv.innerHTML = "<h5>Active Offers:</h5><ul>";
         let offersFound = [];
-        for (let i = 1; i <= counter.toNumber(); i++) {
-          try {
-            let offer = await offersContract.offers(i);
-            if (offer.exists && offer.tokenId.toString() === tokenId.toString()) {
-              offersFound.push(offer);
-            }
-          } catch (e) {
-            console.error("Error fetching offer", i, e);
+        
+        // Procesar en lotes para evitar sobrecargar la RPC
+        const batchSize = 5;
+        for (let batchStart = 1; batchStart <= counter.toNumber(); batchStart += batchSize) {
+          const batchEnd = Math.min(batchStart + batchSize, counter.toNumber() + 1);
+          const batchPromises = [];
+          
+          for (let i = batchStart; i < batchEnd; i++) {
+            batchPromises.push((async () => {
+              try {
+                let offer = await fetchWithRetry(async () => await offersContract.offers(i));
+                if (offer.exists && offer.tokenId.toString() === tokenId.toString()) {
+                  offersFound.push(offer);
+                }
+              } catch (e) {
+                console.error("Error fetching offer", i, e);
+              }
+            })());
+          }
+          
+          await Promise.allSettled(batchPromises);
+          
+          // Pausar entre lotes si hay más que procesar
+          if (batchEnd <= counter.toNumber()) {
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
+        
         if (offersFound.length === 0) {
           offersDiv.innerHTML += "<p>No active offers for this token.</p>";
         } else {
@@ -649,7 +809,9 @@
         }
       } catch (error) {
         console.error("Error loading offers for token:", error);
-        document.getElementById("marketplaceOffers").innerHTML = "<p>Error loading offers.</p>";
+        document.getElementById("marketplaceOffers").innerHTML = 
+          `<p>Error loading offers: ${error.message || 'Unknown error'}.
+          <button class="btn btn-sm btn-primary" onclick="loadOffersForToken(${tokenId})">Retry</button></p>`;
       }
     }
 
