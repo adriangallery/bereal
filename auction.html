@@ -36,11 +36,38 @@
     .featured-image img {
       width: 100%;
       height: auto;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+      border-radius: 15px;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+      transition: all 0.5s ease;
+    }
+    .featured-image img:hover {
+      box-shadow: 0 0 40px rgba(0, 255, 0, 0.6);
+      transform: scale(1.02);
     }
     .card {
       margin-bottom: 1.5rem;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      border: none;
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+    .card-header {
+      background: linear-gradient(90deg, #303841, #3a4750);
+      color: white;
+      font-weight: bold;
+      padding: 15px 20px;
+    }
+    .progress {
+      height: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-color: #f0f0f0;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     footer {
       margin-top: 2rem;
@@ -48,31 +75,140 @@
       border-top: 1px solid #ccc;
     }
     .btn-custom {
-      background-color: #007bff;
-      border-color: #007bff;
-      color: #fff;
+      background: linear-gradient(90deg, #4e54c8, #8f94fb);
+      border: none;
+      color: white;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     .btn-custom:hover {
-      background-color: #0069d9;
-      border-color: #0062cc;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(90deg, #3a3f99, #7277cc);
     }
     /* Custom progress bar colors for bid multipliers and boost timer */
     .progress-bar-multiplier-2,
     .boost-bar-x2 {
-      background-color: #FFD700; /* bright yellow */
+      background: linear-gradient(90deg, #FFD700, #FFA500);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     }
     .progress-bar-multiplier-1-5,
     .boost-bar-x1-5 {
-      background-color: orange;
+      background: linear-gradient(90deg, #FFA500, #FF8C00);
+      box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
     }
     .progress-bar-multiplier-1,
     .boost-bar-x1 {
-      background-color: #ADD8E6; /* light blue */
+      background: linear-gradient(90deg, #ADD8E6, #87CEEB);
+      box-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
     }
     /* Clase para resaltar la wallet del usuario conectado */
     .highlight-user {
       color: #28a745;
       font-weight: bold;
+    }
+    .auction-description {
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: -50px !important;
+      position: relative;
+      z-index: 2;
+      margin: 0 20px;
+      border-left: 4px solid #28a745;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .account-display {
+      background: linear-gradient(90deg, #1a2a6c, #b21f1f, #fdbb2d);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: bold;
+      font-size: 1.2rem;
+      padding: 5px 15px;
+      display: inline-block;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 30px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    #myPositionButton {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+    #myPositionButton:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 5px;
+      z-index: -2;
+    }
+    #myPositionButton:before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.2);
+      transition: all 0.3s;
+      border-radius: 5px;
+      z-index: -1;
+    }
+    #myPositionButton:hover:before {
+      width: 100%;
+    }
+    .connected-address {
+      font-family: monospace;
+      background: rgba(40, 167, 69, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(40, 167, 69, 0.3);
+      color: #28a745;
+      font-weight: bold;
+    }
+    .btn-max-bid {
+      background: linear-gradient(90deg, #FFA500, #FF8C00);
+      border: none;
+      color: white;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .btn-max-bid:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      background: linear-gradient(90deg, #FF8C00, #FF6A00);
+    }
+    .auction-title {
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      animation: glow 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #28a745, 0 0 20px #28a745;
+      }
+      to {
+        text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #28a745, 0 0 40px #28a745;
+      }
     }
   </style>
 </head>
@@ -97,11 +233,15 @@
     <div class="container">
       <div class="row">
         <div class="col-12 text-center">
-          <h1 class="display-4 text-white mb-4">BOOSTED auction</h1>
+          <h1 class="display-4 text-white mb-4 auction-title">BOOSTED auction</h1>
           <div class="featured-image">
-            <img src="https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/7066f5be6b840c303ff76641c522bd/3b7066f5be6b840c303ff76641c522bd.jpeg?w=1000" 
-                 alt="Featured NFT" 
+            <img src="https://emerald-above-tick-265.mypinata.cloud/ipfs/bafybeigt6eamfquydmhbzy5wbg4erlthrpofkrvkcyimuvamofopuwd5be" 
+                 alt="BARKS - Forest Series" 
                  class="img-fluid">
+            <div class="auction-description mt-3 text-white">
+              <h4>"BARKS"</h4>
+              <p>1/1 from the upcoming Forest Series<br>by COR727 x ARBO</p>
+            </div>
           </div>
         </div>
       </div>
@@ -115,7 +255,7 @@
     
     <!-- Connected Account Display -->
     <div class="text-center mb-4">
-      <p id="accountDisplay" class="mt-2"></p>
+      <p id="accountDisplay" class="mt-2 account-display"></p>
     </div>
     
     <!-- Auction Stats Card -->
@@ -177,7 +317,7 @@
         </div>
         <div class="d-grid gap-2">
           <button id="approveDepositButton" class="btn btn-custom">Approve & Deposit</button>
-          <button id="maxBidButton" class="btn btn-custom">Max Bid (10% extra)</button>
+          <button id="maxBidButton" class="btn btn-custom btn-max-bid">Max Bid (10% extra)</button>
         </div>
       </div>
     </div>
@@ -640,7 +780,8 @@
       provider = window.menuProvider;
       signer = window.menuSigner;
       userAccount = window.menuUserAccount;
-      document.getElementById("accountDisplay").innerText = "Connected account: " + userAccount;
+      const abbreviated = userAccount.substring(0, 6) + "..." + userAccount.substring(userAccount.length - 4);
+      document.getElementById("accountDisplay").innerHTML = "Conectado: <span class='connected-address'>" + abbreviated + "</span>";
       
       auctionContract = new ethers.Contract(auctionAddress, auctionABI, signer);
       tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
