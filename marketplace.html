@@ -192,10 +192,12 @@
   <!-- NFT Gallery Section (Marketplace) with lateral margins for mobile -->
   <section>
     <div class="container px-3">
-      <div id="loadingSpinner" style="display:none;">
-        <div class="spinner-border text-light" role="status">
+      <div id="loadingSpinner" style="display:none;" class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
           <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="lead">Loading NFTs from the blockchain...</p>
+        <p class="small text-muted">This may take a moment depending on network conditions</p>
       </div>
       <div id="nftGallery" class="row"></div>
     </div>
@@ -229,6 +231,18 @@
   <script>
     // Cache duration en milisegundos (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
+
+    // Inicializar la lectura en modo solo lectura para mostrar NFTs incluso sin wallet
+    window.addEventListener('DOMContentLoaded', async function() {
+      try {
+        // Crear el contrato de solo lectura para el NFT
+        readOnlyNftContract = new ethers.Contract(nftCollectionAddress, nftABI, readOnlyProvider);
+        // Cargar los NFTs usando el proveedor de solo lectura
+        loadNFTs();
+      } catch (error) {
+        console.error("Error al inicializar en modo solo lectura:", error);
+      }
+    });
 
     // Función para obtener metadata utilizando localStorage como caché
     async function getMetadata(tokenURI) {
@@ -265,6 +279,13 @@
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
     const nftCollectionAddress = "0xa92a8F5A47efC77da796dfD0827D07872E7D0429";
     const collectionAddress = nftCollectionAddress; // Para uso en marketplace
+    
+    // Configuración de Infura
+    const infuraProvider = "https://base-mainnet.infura.io/v3/cc0c8013b1e044dcba79d4f7ec3b2ba1";
+    const infuraChainId = 8453; // Base Mainnet
+    
+    // Proveedor de respaldo para lecturas
+    const readOnlyProvider = new ethers.providers.JsonRpcProvider(infuraProvider, infuraChainId);
 
     // ABI para token (ERC20)
     const tokenABI = [
@@ -306,6 +327,7 @@
     ];
 
     let tokenContract, nftContract, marketplaceContract, offersContract;
+    let readOnlyNftContract;
 
     //
     // FORMATEADORES
@@ -330,6 +352,10 @@
       marketplaceContract = new ethers.Contract(marketplaceAddress, marketplaceAbi, signer);
       // Inicializar el contrato ADRIANoffers
       offersContract = new ethers.Contract(offersContractAddress, offersContractAbi, signer);
+      
+      // También crear versiones de contratos para solo lectura usando Infura
+      readOnlyNftContract = new ethers.Contract(nftCollectionAddress, nftABI, readOnlyProvider);
+      
       updateTokenBalance();
       loadNFTs();
     };
@@ -378,7 +404,17 @@
           }
         };
         
-        const nextEventId = await fetchWithRetry(async () => await nftContract.nextEventId());
+        // Intenta usar el contrato conectado, pero si falla, usa el de solo lectura con Infura
+        let contractToUse = nftContract;
+        let nextEventId;
+        try {
+          nextEventId = await fetchWithRetry(async () => await nftContract.nextEventId());
+        } catch (error) {
+          console.warn("Error con proveedor de wallet, usando Infura como fallback:", error);
+          contractToUse = readOnlyNftContract;
+          nextEventId = await fetchWithRetry(async () => await readOnlyNftContract.nextEventId());
+        }
+        
         const totalEvents = nextEventId.toNumber();
         let uniqueTokens = {};
         
@@ -393,7 +429,7 @@
             
             batchPromises.push((async () => {
               try {
-                let tokenURI = await fetchWithRetry(async () => await nftContract.uri(tokenId));
+                let tokenURI = await fetchWithRetry(async () => await contractToUse.uri(tokenId));
                 if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
                 
                 const metadata = await getMetadata(tokenURI);
@@ -407,8 +443,12 @@
                 if (tokenName.trim() === "#0006 THE BURNED FORTUNE") return;
                 
                 let tokenKey = tokenName.trim() + '|' + imageUrl.trim();
-                const balance = await fetchWithRetry(async () => await nftContract.balanceOf(userAccount, tokenId));
-                let ownedCount = balance.toNumber();
+                
+                let ownedCount = 0;
+                if (userAccount) {
+                  const balance = await fetchWithRetry(async () => await contractToUse.balanceOf(userAccount, tokenId));
+                  ownedCount = balance.toNumber();
+                }
                 
                 addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount);
               } catch (error) {
@@ -429,7 +469,11 @@
         for (let key in uniqueTokens) {
           let token = uniqueTokens[key];
           let colDiv = document.createElement("div");
-          colDiv.className = "col-6 col-md-3 mb-4";
+          // Cambiar la clase para que sea responsive en todas las pantallas:
+          // xs/sm: 6 columnas (2 por fila)
+          // md: 4 columnas (3 por fila)
+          // lg: 3 columnas (4 por fila)
+          colDiv.className = "col-6 col-md-4 col-lg-3 mb-4";
           let cardHTML = "";
           if (token.owned > 0) {
             cardHTML = `
@@ -511,7 +555,18 @@
           }
         };
         
-        let tokenURI = await fetchWithRetry(async () => await nftContract.uri(tokenId));
+        // Intenta usar el contrato conectado primero, si falla usa Infura
+        let contractToUse = nftContract;
+        let tokenURI;
+        
+        try {
+          tokenURI = await fetchWithRetry(async () => await nftContract.uri(tokenId));
+        } catch (error) {
+          console.warn("Error con proveedor de wallet, usando Infura como fallback:", error);
+          contractToUse = readOnlyNftContract;
+          tokenURI = await fetchWithRetry(async () => await readOnlyNftContract.uri(tokenId));
+        }
+        
         if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         
         const metadata = await getMetadata(tokenURI);
