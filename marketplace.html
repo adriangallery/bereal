@@ -197,13 +197,7 @@
           <span class="visually-hidden">Loading...</span>
         </div>
         <p class="lead">Loading NFTs from the blockchain...</p>
-        <div id="loadingProgress" class="text-muted">
-          <span id="tokensLoaded">0</span> tokens loaded
-        </div>
-        <div class="progress mt-2 mb-3" style="height: 10px; max-width: 300px; margin: 0 auto;">
-          <div id="loadingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-        </div>
-        <p class="small text-muted">Este proceso puede tardar unos minutos dependiendo de las condiciones de la red</p>
+        <p class="small text-muted">This may take a moment depending on network conditions</p>
       </div>
       <div id="nftGallery" class="row"></div>
     </div>
@@ -238,116 +232,6 @@
     // Cache duration en milisegundos (2 días)
     const CACHE_DURATION = 2 * 24 * 60 * 60 * 1000;
 
-    // Metadatos fallback para tokens comunes
-    const FALLBACK_METADATA = {
-      // Podemos añadir metadatos conocidos para tokens específicos
-      13: {
-        name: "TOMORROWMAN DISCONNECTED",
-        description: "TOMORROWMAN DISCONNECTED by ADRIAN",
-        image: "https://i2.seadn.io/base/0x62eb92b403cd5d6e9b20b51f27b96552cd9f8bcd/1e469402d7a09eeeac7caf7651b6ad/321e469402d7a09eeeac7caf7651b6ad.webp?w=1000"
-      }
-    };
-
-    // Lista de gateways IPFS para probar en orden
-    const IPFS_GATEWAYS = [
-      "https://ipfs.io/ipfs/",
-      "https://cloudflare-ipfs.com/ipfs/",
-      "https://gateway.pinata.cloud/ipfs/"
-    ];
-
-    // Función para obtener metadata utilizando múltiples fuentes y caché
-    async function getMetadata(tokenURI, tokenId) {
-      // 1. Intentar recuperar de la caché
-      const cached = localStorage.getItem(tokenURI);
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Date.now() - parsed.timestamp < CACHE_DURATION) {
-            console.log(`Metadata recuperada de caché para ${tokenURI}`);
-            return parsed.data;
-          }
-        } catch (e) {
-          console.error("Error parsing cache for", tokenURI, e);
-        }
-      }
-      
-      // 2. Verificar si tenemos metadatos fallback para este token
-      if (tokenId && FALLBACK_METADATA[tokenId]) {
-        console.log(`Usando metadatos fallback para token ${tokenId}`);
-        const metadata = FALLBACK_METADATA[tokenId];
-        // Guardar en caché para futuros usos
-        localStorage.setItem(tokenURI, JSON.stringify({ 
-          timestamp: Date.now(), 
-          data: metadata 
-        }));
-        return metadata;
-      }
-      
-      // 3. Intentar obtener de la URI original
-      try {
-        console.log(`Intentando obtener metadatos de ${tokenURI}`);
-        const response = await fetchWithTimeout(tokenURI, { timeout: 10000 });
-        if (response.ok) {
-          const metadata = await response.json();
-          localStorage.setItem(tokenURI, JSON.stringify({ 
-            timestamp: Date.now(), 
-            data: metadata 
-          }));
-          return metadata;
-        }
-      } catch (error) {
-        console.warn(`Error accediendo a ${tokenURI}:`, error);
-      }
-      
-      // 4. Si la URI es IPFS, intentar con diferentes gateways
-      if (tokenURI.includes("ipfs://")) {
-        const ipfsHash = tokenURI.replace("ipfs://", "");
-        for (const gateway of IPFS_GATEWAYS) {
-          try {
-            const gatewayUrl = gateway + ipfsHash;
-            console.log(`Intentando gateway IPFS: ${gatewayUrl}`);
-            const response = await fetchWithTimeout(gatewayUrl, { timeout: 10000 });
-            if (response.ok) {
-              const metadata = await response.json();
-              localStorage.setItem(tokenURI, JSON.stringify({ 
-                timestamp: Date.now(), 
-                data: metadata 
-              }));
-              return metadata;
-            }
-          } catch (error) {
-            console.warn(`Error con gateway ${gateway}:`, error);
-            // Continuar con el siguiente gateway
-          }
-        }
-      }
-      
-      // 5. Si todo falla, devolver un objeto vacío con un marcador de error
-      console.error(`No se pudo obtener metadatos para ${tokenURI}`);
-      return { 
-        name: tokenId ? `Token ${tokenId}` : "Unknown Token",
-        description: "Metadata not available",
-        image: "https://via.placeholder.com/300?text=No+Image",
-        error: true
-      };
-    }
-    
-    // Utilidad para fetch con timeout
-    async function fetchWithTimeout(resource, options = {}) {
-      const { timeout = 8000 } = options;
-      
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(resource, {
-        ...options,
-        signal: controller.signal  
-      });
-      clearTimeout(id);
-      
-      return response;
-    }
-
     // Inicializar la lectura en modo solo lectura para mostrar NFTs incluso sin wallet
     window.addEventListener('DOMContentLoaded', async function() {
       try {
@@ -359,6 +243,31 @@
         console.error("Error al inicializar en modo solo lectura:", error);
       }
     });
+
+    // Función para obtener metadata utilizando localStorage como caché
+    async function getMetadata(tokenURI) {
+      const cached = localStorage.getItem(tokenURI);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+            return parsed.data;
+          }
+        } catch (e) {
+          console.error("Error parsing cache for", tokenURI, e);
+        }
+      }
+      try {
+        const response = await fetch(tokenURI);
+        const metadata = await response.json();
+        const toStore = { timestamp: Date.now(), data: metadata };
+        localStorage.setItem(tokenURI, JSON.stringify(toStore));
+        return metadata;
+      } catch (error) {
+        console.error("Error fetching metadata from", tokenURI, error);
+        return {};
+      }
+    }
 
     // Función para comprimir la dirección del wallet (ej: 0x4943...81C6 -> 0x...81C6)
     function compressAddress(address) {
@@ -467,17 +376,11 @@
         const galleryDiv = document.getElementById("nftGallery");
         galleryDiv.innerHTML = "";
         document.getElementById("loadingSpinner").style.display = "block";
-        document.getElementById("tokensLoaded").textContent = "0";
-        document.getElementById("loadingProgressBar").style.width = "0%";
         
-        // Variables para rastrear el progreso
-        let tokensProcessed = 0;
-        let totalTokensToProcess = 0;
-        
-        // Implementar reintento con delay más agresivo para evitar rate limits
+        // Implementar reintento con delay para evitar rate limits
         const fetchWithRetry = async (func, ...args) => {
-          const maxRetries = 5; // Aumentado el número de reintentos
-          const baseDelay = 2000; // Aumentado a 2 segundos
+          const maxRetries = 3;
+          const baseDelay = 1000; // 1 segundo
           
           for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
@@ -491,12 +394,11 @@
                  error.message.includes("429") ||
                  error.code === -32016);
               
-              // Retraso exponencial con más espera y componente aleatorio
               const delay = isRateLimit ? 
-                baseDelay * Math.pow(3, attempt) + Math.random() * 3000 : // Retraso más agresivo para errores de rate limit
-                baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+                baseDelay * Math.pow(2, attempt) + Math.random() * 1000 : 
+                baseDelay;
               
-              console.log(`Reintentando en ${Math.round(delay/1000)} segundos...`);
+              console.log(`Reintentando en ${delay}ms...`);
               await new Promise(resolve => setTimeout(resolve, delay));
             }
           }
@@ -514,35 +416,23 @@
         }
         
         const totalEvents = nextEventId.toNumber();
-        totalTokensToProcess = totalEvents - 1; // Restamos 1 porque el token 0 no se usa
-        document.getElementById("loadingProgress").innerHTML = `
-          <span id="tokensLoaded">0</span> / ${totalTokensToProcess} tokens loaded
-        `;
-        
         let uniqueTokens = {};
         
-        // Procesamos los tokens en bloques más pequeños para reducir la carga
-        const batchSize = 3; // Reducido de 5 a 3
+        // Procesamos los tokens en bloques para evitar demasiadas solicitudes simultáneas
+        const batchSize = 5;
         for (let batchStart = 1; batchStart < totalEvents; batchStart += batchSize) {
           const batchEnd = Math.min(batchStart + batchSize, totalEvents);
           const batchPromises = [];
           
-          // Procesar los tokens uno por uno con delay entre cada uno
           for (let tokenId = batchStart; tokenId < batchEnd; tokenId++) {
             if (tokenId === 0) continue;
             
-            // Añadir un retraso entre cada token en el mismo lote
-            if (tokenId > batchStart) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
             batchPromises.push((async () => {
               try {
-                console.log(`Procesando token ${tokenId}...`);
                 let tokenURI = await fetchWithRetry(async () => await contractToUse.uri(tokenId));
                 if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
                 
-                const metadata = await getMetadata(tokenURI, tokenId);
+                const metadata = await getMetadata(tokenURI);
                 let imageUrl = metadata.image || "https://via.placeholder.com/300?text=No+Image";
                 if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
                 if (tokenId === 13) {
@@ -556,28 +446,13 @@
                 
                 let ownedCount = 0;
                 if (userAccount) {
-                  // Añadir un retraso antes de consultar el balance para evitar rate limits
-                  await new Promise(resolve => setTimeout(resolve, 500));
                   const balance = await fetchWithRetry(async () => await contractToUse.balanceOf(userAccount, tokenId));
                   ownedCount = balance.toNumber();
                 }
                 
                 addOrUpdateToken(uniqueTokens, tokenKey, tokenId, tokenName, imageUrl, tokenURI, ownedCount);
-                console.log(`Token ${tokenId} procesado correctamente.`);
-                
-                // Actualizar el contador de progreso
-                tokensProcessed++;
-                document.getElementById("tokensLoaded").textContent = tokensProcessed;
-                const progressPercent = (tokensProcessed / totalTokensToProcess) * 100;
-                document.getElementById("loadingProgressBar").style.width = `${Math.min(progressPercent, 100)}%`;
               } catch (error) {
                 console.error(`Error procesando token ${tokenId}:`, error);
-                // Actualizar contador aunque haya habido un error
-                tokensProcessed++;
-                document.getElementById("tokensLoaded").textContent = tokensProcessed;
-                const progressPercent = (tokensProcessed / totalTokensToProcess) * 100;
-                document.getElementById("loadingProgressBar").style.width = `${Math.min(progressPercent, 100)}%`;
-                // Continuar con el siguiente token en caso de error
               }
             })());
           }
@@ -585,82 +460,56 @@
           // Esperamos a que terminen todas las promesas del batch
           await Promise.allSettled(batchPromises);
           
-          // Actualizar la interfaz después de cada lote para mostrar progreso
-          updateGalleryWithTokens(uniqueTokens, galleryDiv);
-          
-          // Pausa más larga entre batches para evitar rate limits (3 segundos)
+          // Pequeña pausa entre batches para evitar rate limits
           if (batchEnd < totalEvents) {
-            console.log(`Pausa entre lotes (${batchStart}-${batchEnd})...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
         
-        // Actualización final de la galería
-        updateGalleryWithTokens(uniqueTokens, galleryDiv);
-        document.getElementById("loadingSpinner").style.display = "none";
-        
-        // Si no se encontró ningún token, mostrar mensaje
-        if (Object.keys(uniqueTokens).length === 0) {
-          galleryDiv.innerHTML = `
-            <div class="col-12 text-center py-5">
-              <div class="alert alert-warning">
-                <h4>No se encontraron tokens</h4>
-                <p>No hay tokens disponibles o ha ocurrido un error al cargarlos.</p>
-                <button class="btn btn-primary mt-3" onclick="loadNFTs()">Reintentar</button>
+        for (let key in uniqueTokens) {
+          let token = uniqueTokens[key];
+          let colDiv = document.createElement("div");
+          // Cambiar la clase para que sea responsive en todas las pantallas:
+          // xs/sm: 6 columnas (2 por fila)
+          // md: 4 columnas (3 por fila)
+          // lg: 3 columnas (4 por fila)
+          colDiv.className = "col-6 col-md-4 col-lg-3 mb-4";
+          let cardHTML = "";
+          if (token.owned > 0) {
+            cardHTML = `
+              <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
+                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${token.tokenName}</h5>
+                  <p class="card-text">Owned: ${token.owned}</p>
+                </div>
+                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
               </div>
-            </div>
-          `;
+            `;
+          } else {
+            cardHTML = `
+              <div class="card nft-card unowned h-100" onclick="showMetadata(${token.ownedRepresentative})">
+                <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
+                <div class="card-body">
+                  <h5 class="card-title">${token.tokenName}</h5>
+                  <p class="card-text">Not owned</p>
+                </div>
+                <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
+              </div>
+            `;
+          }
+          colDiv.innerHTML = cardHTML;
+          galleryDiv.appendChild(colDiv);
         }
+        document.getElementById("loadingSpinner").style.display = "none";
       } catch (error) {
         console.error("Error loading NFTs:", error);
         document.getElementById("nftGallery").innerHTML = 
           `<div class="col-12 text-center">
-            <div class="alert alert-danger">
-              <h4>Error al cargar tokens</h4>
-              <p>${error.message}</p>
-              <button class="btn btn-primary mt-3" onclick="loadNFTs()">Reintentar</button>
-            </div>
+            <p>Error loading your NFTs: ${error.message}</p>
+            <button class="btn btn-primary mt-3" onclick="loadNFTs()">Retry</button>
           </div>`;
         document.getElementById("loadingSpinner").style.display = "none";
-      }
-    }
-    
-    // Función para actualizar la galería con los tokens procesados
-    function updateGalleryWithTokens(uniqueTokens, galleryDiv) {
-      // Limpiar la galería antes de actualizarla
-      galleryDiv.innerHTML = "";
-      
-      for (let key in uniqueTokens) {
-        let token = uniqueTokens[key];
-        let colDiv = document.createElement("div");
-        // Cambiar la clase para que sea responsive en todas las pantallas
-        colDiv.className = "col-6 col-md-4 col-lg-3 mb-4";
-        let cardHTML = "";
-        if (token.owned > 0) {
-          cardHTML = `
-            <div class="card nft-card h-100" onclick="showMetadata(${token.ownedRepresentative})">
-              <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
-              <div class="card-body">
-                <h5 class="card-title">${token.tokenName}</h5>
-                <p class="card-text">Owned: ${token.owned}</p>
-              </div>
-              <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
-            </div>
-          `;
-        } else {
-          cardHTML = `
-            <div class="card nft-card unowned h-100" onclick="showMetadata(${token.ownedRepresentative})">
-              <img src="${token.imageUrl}" class="card-img-top" alt="${token.tokenName}">
-              <div class="card-body">
-                <h5 class="card-title">${token.tokenName}</h5>
-                <p class="card-text">Not owned</p>
-              </div>
-              <button class="see-details-btn" onclick="showMetadata(${token.ownedRepresentative}); event.stopPropagation();">Listings</button>
-            </div>
-          `;
-        }
-        colDiv.innerHTML = cardHTML;
-        galleryDiv.appendChild(colDiv);
       }
     }
 
@@ -680,21 +529,10 @@
 
     async function showMetadata(tokenId) {
       try {
-        // Mostrar un indicador de carga en el modal
-        document.getElementById("metadataContent").innerHTML = `
-          <div class="text-center py-4">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
-            <p>Cargando información del token ${tokenId}...</p>
-          </div>
-        `;
-        document.getElementById("metadataModalLabel").innerHTML = `<strong>Token ${tokenId}</strong>`;
-        var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
-        myModal.show();
-        
         // Reutilizamos la función fetchWithRetry definida en loadNFTs
         const fetchWithRetry = async (func, ...args) => {
-          const maxRetries = 5; // Aumentado número de reintentos
-          const baseDelay = 2000; // Aumentado a 2 segundos
+          const maxRetries = 3;
+          const baseDelay = 1000; // 1 segundo
           
           for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
@@ -707,22 +545,11 @@
                  error.message.includes("429") ||
                  error.code === -32016);
               
-              // Retraso exponencial con más espera y componente aleatorio
               const delay = isRateLimit ? 
-                baseDelay * Math.pow(3, attempt) + Math.random() * 3000 : // Retraso más agresivo para errores de rate limit
-                baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+                baseDelay * Math.pow(2, attempt) + Math.random() * 1000 : 
+                baseDelay;
               
-              console.log(`Reintentando en ${Math.round(delay/1000)} segundos...`);
-              
-              // Actualizar el modal para informar al usuario
-              document.getElementById("metadataContent").innerHTML = `
-                <div class="text-center py-4">
-                  <div class="spinner-border text-primary mb-3" role="status"></div>
-                  <p>Reintentando en ${Math.round(delay/1000)} segundos...</p>
-                  <p class="small text-muted">Intento ${attempt + 1} de ${maxRetries}</p>
-                </div>
-              `;
-              
+              console.log(`Reintentando en ${delay}ms...`);
               await new Promise(resolve => setTimeout(resolve, delay));
             }
           }
@@ -742,7 +569,7 @@
         
         if (tokenURI.startsWith("ipfs://")) tokenURI = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
         
-        const metadata = await getMetadata(tokenURI, tokenId);
+        const metadata = await getMetadata(tokenURI);
         let imageUrl = metadata.image || 'https://via.placeholder.com/300?text=No+Image';
         if (imageUrl.startsWith("ipfs://")) imageUrl = imageUrl.replace("ipfs://", "https://ipfs.io/ipfs/");
         
@@ -751,24 +578,15 @@
                    <img src="${imageUrl}" 
                         class="img-fluid rounded" alt="${metadata.name || 'NFT'}">
                  </div>`;
-        
-        // Solo mostrar los botones de acciones del marketplace si hay una wallet conectada
-        if (userAccount) {
-          html += `<div id="marketplaceActions">
-                    <h5>Marketplace Actions</h5>
-                    <button class="btn btn-secondary" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
-                    <button class="btn btn-secondary" onclick="openMakeOfferForm(${tokenId})">Make an Offer</button>
-                  </div>
-                  <div id="createListingForm" style="display:none;"></div>
-                  <div id="marketplaceListings" class="mt-3"></div>
-                  <div id="offerForm" style="display:none;"></div>
-                  <div id="marketplaceOffers" class="mt-3"></div>`;
-        } else {
-          html += `<div class="alert alert-info">
-                    <p>Connect your wallet to access marketplace actions.</p>
-                  </div>`;
-        }
-        
+        html += `<div id="marketplaceActions">
+                   <h5>Marketplace Actions</h5>
+                   <button class="btn btn-secondary" onclick="openCreateListingForm(${tokenId})">Create Listing</button>
+                   <button class="btn btn-secondary" onclick="openMakeOfferForm(${tokenId})">Make an Offer</button>
+                 </div>
+                 <div id="createListingForm" style="display:none;"></div>
+                 <div id="marketplaceListings" class="mt-3"></div>
+                 <div id="offerForm" style="display:none;"></div>
+                 <div id="marketplaceOffers" class="mt-3"></div>`;
         html += `<hr>
                  <p><strong>Name:</strong> ${metadata.name || 'No name provided'}</p>
                  <p><strong>Description:</strong> ${metadata.description || 'No description provided'}</p>`;
@@ -782,26 +600,19 @@
         html += `<p><strong>Token ID:</strong> ${tokenId}</p>`;
         document.getElementById("metadataContent").innerHTML = html;
         document.getElementById("metadataModalLabel").innerHTML = `<strong>${metadata.name || ('Token ' + tokenId)}</strong>`;
+        var myModal = new bootstrap.Modal(document.getElementById('metadataModal'));
+        myModal.show();
         
-        // Solo cargar listados y ofertas si hay una wallet conectada
-        if (userAccount) {
-          // Cargar listados y ofertas con un pequeño retraso entre ellas
+        // Cargar listados y ofertas con un pequeño retraso entre ellas
+        setTimeout(() => {
+          loadListingsForToken(tokenId);
           setTimeout(() => {
-            loadListingsForToken(tokenId);
-            setTimeout(() => {
-              loadOffersForToken(tokenId);
-            }, 2000); // Aumentado a 2 segundos
-          }, 1000); // Aumentado a 1 segundo
-        }
+            loadOffersForToken(tokenId);
+          }, 500);
+        }, 100);
       } catch (error) {
         console.error("Error fetching metadata for token", tokenId, error);
-        document.getElementById("metadataContent").innerHTML = `
-          <div class="alert alert-danger">
-            <h5>Error loading token metadata</h5>
-            <p>${error.message || 'Unknown error'}</p>
-            <button class="btn btn-primary mt-2" onclick="showMetadata(${tokenId})">Retry</button>
-          </div>
-        `;
+        alert("Error fetching metadata: " + (error.message || 'Unknown error'));
       }
     }
 

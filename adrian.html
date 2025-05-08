@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adrian Ecosystem</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #ff6b6b;
+            --secondary-color: #4ecdc4;
+            --dark-color: #2d3436;
+            --light-color: #f9f9f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background-color: var(--dark-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            color: var(--primary-color) !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #ff5252;
+            border-color: #ff5252;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #3dbeb6;
+            border-color: #3dbeb6;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .token-info {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .token-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .auction-type {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .auction-type h5 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .nft-showcase {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+
+        .nft-showcase img {
+            width: 100%;
+            height: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .nft-showcase:hover img {
+            transform: scale(1.05);
+        }
+
+        .nft-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .token-price {
+                font-size: 1.5rem;
+            }
+            
+            .stats-number {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">Adrian Ecosystem</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="token-info text-center">
+                    <h1 class="mb-3">$ADRIAN Token</h1>
+                    <p class="lead">A token made for art and artist lovers</p>
+                    <div class="token-price mb-3">$0.0000000001</div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="https://dexscreener.com/base/0x7a250d5630b4cf539739df2c5dacb4c659f2488d" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-chart-line me-2"></i>Buy on DEXScreener
+                        </a>
+                        <a href="https://www.dextools.io/app/base/pair-explorer/0x7a250d5630b4cf539739df2c5dacb4c659f2488d" class="btn btn-secondary" target="_blank">
+                            <i class="fas fa-exchange-alt me-2"></i>DexTools
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h3 class="mb-0">Auctions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="auction-type">
+                            <h5>Regular Auctions</h5>
+                            <p>Standard auction format with fixed duration and minimum bid requirements.</p>
+                            <a href="auctionstats.html" class="btn btn-sm btn-primary">View Stats</a>
+                        </div>
+                        <div class="auction-type">
+                            <h5>Boosted Auctions</h5>
+                            <p>Enhanced auctions with special features and rewards for participants.</p>
+                            <a href="auctionstats.html" class="btn btn-sm btn-primary">View Stats</a>
+                        </div>
+                        <div class="auction-type">
+                            <h5>Dutch Auctions</h5>
+                            <p>Price decreases over time until a buyer accepts the current price.</p>
+                            <a href="auctionstats.html" class="btn btn-sm btn-primary">View Stats</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h3 class="mb-0">Burn Statistics</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-card">
+                            <div class="stats-number">1,000,000</div>
+                            <div class="stats-label">Total $ADRIAN Burned</div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-number">500,000</div>
+                            <div class="stats-label">Burned in Auctions</div>
+                        </div>
+                        <a href="burnstats.html" class="btn btn-primary w-100">View Detailed Stats</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">AdrianPunks Collection</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="nft-showcase">
+                                    <img src="https://adrianpunks.com/placeholder.jpg" alt="AdrianPunks Collection">
+                                    <div class="nft-info">
+                                        <h5>1000 Unique NFTs</h5>
+                                        <p>Created by HalfxTiger</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h4>About the Collection</h4>
+                                <p>AdrianPunks is a unique collection of 1000 NFTs, each minted with $ADRIAN tokens. Created by the talented artist HalfxTiger, this collection represents the perfect fusion of art and blockchain technology.</p>
+                                <a href="https://adrianpunks.com" class="btn btn-primary" target="_blank">Visit Collection</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
