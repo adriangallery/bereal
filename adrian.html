@@ -1,338 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$ADRIAN | BE REAL | BE ADRIAN</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #ff6b6b;
-            --secondary-color: #4ecdc4;
-            --dark-color: #2d3436;
-            --light-color: #f9f9f9;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-color);
-            color: var(--dark-color);
-            line-height: 1.6;
-        }
-
-        .navbar {
-            background-color: var(--dark-color);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .navbar-brand {
-            color: var(--primary-color) !important;
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-            background: white;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 1rem;
-        }
-
-        .card-body {
-            padding: 1.5rem;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        .btn-primary:hover {
-            background-color: #ff5252;
-            border-color: #ff5252;
-        }
-
-        .btn-secondary {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-
-        .btn-secondary:hover {
-            background-color: #3dbeb6;
-            border-color: #3dbeb6;
-        }
-
-        .section-title {
-            color: var(--primary-color);
-            margin-bottom: 2rem;
-            font-weight: bold;
-        }
-
-        .hero-section {
-            background: linear-gradient(135deg, var(--dark-color), var(--primary-color));
-            color: white;
-            padding: 4rem 0;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .hero-title {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        .hero-subtitle {
-            font-size: 1.5rem;
-            opacity: 0.9;
-        }
-
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .feature-list li {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-            position: relative;
-        }
-
-        .feature-list li:before {
-            content: "✅";
-            position: absolute;
-            left: 0;
-        }
-
-        .coming-soon {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-top: 1rem;
-        }
-
-        .artist-collab {
-            border-left: 4px solid var(--primary-color);
-            padding-left: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2rem;
-            }
-            .hero-subtitle {
-                font-size: 1.2rem;
-            }
-        }
-    </style>
+  <link rel="icon" href="https://files.catbox.moe/ffvdjy.svg" type="image/svg+xml">
+  <meta charset="UTF-8">
+  <title>$ADRIAN | BE REAL | BE ADRIAN</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Ethers.js UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js"></script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="#">ADRIANGALLERY</a>
-        </div>
-    </nav>
+  <!-- Menu (Header) -->
+  <div id="menu-placeholder"></div>
+  <script>
+    // Cargamos el HTML del menú y, una vez insertado, inyectamos el script que le da funcionalidad.
+    fetch('components/menu2.html')
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById('menu-placeholder').innerHTML = html;
+        // Inyecta el script del menú después de insertar el HTML
+        const script = document.createElement('script');
+        script.src = 'components/menu2.js';
+        document.body.appendChild(script);
+      })
+      .catch(error => console.error('Error loading menu:', error));
+  </script>
 
-    <div class="container">
-        <!-- Hero Section -->
-        <section class="hero-section">
-            <h1 class="hero-title">ADRIANGALLERY</h1>
-            <p class="hero-subtitle">From Memecoin to a Full Ecosystem — Built By a Degenerate, For Degenerates</p>
-            <p>Welcome to Adrian Gallery, a web3 playground where art meets tokenomics, built entirely from scratch by a first-time dev with nothing but vibes and a lot of hustle.</p>
-        </section>
+  <!-- Espacio vacío -->
+  <div style="height: 80px; width: 100%;"></div>
 
-        <!-- What is $ADRIAN Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🎨 What is $ADRIAN?</h3>
-                    </div>
-                    <div class="card-body">
-                        <p>$ADRIAN is our native token on Base that powers everything you see here. From auctions to staking, to minting NFTs and trading in our marketplace — $ADRIAN fuels it all.</p>
-                        <ul class="feature-list">
-                            <li>Utility Token</li>
-                            <li>Fair Launch, No Presale</li>
-                            <li>Liquidity Locked</li>
-                            <li>Burn Mechanism & Tax System</li>
-                            <li>Used Across All Dapps</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- NFTs Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🖼️ NFTs with Real Utility</h3>
-                    </div>
-                    <div class="card-body">
-                        <h4>AdrianPunks</h4>
-                        <p>A 1000-piece 3D-styled PFP collection by @HalfxTiger. Minted with $ADRIAN | Fully integrated with staking and marketplace.</p>
-                        
-                        <h4>PocketAdrians</h4>
-                        <p>Soulbound mirror collection, automatically paired with each AdrianPunk. Can metamorph into alternate versions (coming soon with toggler dapp).</p>
-                        
-                        <h4>GENESIS, ASCENSION, TRUE ASCENDANT</h4>
-                        <p>NFTs with exclusive benefits, like share of auction proceeds, tax perks, and airdrops.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Core Dapps Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🔨 Built With No Devs (Really)</h3>
-                    </div>
-                    <div class="card-body">
-                        <p>Over 17 smart contracts and counting… Here's what we've deployed so far:</p>
-                        <h4>🎯 Core Dapps</h4>
-                        <ul class="feature-list">
-                            <li>AdrianAuction (1/1 Art Auctions)</li>
-                            <li>AdrianDutchAuction (Dynamic pricing)</li>
-                            <li>AdrianLottery (Weekly prizes in NFTs & $ADRIAN)</li>
-                            <li>AdrianMarket (Buy/Sell NFTs with $ADRIAN)</li>
-                            <li>AdrianPunks Exchange (Swap punks P2P securely)</li>
-                            <li>PunkQuest (Soft staking + rewards)</li>
-                            <li>AdrianToggler (Switch PocketAdrians & sync ownership)</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tokenomics Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🧠 Tokenomics in Action</h3>
-                    </div>
-                    <div class="card-body">
-                        <ul class="feature-list">
-                            <li>🔥 8M+ $ADRIAN Burned</li>
-                            <li>🧪 THE TAX REAPER earns a cut from all trades</li>
-                            <li>📈 70M $ADRIAN Airdropped across 200+ wallets</li>
-                            <li>🎯 All auctions & mints use $ADRIAN</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Artist Collaborations -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">👀 Auctions with Artists</h3>
-                    </div>
-                    <div class="card-body">
-                        <p>We're not just playing around — we collaborate with real artists:</p>
-                        <div class="artist-collab">
-                            <p>🧨 @AKASHI30 – 1/1 & Edition auction</p>
-                            <p>🎭 @tomorrowman13 – "Disconnected" 1/1</p>
-                            <p>🌲 COR727 x ARBO – Forest photography-based 1/1</p>
-                            <p>💀 THE TAX REAPER – sold via Dutch Auction</p>
-                            <p>🐯 More drops coming with @HalfxTiger, @sonicdirty, and others</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Community Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">💬 Community First</h3>
-                    </div>
-                    <div class="card-body">
-                        <ul class="feature-list">
-                            <li>Weekly Recaps</li>
-                            <li>Frequent Raffles</li>
-                            <li>Discord Roles with Perks</li>
-                            <li>DAOs for Revenue Sharing</li>
-                            <li>Referral System</li>
-                        </ul>
-                        <p>We've turned a memecoin into a community-run gallery. Every holder counts. Every punk matters.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Coming Soon Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🛠️ Coming Soon</h3>
-                    </div>
-                    <div class="card-body">
-                        <ul class="feature-list">
-                            <li>🧬 PunkQuest Season 2 (Items, boosts, random events)</li>
-                            <li>💸 ADRIANswap (our own DEX)</li>
-                            <li>🏆 Loyalty Dapp (points, gamified)</li>
-                            <li>🧾 DAO Tools for Treasury and Proposal Voting</li>
-                            <li>📦 Print-on-Demand Merch for holders</li>
-                            <li>💥 More artist collabs and mints</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Get Started Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0">🌍 Start Here</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-3">
-                            <a href="buyadrian.html" class="btn btn-primary">Buy $ADRIAN</a>
-                            <a href="https://discord.gg/YHc5Sh65Hm" class="btn btn-primary" target="_blank">Join the Community</a>
-                            <a href="https://adrianpunks.com" class="btn btn-primary" target="_blank">Mint AdrianPunks</a>
-                            <a href="marketplace.html" class="btn btn-primary">Explore the Gallery</a>
-                            <a href="marketplace.html" class="btn btn-primary">Trade in the Market</a>
-                            <a href="punkquest.html" class="btn btn-primary">Stake in PunkQuest</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center mb-4">
-            <h2>🟦 BE REAL</h2>
-            <h2>🟥 BE ADRIAN</h2>
-        </div>
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="text-center mb-5">
+      <h1 class="display-4">🟦 ADRIANGALLERY 🟥</h1>
+      <p class="lead">From Memecoin to a Full Ecosystem — Built By a Degenerate, For Degenerates</p>
+      <p>Welcome to Adrian Gallery, a web3 playground where art meets tokenomics, built entirely from scratch by a first-time dev with nothing but vibes and a lot of hustle.</p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Token Burn Tracker Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>$ADRIAN Token Burn Tracker</h2>
+      </div>
+      <div class="card-body">
+        <button id="refreshButton" class="btn btn-primary mb-3">> REFRESH DATA</button>
+        <div id="walletStatus" class="mb-3">> Wallet not connected. Please connect via the menu.</div>
+        <div id="tokenInfo" class="mb-3">
+          <p><strong>Initial Supply:</strong> 333,000,000 $ADRIAN</p>
+          <p id="currentSupply"><strong>Current Supply:</strong> -</p>
+          <p id="totalBurned"><strong>Total Burned:</strong> -</p>
+          <p id="lpTokens"><strong>Pooled $ADRIAN:</strong> -</p>
+        </div>
+        <div id="chartContainer">
+          <canvas id="burnChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- What is $ADRIAN Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🎨 What is $ADRIAN?</h2>
+      </div>
+      <div class="card-body">
+        <p>$ADRIAN is our native token on Base that powers everything you see here. From auctions to staking, to minting NFTs and trading in our marketplace — $ADRIAN fuels it all.</p>
+        <ul class="list-unstyled">
+          <li>✅ Utility Token</li>
+          <li>✅ Fair Launch, No Presale</li>
+          <li>✅ Liquidity Locked</li>
+          <li>✅ Burn Mechanism & Tax System</li>
+          <li>✅ Used Across All Dapps</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NFTs Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🖼️ NFTs with Real Utility</h2>
+      </div>
+      <div class="card-body">
+        <h3>AdrianPunks</h3>
+        <p>A 1000-piece 3D-styled PFP collection by @HalfxTiger. Minted with $ADRIAN | Fully integrated with staking and marketplace.</p>
+        
+        <h3>PocketAdrians</h3>
+        <p>Soulbound mirror collection, automatically paired with each AdrianPunk. Can metamorph into alternate versions (coming soon with toggler dapp).</p>
+        
+        <h3>GENESIS, ASCENSION, TRUE ASCENDANT</h3>
+        <p>NFTs with exclusive benefits, like share of auction proceeds, tax perks, and airdrops.</p>
+      </div>
+    </div>
+
+    <!-- Core Dapps Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🔨 Built With No Devs (Really)</h2>
+      </div>
+      <div class="card-body">
+        <p>Over 17 smart contracts and counting… Here's what we've deployed so far:</p>
+        <h3>🎯 Core Dapps</h3>
+        <ul class="list-unstyled">
+          <li>✅ AdrianAuction (1/1 Art Auctions)</li>
+          <li>✅ AdrianDutchAuction (Dynamic pricing)</li>
+          <li>✅ AdrianLottery (Weekly prizes in NFTs & $ADRIAN)</li>
+          <li>✅ AdrianMarket (Buy/Sell NFTs with $ADRIAN)</li>
+          <li>✅ AdrianPunks Exchange (Swap punks P2P securely)</li>
+          <li>✅ PunkQuest (Soft staking + rewards)</li>
+          <li>✅ AdrianToggler (Switch PocketAdrians & sync ownership)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tokenomics Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🧠 Tokenomics in Action</h2>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          <li>🔥 8M+ $ADRIAN Burned</li>
+          <li>🧪 THE TAX REAPER earns a cut from all trades</li>
+          <li>📈 70M $ADRIAN Airdropped across 200+ wallets</li>
+          <li>🎯 All auctions & mints use $ADRIAN</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Artist Collaborations -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>👀 Auctions with Artists</h2>
+      </div>
+      <div class="card-body">
+        <p>We're not just playing around — we collaborate with real artists:</p>
+        <ul class="list-unstyled">
+          <li>🧨 @AKASHI30 – 1/1 & Edition auction</li>
+          <li>🎭 @tomorrowman13 – "Disconnected" 1/1</li>
+          <li>🌲 COR727 x ARBO – Forest photography-based 1/1</li>
+          <li>💀 THE TAX REAPER – sold via Dutch Auction</li>
+          <li>🐯 More drops coming with @HalfxTiger, @sonicdirty, and others</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Community Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>💬 Community First</h2>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          <li>✅ Weekly Recaps</li>
+          <li>✅ Frequent Raffles</li>
+          <li>✅ Discord Roles with Perks</li>
+          <li>✅ DAOs for Revenue Sharing</li>
+          <li>✅ Referral System</li>
+        </ul>
+        <p>We've turned a memecoin into a community-run gallery. Every holder counts. Every punk matters.</p>
+      </div>
+    </div>
+
+    <!-- Coming Soon Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🛠️ Coming Soon</h2>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          <li>🧬 PunkQuest Season 2 (Items, boosts, random events)</li>
+          <li>💸 ADRIANswap (our own DEX)</li>
+          <li>🏆 Loyalty Dapp (points, gamified)</li>
+          <li>🧾 DAO Tools for Treasury and Proposal Voting</li>
+          <li>📦 Print-on-Demand Merch for holders</li>
+          <li>💥 More artist collabs and mints</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Get Started Section -->
+    <div class="card mb-5">
+      <div class="card-header">
+        <h2>🌍 Start Here</h2>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-3">
+          <a href="buyadrian.html" class="btn btn-primary">Buy $ADRIAN</a>
+          <a href="https://discord.gg/YHc5Sh65Hm" class="btn btn-primary" target="_blank">Join the Community</a>
+          <a href="https://adrianpunks.com" class="btn btn-primary" target="_blank">Mint AdrianPunks</a>
+          <a href="marketplace.html" class="btn btn-primary">Explore the Gallery</a>
+          <a href="marketplace.html" class="btn btn-primary">Trade in the Market</a>
+          <a href="punkquest.html" class="btn btn-primary">Stake in PunkQuest</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mb-4">
+      <h2>🟦 BE REAL</h2>
+      <h2>🟥 BE ADRIAN</h2>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-placeholder"></div>
+  <script>
+    fetch('components/footer.html')
+      .then(response => response.text())
+      .then(html => { document.getElementById('footer-placeholder').innerHTML = html; })
+      .catch(error => { console.error('Error loading footer:', error); });
+  </script>
+
+  <!-- Import Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Token Burn Tracker App Script -->
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+    
+    const refreshButton = document.getElementById("refreshButton");
+    const walletStatus = document.getElementById("walletStatus");
+    const currentSupplyEl = document.getElementById("currentSupply");
+    const totalBurnedEl = document.getElementById("totalBurned");
+    const lpTokensEl = document.getElementById("lpTokens");
+    const ctx = document.getElementById("burnChart").getContext("2d");
+    
+    let provider;
+    let contract;
+    let burnChart;
+    let walletAddress = "";
+    
+    const initialSupply = 333000000;
+    const decimals = 18;
+    
+    // ABI con totalSupply y balanceOf
+    const tokenABI = [
+      {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+    
+    const contractAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    
+    const liquidityPoolAddresses = [
+      "0xa41D5fAF7BA8B82E276125dE2a053216e91f4814",
+      "0xA51d80C15B0b67b9f32865D3351977a7006c462f",
+      "0x95EBfcb1c6b345fdA69cF56C51E30421e5a35aeC"
+    ];
+    
+    async function getLiquidityPoolTotal() {
+      const balances = await Promise.all(
+        liquidityPoolAddresses.map(address => contract.balanceOf(address))
+      );
+      const totalLP = balances.reduce((acc, balanceBN) => {
+        return acc + parseFloat(ethers.utils.formatUnits(balanceBN, decimals));
+      }, 0);
+      return totalLP;
+    }
+    
+    function createBurnAnimation() {
+      const burn = document.createElement('div');
+      burn.className = 'burn-animation';
+      burn.style.left = Math.random() * window.innerWidth + 'px';
+      burn.style.top = Math.random() * window.innerHeight + 'px';
+      burn.style.width = '20px';
+      burn.style.height = '20px';
+      burn.style.background = 'radial-gradient(circle, #0f0 0%, transparent 70%)';
+      document.body.appendChild(burn);
+      setTimeout(() => burn.remove(), 2000);
+    }
+    
+    async function refreshTokenData() {
+      try {
+        const currentSupplyBN = await contract.totalSupply();
+        const currentSupply = parseFloat(ethers.utils.formatUnits(currentSupplyBN, decimals));
+        
+        const lpTokens = await getLiquidityPoolTotal();
+        const burnedTokens = initialSupply - currentSupply;
+        const circulatingTokens = currentSupply - lpTokens;
+        
+        currentSupplyEl.innerHTML = `<strong>Current Supply:</strong> ${Math.floor(currentSupply).toLocaleString('en-US')} $ADRIAN`;
+        totalBurnedEl.innerHTML = `<strong>Total Burned:</strong> ${Math.floor(burnedTokens).toLocaleString('en-US')} $ADRIAN`;
+        lpTokensEl.innerHTML = `<strong>Pooled $ADRIAN:</strong> ${Math.floor(lpTokens).toLocaleString('en-US')} $ADRIAN`;
+        
+        if (burnChart) {
+          burnChart.data.datasets[0].data = [burnedTokens, lpTokens, circulatingTokens];
+          burnChart.update();
+        } else {
+          burnChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Burned', 'Pooled $ADRIAN', 'Circulating'],
+              datasets: [{
+                data: [burnedTokens, lpTokens, circulatingTokens],
+                backgroundColor: [
+                  'rgba(0, 255, 0, 0.5)',
+                  'rgba(0, 255, 0, 0.3)',
+                  'rgba(0, 255, 0, 0.1)'
+                ],
+                borderColor: '#0f0',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  labels: {
+                    color: '#0f0',
+                    font: {
+                      family: "'Share Tech Mono', monospace"
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+        
+        // Crear animación de burn
+        createBurnAnimation();
+        
+      } catch (error) {
+        console.error("Error refreshing token data:", error);
+        walletStatus.textContent = "> Error refreshing data. Please try again.";
+      }
+    }
+    
+    refreshButton.addEventListener("click", refreshTokenData);
+    
+    // Inicializar provider y contrato
+    if (typeof window.ethereum !== 'undefined') {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      contract = new ethers.Contract(contractAddress, tokenABI, provider);
+      
+      // Verificar si ya está conectada la wallet
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then(accounts => {
+          if (accounts.length > 0) {
+            walletAddress = accounts[0];
+            walletStatus.textContent = "> Wallet connected: " + walletAddress.substring(0, 6) + "..." + walletAddress.substring(38);
+            refreshTokenData();
+          }
+        });
+      
+      // Escuchar cambios de cuenta
+      window.ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length > 0) {
+          walletAddress = accounts[0];
+          walletStatus.textContent = "> Wallet connected: " + walletAddress.substring(0, 6) + "..." + walletAddress.substring(38);
+          refreshTokenData();
+        } else {
+          walletAddress = "";
+          walletStatus.textContent = "> Wallet disconnected. Please connect via the menu.";
+        }
+      });
+    } else {
+      walletStatus.textContent = "> Please install MetaMask to use this DApp.";
+    }
+  </script>
 </body>
 </html>
