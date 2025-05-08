@@ -82,93 +82,62 @@
             font-weight: bold;
         }
 
-        .feature-icon {
-            font-size: 2rem;
-            color: var(--primary-color);
+        .hero-section {
+            background: linear-gradient(135deg, var(--dark-color), var(--primary-color));
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: bold;
             margin-bottom: 1rem;
         }
 
-        .token-info {
-            background-color: var(--dark-color);
+        .hero-subtitle {
+            font-size: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+        }
+
+        .coming-soon {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
         }
 
-        .token-price {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .auction-type {
+        .artist-collab {
             border-left: 4px solid var(--primary-color);
             padding-left: 1rem;
             margin-bottom: 1rem;
         }
 
-        .auction-type h5 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-
-        .stats-card {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            margin-bottom: 1rem;
-        }
-
-        .stats-number {
-            font-size: 2rem;
-            font-weight: bold;
-        }
-
-        .stats-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        .nft-showcase {
-            position: relative;
-            overflow: hidden;
-            border-radius: 15px;
-            margin-bottom: 1rem;
-        }
-
-        .nft-showcase img {
-            width: 100%;
-            height: auto;
-            transition: transform 0.3s ease;
-        }
-
-        .nft-showcase:hover img {
-            transform: scale(1.05);
-        }
-
-        .nft-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 1rem;
-        }
-
         @media (max-width: 768px) {
-            .card {
-                margin-bottom: 1rem;
+            .hero-title {
+                font-size: 2rem;
             }
-            
-            .token-price {
-                font-size: 1.5rem;
-            }
-            
-            .stats-number {
-                font-size: 1.5rem;
+            .hero-subtitle {
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -176,101 +145,194 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="#">Adrian Ecosystem</a>
+            <a class="navbar-brand" href="#">ADRIANGALLERY</a>
         </div>
     </nav>
 
     <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">ADRIANGALLERY</h1>
+            <p class="hero-subtitle">From Memecoin to a Full Ecosystem — Built By a Degenerate, For Degenerates</p>
+            <p>Welcome to Adrian Gallery, a web3 playground where art meets tokenomics, built entirely from scratch by a first-time dev with nothing but vibes and a lot of hustle.</p>
+        </section>
+
+        <!-- What is $ADRIAN Section -->
         <div class="row mb-4">
             <div class="col-12">
-                <div class="token-info text-center">
-                    <h1 class="mb-3">$ADRIAN Token</h1>
-                    <p class="lead">A token made for art and artist lovers</p>
-                    <div class="token-price mb-3">$0.0000000001</div>
-                    <div class="d-flex justify-content-center gap-3">
-                        <a href="https://dexscreener.com/base/0x7a250d5630b4cf539739df2c5dacb4c659f2488d" class="btn btn-primary" target="_blank">
-                            <i class="fas fa-chart-line me-2"></i>Buy on DEXScreener
-                        </a>
-                        <a href="https://www.dextools.io/app/base/pair-explorer/0x7a250d5630b4cf539739df2c5dacb4c659f2488d" class="btn btn-secondary" target="_blank">
-                            <i class="fas fa-exchange-alt me-2"></i>DexTools
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h3 class="mb-0">About $ADRIAN</h3>
-                    </div>
-                    <div class="card-body">
-                        <p>$ADRIAN is more than just a token—it's a movement of true believers. Built on transparency and long-term growth, we shun shortcuts: no dev, no rug. Just pure, unyielding commitment.</p>
-                        <h4 class="mt-4">Why Join $ADRIAN?</h4>
-                        <ul class="list-group">
-                            <li class="list-group-item">✅ <strong>Fair Launch & Community Focus</strong> – No presale, no VC, only genuine community participation.</li>
-                            <li class="list-group-item">✅ <strong>GENESIS NFTs</strong> – Unlock exclusive perks and rewards for early believers.</li>
-                            <li class="list-group-item">✅ <strong>Locked Liquidity</strong> – Security and longevity guaranteed.</li>
-                            <li class="list-group-item">✅ <strong>Innovative LP Rewards</strong> – Pioneering ways to reward our holders.</li>
-                            <li class="list-group-item">✅ <strong>Airdrops & Giveaways</strong> – Regular incentives for the community.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h3 class="mb-0">GENESIS NFT</h3>
-                    </div>
-                    <div class="card-body">
-                        <h4>Limited Edition (50 Only)</h4>
-                        <p>Own a GENESIS NFT to unlock:</p>
-                        <ul class="list-group">
-                            <li class="list-group-item">🎟️ <strong>Guaranteed Airdrop Allocations</strong> – The more you hold, the larger your share.</li>
-                            <li class="list-group-item">🔓 <strong>Exclusive Perks & Future Utility</strong> – Special rewards, roles, and benefits.</li>
-                            <li class="list-group-item">🌍 <strong>True OG Status</strong> – Cement your legacy as a founding member.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="mb-0">Get Involved</h3>
+                        <h3 class="mb-0">🎨 What is $ADRIAN?</h3>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4>Quick Links</h4>
-                                <ul class="list-group">
-                                    <li class="list-group-item">📌 <strong>Buy $ADRIAN</strong> – <a href="buyadrian.html" target="_blank">Swap Here</a></li>
-                                    <li class="list-group-item">📌 <strong>Check the Chart</strong> – <a href="https://dexscreener.com/base/0xa51d80c15b0b67b9f32865d3351977a7006c462f" target="_blank">DexScreener</a></li>
-                                    <li class="list-group-item">📌 <strong>Join the Discord</strong> – <a href="https://discord.gg/YHc5Sh65Hm" target="_blank">Get Involved</a></li>
-                                    <li class="list-group-item">📌 <strong>Follow on Twitter</strong> – <a href="http://twitter.com/adriancerda" target="_blank">@adriancerda</a></li>
-                                    <li class="list-group-item">📌 <strong>Explore the NFT Collection</strong> – <a href="https://opensea.io/collection/adriangallery" target="_blank">Adrian Gallery on OpenSea</a></li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <h4>Additional Resources</h4>
-                                <div class="d-grid gap-3">
-                                    <a href="https://discord.gg/avFDBdX5Wh" class="btn btn-primary" target="_blank">Discord</a>
-                                    <a href="https://opensea.io/collection/adriangallery" class="btn btn-primary" target="_blank">OpenSea Adrian Gallery</a>
-                                    <a href="https://app.uniswap.org/positions/v2/base/0xA51d80C15B0b67b9f32865D3351977a7006c462f" class="btn btn-primary" target="_blank">Uniswap Liquidity Pool</a>
-                                    <a href="https://basescan.org/address/0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea" class="btn btn-primary" target="_blank">Token Address</a>
-                                </div>
-                            </div>
+                        <p>$ADRIAN is our native token on Base that powers everything you see here. From auctions to staking, to minting NFTs and trading in our marketplace — $ADRIAN fuels it all.</p>
+                        <ul class="feature-list">
+                            <li>Utility Token</li>
+                            <li>Fair Launch, No Presale</li>
+                            <li>Liquidity Locked</li>
+                            <li>Burn Mechanism & Tax System</li>
+                            <li>Used Across All Dapps</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NFTs Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">🖼️ NFTs with Real Utility</h3>
+                    </div>
+                    <div class="card-body">
+                        <h4>AdrianPunks</h4>
+                        <p>A 1000-piece 3D-styled PFP collection by @HalfxTiger. Minted with $ADRIAN | Fully integrated with staking and marketplace.</p>
+                        
+                        <h4>PocketAdrians</h4>
+                        <p>Soulbound mirror collection, automatically paired with each AdrianPunk. Can metamorph into alternate versions (coming soon with toggler dapp).</p>
+                        
+                        <h4>GENESIS, ASCENSION, TRUE ASCENDANT</h4>
+                        <p>NFTs with exclusive benefits, like share of auction proceeds, tax perks, and airdrops.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Core Dapps Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">🔨 Built With No Devs (Really)</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Over 17 smart contracts and counting… Here's what we've deployed so far:</p>
+                        <h4>🎯 Core Dapps</h4>
+                        <ul class="feature-list">
+                            <li>AdrianAuction (1/1 Art Auctions)</li>
+                            <li>AdrianDutchAuction (Dynamic pricing)</li>
+                            <li>AdrianLottery (Weekly prizes in NFTs & $ADRIAN)</li>
+                            <li>AdrianMarket (Buy/Sell NFTs with $ADRIAN)</li>
+                            <li>AdrianPunks Exchange (Swap punks P2P securely)</li>
+                            <li>PunkQuest (Soft staking + rewards)</li>
+                            <li>AdrianToggler (Switch PocketAdrians & sync ownership)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tokenomics Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">🧠 Tokenomics in Action</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="feature-list">
+                            <li>🔥 8M+ $ADRIAN Burned</li>
+                            <li>🧪 THE TAX REAPER earns a cut from all trades</li>
+                            <li>📈 70M $ADRIAN Airdropped across 200+ wallets</li>
+                            <li>🎯 All auctions & mints use $ADRIAN</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Artist Collaborations -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">👀 Auctions with Artists</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>We're not just playing around — we collaborate with real artists:</p>
+                        <div class="artist-collab">
+                            <p>🧨 @AKASHI30 – 1/1 & Edition auction</p>
+                            <p>🎭 @tomorrowman13 – "Disconnected" 1/1</p>
+                            <p>🌲 COR727 x ARBO – Forest photography-based 1/1</p>
+                            <p>💀 THE TAX REAPER – sold via Dutch Auction</p>
+                            <p>🐯 More drops coming with @HalfxTiger, @sonicdirty, and others</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Community Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">💬 Community First</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="feature-list">
+                            <li>Weekly Recaps</li>
+                            <li>Frequent Raffles</li>
+                            <li>Discord Roles with Perks</li>
+                            <li>DAOs for Revenue Sharing</li>
+                            <li>Referral System</li>
+                        </ul>
+                        <p>We've turned a memecoin into a community-run gallery. Every holder counts. Every punk matters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coming Soon Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">🛠️ Coming Soon</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="feature-list">
+                            <li>🧬 PunkQuest Season 2 (Items, boosts, random events)</li>
+                            <li>💸 ADRIANswap (our own DEX)</li>
+                            <li>🏆 Loyalty Dapp (points, gamified)</li>
+                            <li>🧾 DAO Tools for Treasury and Proposal Voting</li>
+                            <li>📦 Print-on-Demand Merch for holders</li>
+                            <li>💥 More artist collabs and mints</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Get Started Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="mb-0">🌍 Start Here</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-3">
+                            <a href="buyadrian.html" class="btn btn-primary">Buy $ADRIAN</a>
+                            <a href="https://discord.gg/YHc5Sh65Hm" class="btn btn-primary" target="_blank">Join the Community</a>
+                            <a href="https://adrianpunks.com" class="btn btn-primary" target="_blank">Mint AdrianPunks</a>
+                            <a href="marketplace.html" class="btn btn-primary">Explore the Gallery</a>
+                            <a href="marketplace.html" class="btn btn-primary">Trade in the Market</a>
+                            <a href="punkquest.html" class="btn btn-primary">Stake in PunkQuest</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mb-4">
+            <h2>🟦 BE REAL</h2>
+            <h2>🟥 BE ADRIAN</h2>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html> 
+</html>
