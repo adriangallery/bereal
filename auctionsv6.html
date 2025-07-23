@@ -133,28 +133,7 @@
             margin: 5px 0;
         }
 
-        .refresh-btn {
-            background: rgba(0, 255, 0, 0.2);
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            padding: 8px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'VT323', monospace;
-            font-size: 1rem;
-            margin: 5px;
-            transition: all 0.3s ease;
-        }
 
-        .refresh-btn:hover {
-            background: rgba(0, 255, 0, 0.3);
-            transform: scale(1.05);
-        }
-
-        .refresh-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
 
         .auction-info {
             background: rgba(255, 255, 255, 0.1);
@@ -433,8 +412,6 @@
                 <div class="timer-title">Time Remaining</div>
                 <div class="timer-display" id="timeRemaining">Loading...</div>
                 <div class="last-update">Last update: <span id="lastUpdate">Never</span></div>
-                <button id="refreshBtn" class="refresh-btn" onclick="forceRefresh()">🔄 Refresh Data</button>
-                <button id="hardRefreshBtn" class="refresh-btn" onclick="hardRefresh()">💥 Hard Refresh</button>
             </div>
 
             <div class="auction-info">
@@ -1085,55 +1062,9 @@
             }
         }
 
-        // Hard refresh function - clears all cache and reloads page (OPTIMIZED)
-        function hardRefresh() {
-            console.log("💥 OPTIMIZED HARD REFRESH - Clearing all cache and reloading");
-            
-            // Clear all intervals
-            if (updateInterval) clearInterval(updateInterval);
-            
-            // Clear localStorage if any
-            if (typeof(Storage) !== "undefined") {
-                localStorage.clear();
-                sessionStorage.clear();
-            }
-            
-            // Force reload with cache bypass
-            window.location.reload(true);
-        }
 
-        // Force refresh function with OPTIMIZED provider cycling
-        async function forceRefresh() {
-            const refreshBtn = document.getElementById('refreshBtn');
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = "🔄 Refreshing...";
-            
-            console.log("🔄 OPTIMIZED force refresh triggered - cycling RPC providers");
-            showStatus("Refreshing data with optimized calls...", "loading");
-            
-            try {
-                // Force refresh with different RPC
-                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
-                
-                // Restart block listener with new provider
-                startBlockListener();
-                
-                // Force immediate data refresh with OPTIMIZED calls
-                await loadAuctionData(true);
-                
-                if (currentAccount) {
-                    await loadUserData();
-                }
-                
-                showStatus("✅ Data refreshed successfully with optimized calls!", "success");
-            } catch (error) {
-                console.error("OPTIMIZED force refresh error:", error);
-                showStatus("Refresh failed, trying again...", "error");
-            } finally {
-                refreshBtn.disabled = false;
-                refreshBtn.textContent = "🔄 Refresh Data";
-            }
-        }
+
+
 
         // Block-based refresh system (OPTIMIZED - more efficient than setInterval)
         let readProvider;
