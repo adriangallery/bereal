@@ -133,6 +133,13 @@
             margin: 5px 0;
         }
 
+        .loading-status {
+            font-size: 0.9rem;
+            color: #ffff00;
+            margin: 5px 0;
+            min-height: 20px;
+        }
+
         .refresh-btn {
             background: rgba(0, 255, 0, 0.2);
             border: 1px solid #00ff00;
@@ -433,6 +440,7 @@
                 <div class="timer-title">Time Remaining</div>
                 <div class="timer-display" id="timeRemaining">Loading...</div>
                 <div class="last-update">Last update: <span id="lastUpdate">Never</span></div>
+                <div class="loading-status" id="loadingStatus">🔄 Loading priority data...</div>
                 <button id="refreshBtn" class="refresh-btn" onclick="forceRefresh()">🔄 Refresh Data</button>
                 <button id="hardRefreshBtn" class="refresh-btn" onclick="hardRefresh()">💥 Hard Refresh</button>
             </div>
@@ -548,15 +556,19 @@
         let updateInterval = null;
         let lastUpdateTime = 0;
 
-        // Provider SOLO de lectura, siempre JSON-RPC público (sin caché de MetaMask)
+        // Provider SOLO de lectura - usa MetaMask si está conectado, sino RPC público
         function getFreshProvider() {
-            const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
-            currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
-            console.log(`📡 Reading from: ${rpcUrl}`);
-            
-            // Just use the RPC URL without specifying network
-            // ethers will auto-detect the network
-            return new ethers.providers.JsonRpcProvider(rpcUrl);
+            // If wallet is connected, use MetaMask for reading to avoid CORS issues
+            if (window.ethereum && currentAccount) {
+                console.log("📡 Using MetaMask provider for reading (wallet connected)");
+                return new ethers.providers.Web3Provider(window.ethereum);
+            } else {
+                // Use public RPC when no wallet connected
+                const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
+                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
+                console.log(`📡 Using public RPC: ${rpcUrl}`);
+                return new ethers.providers.JsonRpcProvider(rpcUrl);
+            }
         }
         
         // Provider de firma SOLO para transacciones
@@ -577,7 +589,7 @@
             checkConnection();
         });
 
-        // Check if wallet is connected
+        // Check if wallet is connected (minimal calls)
         async function checkConnection() {
             if (window.ethereum) {
                 try {
@@ -585,12 +597,16 @@
                     if (accounts.length > 0) {
                         await connectWallet();
                     } else {
-                        // Load basic auction data even without connection
+                        // Load basic auction data without wallet
+                        console.log("👋 No wallet connected - loading basic data only");
                         await loadAuctionData(true);
                         startUpdateInterval();
                     }
                 } catch (error) {
                     console.error("Connection check failed:", error);
+                    // Try loading basic data anyway
+                    await loadAuctionData(true);
+                    startUpdateInterval();
                 }
             }
         }
@@ -609,9 +625,11 @@
                 // Switch to Base if needed
                 await switchToBase();
                 
-                // Load data
+                // Load data in cascade
                 await loadAuctionData(true);
-                await loadUserData();
+                
+                // Load user data with delay to avoid rate limiting
+                setTimeout(() => loadUserData(), 3000);
                 
                 // Update UI
                 document.getElementById('connectBtn').style.display = 'none';
@@ -688,9 +706,9 @@
                 
                 while (attempts < maxAttempts) {
                     try {
-                        console.log("📞 Making DIRECT contract calls with blockTag: 'latest'...");
+                        console.log("📞 Making DIRECT contract calls...");
                         
-                        // Get ALL data using DIRECT calls from MY CONTRACT
+                        // Simplified calls without blockTag to avoid RPC issues
                         const [
                             highestBid,
                             highestBidder, 
@@ -698,11 +716,11 @@
                             contractTokenBalance,
                             leaderboardResult
                         ] = await Promise.all([
-                            auctionContract.callStatic.highestBid({ blockTag: 'latest' }),
-                            auctionContract.callStatic.highestBidder({ blockTag: 'latest' }),
-                            auctionContract.callStatic.getTimeRemaining({ blockTag: 'latest' }),
-                            tokenContract.callStatic.balanceOf(AUCTION_CONTRACT, { blockTag: 'latest' }),
-                            auctionContract.callStatic.getTop10Bidders({ blockTag: 'latest' })
+                            auctionContract.highestBid(),
+                            auctionContract.highestBidder(),
+                            auctionContract.getTimeRemaining(),
+                            tokenContract.balanceOf(AUCTION_CONTRACT),
+                            auctionContract.getTop10Bidders()
                         ]);
                         
                         // getTop10Bidders returns [address[], uint256[]] as tuple
@@ -711,8 +729,14 @@
                             topBids: leaderboardResult[1]     // Second element: amounts
                         };
                         
-                        // Calculate bidder count from leaderboard
-                        const bidderCount = leaderboardData.topBidders.length;
+                        // Calculate REAL bidder count (only those with bid > 0)
+                        let realBidderCount = 0;
+                        for (let i = 0; i < leaderboardData.topBids.length; i++) {
+                            if (!leaderboardData.topBids[i].eq(0)) {
+                                realBidderCount++;
+                            }
+                        }
+                        const bidderCount = realBidderCount;
                         
                         // Calculate auction end time
                         const currentTime = Math.floor(Date.now() / 1000);
@@ -803,23 +827,25 @@
             }
         }
 
-        // Load user data using FRESH RPC (no MetaMask cache)
+        // Load user data with delays to avoid rate limiting
         async function loadUserData() {
             if (!currentAccount) return;
             
             try {
-                console.log("👤 Loading user data for:", currentAccount);
+                console.log("👤 Loading user data with delays...");
                 
-                // Use FRESH provider for reading user data (no MetaMask cache)
+                // Use consistent provider
                 const provider = getFreshProvider();
                 const auctionContract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, provider);
                 
-                // Get user balance and bid data using FRESH RPC with blockTag: 'latest'
-                const [balance, bidData] = await Promise.all([
-                    tokenContract.callStatic.balanceOf(currentAccount, { blockTag: 'latest' }),
-                    auctionContract.callStatic.getBidderPosition(currentAccount, { blockTag: 'latest' })
-                ]);
+                // Load user balance first
+                await new Promise(resolve => setTimeout(resolve, 300));
+                const balance = await tokenContract.balanceOf(currentAccount);
+                
+                // Load bid data with delay
+                await new Promise(resolve => setTimeout(resolve, 400));
+                const bidData = await auctionContract.getBidderPosition(currentAccount);
                 
                 userBalance = balance;
                 userBidData = {
@@ -827,7 +853,7 @@
                     bidAmount: bidData.bidAmount
                 };
                 
-                console.log("👤 Fresh user data loaded:", {
+                console.log("👤 User data loaded:", {
                     balance: ethers.utils.formatEther(userBalance),
                     bidAmount: ethers.utils.formatEther(userBidData.bidAmount),
                     position: userBidData.position
@@ -845,6 +871,7 @@
                 
             } catch (error) {
                 console.error("Error loading user data:", error);
+                // Don't retry automatically to avoid rate limiting
             }
         }
 
@@ -912,10 +939,12 @@
         // Update leaderboard from already fetched data
         function updateLeaderboardFromData(leaderboardData) {
             try {
-                const topBidders = leaderboardData.topBidders;
-                const topBids = leaderboardData.topBids;
+                const topBidders = leaderboardData.topBidders || [];
+                const topBids = leaderboardData.topBids || [];
                 
                 console.log("📊 Updating leaderboard with data:", topBidders.length, "bidders");
+                console.log("Raw bidders:", topBidders);
+                console.log("Raw bids:", topBids.map(bid => ethers.utils.formatEther(bid)));
                 
                 const leaderboardDiv = document.getElementById('leaderboard');
                 leaderboardDiv.innerHTML = '';
@@ -926,10 +955,17 @@
                 }
                 
                 for (let i = 0; i < topBidders.length; i++) {
+                    // Skip bidders with 0 bid amount (from my contract's logic)
+                    const bidAmount = topBids[i];
+                    if (bidAmount.eq(0)) {
+                        console.log(`Skipping bidder ${i} with 0 bid:`, topBidders[i]);
+                        continue;
+                    }
+                    
                     const isUser = currentAccount && topBidders[i].toLowerCase() === currentAccount.toLowerCase();
                     const itemClass = isUser ? 'leaderboard-item user' : 'leaderboard-item';
                     
-                    const bidFormatted = parseFloat(ethers.utils.formatEther(topBids[i])).toFixed(1);
+                    const bidFormatted = parseFloat(ethers.utils.formatEther(bidAmount)).toFixed(1);
                     
                     const item = document.createElement('div');
                     item.className = itemClass;
@@ -941,8 +977,15 @@
                     leaderboardDiv.appendChild(item);
                 }
                 
+                // If no valid bidders after filtering
+                if (leaderboardDiv.children.length === 0) {
+                    leaderboardDiv.innerHTML = '<div class="leaderboard-item"><div>No valid bidders</div></div>';
+                }
+                
             } catch (error) {
                 console.error("Error updating leaderboard:", error);
+                document.getElementById('leaderboard').innerHTML = 
+                    '<div class="leaderboard-item"><div style="color: red;">Error loading leaderboard</div></div>';
             }
         }
 
@@ -1052,16 +1095,18 @@
                 
                 showStatus(`🎉 Successfully placed bid of ${bidAmount} $ADRIAN!`, "success");
                 
-                // Clear input and reload data immediately
+                // Clear input and reload data with delays
                 document.getElementById('bidAmount').value = '';
                 
-                // Force immediate refresh with fresh RPC data
+                // Reload auction data after transaction with conservative timing
                 setTimeout(async () => {
                     await loadAuctionData(true);
-                    if (currentAccount) {
-                        await loadUserData();
-                    }
-                }, 1000); // Wait 1 second for blockchain to update
+                }, 3000); // Wait 3 seconds for blockchain to update
+                
+                // Reload user data with additional delay
+                if (currentAccount) {
+                    setTimeout(() => loadUserData(), 6000); // Wait 6 seconds total
+                }
                 
             } catch (error) {
                 console.error("Bid error:", error);
@@ -1102,22 +1147,16 @@
             window.location.reload(true);
         }
 
-        // Force refresh function with provider cycling
+        // Force refresh function - simplified
         async function forceRefresh() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.disabled = true;
             refreshBtn.textContent = "🔄 Refreshing...";
             
-            console.log("🔄 Force refresh triggered - cycling RPC providers");
-            showStatus("Refreshing data from fresh RPC...", "loading");
+            console.log("🔄 Force refresh triggered");
+            showStatus("Refreshing data...", "loading");
             
             try {
-                // Force refresh with different RPC
-                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
-                
-                // Restart block listener with new provider
-                startBlockListener();
-                
                 // Force immediate data refresh
                 await loadAuctionData(true);
                 
@@ -1125,7 +1164,7 @@
                     await loadUserData();
                 }
                 
-                showStatus("✅ Data refreshed successfully with fresh RPC!", "success");
+                showStatus("✅ Data refreshed successfully!", "success");
             } catch (error) {
                 console.error("Force refresh error:", error);
                 showStatus("Refresh failed, trying again...", "error");
@@ -1135,57 +1174,36 @@
             }
         }
 
-        // Block-based refresh system (more efficient than setInterval)
-        let readProvider;
-        
-        function startBlockListener() {
-            // Clean up existing listener
-            if (readProvider) {
-                readProvider.removeAllListeners();
-            }
-            
-            console.log("🎧 Starting block listener for real-time updates...");
-            readProvider = getFreshProvider();
-            
-            // Listen for new blocks and update data
-            readProvider.on('block', async (blockNumber) => {
-                console.log(`🆕 New block detected: ${blockNumber}`);
-                
-                try {
-                    await loadAuctionData();
-                    if (currentAccount) {
-                        await loadUserData();
-                    }
-                    updateTimerDirect();
-                } catch (error) {
-                    console.error("Error updating on new block:", error);
-                }
-            });
-            
-            // Fallback: still use interval but less frequent (every 10 seconds)
+        // Conservative refresh system to avoid rate limiting
+        function startUpdateInterval() {
             if (updateInterval) clearInterval(updateInterval);
+            
+            console.log("⏰ Starting CONSERVATIVE update system (rate limit friendly)...");
+            
             updateInterval = setInterval(async () => {
-                // Update timer countdown every second
+                // Update timer countdown every second (no RPC calls)
                 if (auctionStats && auctionStats.timeRemaining) {
                     auctionStats.timeRemaining = Math.max(0, auctionStats.timeRemaining - 1);
                     updateTimerDirect();
                 }
                 
-                // Fallback refresh every 10 seconds in case block listener fails
+                // VERY conservative refresh: only every 15 seconds to avoid rate limiting
                 const now = Date.now();
-                if (now - lastUpdateTime > 10000) {
-                    console.log("⏰ Fallback refresh (block listener backup)");
-                    await loadAuctionData(true);
-                    if (currentAccount) {
-                        await loadUserData();
+                if (now - lastUpdateTime > 15000) {
+                    console.log("⏰ Conservative auto-refresh (every 15s)");
+                    try {
+                        await loadAuctionData(true);
+                        
+                        // User data even less frequent: every 30 seconds
+                        if (currentAccount && (now - lastUpdateTime > 30000)) {
+                            setTimeout(() => loadUserData(), 2000); // 2s delay after auction data
+                        }
+                    } catch (error) {
+                        console.error("Auto-refresh error (will continue):", error);
+                        // Don't retry immediately, wait for next cycle
                     }
                 }
-            }, 1000);
-        }
-
-        // Legacy function for compatibility (now uses block listener)
-        function startUpdateInterval() {
-            startBlockListener();
+            }, 1000); // Check every second, but refresh data very conservatively
         }
 
         // Show status
