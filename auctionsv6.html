@@ -76,30 +76,34 @@
         }
 
         .nft-preview {
-            width: 280px;
-            height: 320px;
-            margin: 0 auto 25px;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
             border: 3px solid #00ff00;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
-            background: rgba(0, 0, 0, 0.8);
+            position: relative;
         }
 
         .nft-preview img {
             width: 100%;
-            height: 280px;
+            height: 100%;
             object-fit: cover;
-            display: block;
         }
 
         .nft-title {
-            padding: 10px;
-            text-align: center;
-            font-size: 1.4rem;
-            color: #00ff00;
-            font-weight: bold;
             background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            text-align: center;
+            padding: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #00ff00;
         }
 
         .timer {
@@ -121,6 +125,29 @@
             font-size: 2.5rem;
             color: #ffffff;
             font-weight: bold;
+        }
+
+        .refresh-btn {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(0, 255, 0, 0.3);
+            transform: scale(1.05);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .auction-info {
@@ -376,12 +403,8 @@
             }
 
             .nft-preview {
-                width: 240px;
-                height: 280px;
-            }
-
-            .nft-preview img {
-                height: 240px;
+                width: 150px;
+                height: 150px;
             }
         }
     </style>
@@ -396,13 +419,14 @@
             </div>
 
             <div class="nft-preview">
-                <img src="https://raw.githubusercontent.com/adriangallery/AdrianLAB/main/public/labimages/ozzy.png" alt="Ozzy NFT - Adrian Auction">
-                <div class="nft-title">OZZY NFT</div>
+                <img src="https://raw.githubusercontent.com/adriangallery/AdrianLAB/main/public/labimages/ozzy.png" alt="Auction NFT - Ozzy">
+                <div class="nft-title">OZZY - Limited Edition</div>
             </div>
 
             <div class="timer">
                 <div class="timer-title">Time Remaining</div>
                 <div class="timer-display" id="timeRemaining">Loading...</div>
+                <button id="refreshBtn" class="refresh-btn" onclick="forceRefresh()">🔄 Refresh Data</button>
             </div>
 
             <div class="auction-info">
@@ -477,6 +501,16 @@
         const AUCTION_CONTRACT = "0x020d68117a4909e9bf511a50cf1355dc6b0987c9";
         const ADRIAN_TOKEN = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
+        // Multiple RPC providers to avoid cache issues
+        const RPC_PROVIDERS = [
+            'https://mainnet.base.org',
+            'https://base-mainnet.g.alchemy.com/v2/demo',
+            'https://base.blockpi.network/v1/rpc/public',
+            'https://1rpc.io/base'
+        ];
+        
+        let currentRpcIndex = 0;
+
         // Contract ABIs
         const AUCTION_ABI = [
             "function bid(uint256 amount)",
@@ -503,6 +537,20 @@
         let userBidData = null;
         let userBalance = null;
         let updateInterval = null;
+        let lastUpdateTime = 0;
+
+        // Get fresh provider to avoid cache issues
+        function getFreshProvider() {
+            if (window.ethereum && currentAccount) {
+                return new ethers.providers.Web3Provider(window.ethereum);
+            } else {
+                // Cycle through different RPC providers to avoid cache
+                const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
+                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
+                console.log(`Using RPC: ${rpcUrl}`);
+                return new ethers.providers.JsonRpcProvider(rpcUrl);
+            }
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -522,7 +570,7 @@
                         await connectWallet();
                     } else {
                         // Load basic auction data even without connection
-                        await loadAuctionData();
+                        await loadAuctionData(true);
                         startUpdateInterval();
                     }
                 } catch (error) {
@@ -546,7 +594,7 @@
                 await switchToBase();
                 
                 // Load data
-                await loadAuctionData();
+                await loadAuctionData(true);
                 await loadUserData();
                 
                 // Update UI
@@ -597,21 +645,67 @@
             }
         }
 
-        // Load auction data
-        async function loadAuctionData() {
+        // Load auction data with cache busting
+        async function loadAuctionData(forceRefresh = false) {
             try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum || new ethers.providers.JsonRpcProvider('https://mainnet.base.org'));
+                const now = Date.now();
+                
+                // Add timestamp for debugging
+                console.log(`Loading auction data at: ${new Date().toLocaleTimeString()}`);
+                
+                const provider = getFreshProvider();
                 const contract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 
-                // Get auction stats
-                const stats = await contract.getAuctionStats();
-                auctionStats = {
+                // Force a fresh call by getting latest block first
+                if (forceRefresh) {
+                    try {
+                        await provider.getBlockNumber();
+                    } catch (e) {
+                        console.log("Block number fetch failed, continuing...");
+                    }
+                }
+                
+                // Get auction stats with retry logic
+                let stats;
+                let attempts = 0;
+                const maxAttempts = 3;
+                
+                while (attempts < maxAttempts) {
+                    try {
+                        stats = await contract.getAuctionStats();
+                        break;
+                    } catch (error) {
+                        attempts++;
+                        console.log(`Attempt ${attempts} failed:`, error.message);
+                        if (attempts === maxAttempts) throw error;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+                
+                const newAuctionStats = {
                     highestBid: stats._highestBid,
                     highestBidder: stats._highestBidder,
                     totalTokens: stats._totalTokens,
                     bidderCount: stats._bidderCount.toNumber(),
                     auctionEndTime: stats._auctionEndTime.toNumber()
                 };
+                
+                // Check if data actually changed
+                const dataChanged = !auctionStats || 
+                    !newAuctionStats.highestBid.eq(auctionStats.highestBid) ||
+                    newAuctionStats.highestBidder !== auctionStats.highestBidder ||
+                    newAuctionStats.bidderCount !== auctionStats.bidderCount;
+                
+                if (dataChanged) {
+                    console.log("🔄 Auction data updated:", {
+                        highestBid: ethers.utils.formatEther(newAuctionStats.highestBid),
+                        bidderCount: newAuctionStats.bidderCount,
+                        bidder: newAuctionStats.highestBidder
+                    });
+                }
+                
+                auctionStats = newAuctionStats;
+                lastUpdateTime = now;
                 
                 // Update UI
                 document.getElementById('highestBidAmount').textContent = 
@@ -637,7 +731,10 @@
                 
             } catch (error) {
                 console.error("Error loading auction data:", error);
-                showStatus("Error loading auction data", "error");
+                showStatus("Error loading auction data - trying different RPC...", "error");
+                
+                // Try different RPC provider
+                setTimeout(() => loadAuctionData(true), 2000);
             }
         }
 
@@ -677,15 +774,17 @@
             }
         }
 
-        // Load leaderboard
+        // Load leaderboard with fresh data
         async function loadLeaderboard() {
             try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum || new ethers.providers.JsonRpcProvider('https://mainnet.base.org'));
+                const provider = getFreshProvider();
                 const contract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 
                 const leaderboard = await contract.getTop10Bidders();
                 const topBidders = leaderboard.topBidders;
                 const topBids = leaderboard.topBids;
+                
+                console.log("📊 Leaderboard loaded:", topBidders.length, "bidders");
                 
                 const leaderboardDiv = document.getElementById('leaderboard');
                 leaderboardDiv.innerHTML = '';
@@ -829,7 +928,7 @@
                 
                 // Clear input and reload data
                 document.getElementById('bidAmount').value = '';
-                await loadAuctionData();
+                await loadAuctionData(true);
                 await loadUserData();
                 
             } catch (error) {
@@ -854,17 +953,52 @@
             }
         }
 
-        // Start auto-refresh interval
+        // Force refresh function
+        async function forceRefresh() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = "🔄 Refreshing...";
+            
+            console.log("🔄 Force refresh triggered");
+            showStatus("Refreshing data from blockchain...", "loading");
+            
+            try {
+                // Force refresh with different RPC
+                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
+                await loadAuctionData(true);
+                
+                if (currentAccount) {
+                    await loadUserData();
+                }
+                
+                showStatus("✅ Data refreshed successfully!", "success");
+            } catch (error) {
+                console.error("Force refresh error:", error);
+                showStatus("Refresh failed, trying again...", "error");
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = "🔄 Refresh Data";
+            }
+        }
+
+        // Start auto-refresh interval with more aggressive timing
         function startUpdateInterval() {
             if (updateInterval) clearInterval(updateInterval);
             
             updateInterval = setInterval(async () => {
                 updateTimer();
-                await loadAuctionData();
-                if (currentAccount) {
-                    await loadUserData();
+                
+                // More frequent updates for active auctions
+                const now = Date.now();
+                if (now - lastUpdateTime > 3000) { // Update every 3 seconds
+                    console.log("⏰ Auto-refresh triggered");
+                    await loadAuctionData(true);
+                    
+                    if (currentAccount) {
+                        await loadUserData();
+                    }
                 }
-            }, 5000); // Update every 5 seconds
+            }, 1000); // Check every second, but load data every 3 seconds
         }
 
         // Show status
