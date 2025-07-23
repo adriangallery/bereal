@@ -554,7 +554,10 @@
             const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
             currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
             console.log(`📡 Reading from: ${rpcUrl}`);
-            return new ethers.providers.JsonRpcProvider(rpcUrl, 'base');
+            
+            // Just use the RPC URL without specifying network
+            // ethers will auto-detect the network
+            return new ethers.providers.JsonRpcProvider(rpcUrl);
         }
         
         // Provider de firma SOLO para transacciones
