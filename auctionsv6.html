@@ -928,26 +928,42 @@
             updateTimerDirect();
         }
 
-        // Update minimum bid based on current highest bid (OPTIMIZED)
+        // Helper function to calculate minimum bid using EXACT contract logic
+        function calculateMinBidWei(currentBidWei) {
+            if (currentBidWei.eq(0)) {
+                return ethers.utils.parseEther("0.01"); // Minimum bid when no bids exist
+            }
+            
+            // EXACT CONTRACT LOGIC: newBid < highestBid + (highestBid / 10)
+            // This means: newBid >= highestBid + (highestBid / 10)
+            // Which is: newBid >= highestBid * 11 / 10
+            const minBidWei = currentBidWei.mul(11).div(10);
+            
+            return minBidWei;
+        }
+
+        // Update minimum bid based on current highest bid (FIXED - uses exact contract logic)
         function updateMinBid() {
             if (!auctionStats) return;
             
-            const currentBid = parseFloat(ethers.utils.formatEther(auctionStats.highestBid));
-            let minBid;
+            // Use the exact contract logic to calculate minimum bid
+            const minBidWei = calculateMinBidWei(auctionStats.highestBid);
+            const minBidEther = parseFloat(ethers.utils.formatEther(minBidWei));
             
-            if (currentBid === 0) {
-                minBid = 0.01; // Minimum bid when no bids exist
-            } else {
-                minBid = currentBid * 1.1; // 10% increase required
-            }
+            document.getElementById('minBid').textContent = minBidEther.toFixed(2);
             
-            document.getElementById('minBid').textContent = minBid.toFixed(2);
+            // Update input placeholder with exact value
+            document.getElementById('bidAmount').placeholder = minBidEther.toFixed(2);
             
-            // Update input placeholder
-            document.getElementById('bidAmount').placeholder = minBid.toFixed(2);
+            console.log("🎯 Min bid calculation:", {
+                currentBidWei: auctionStats.highestBid.toString(),
+                currentBidEther: ethers.utils.formatEther(auctionStats.highestBid),
+                minBidWei: minBidWei.toString(),
+                minBidEther: minBidEther.toFixed(2)
+            });
         }
 
-        // Approve tokens using SIGNER provider
+        // Approve tokens using SIGNER provider (FIXED - uses exact contract logic)
         async function approveTokens() {
             if (!currentAccount) {
                 showStatus("Connect wallet first!", "error");
@@ -960,10 +976,18 @@
                 return;
             }
             
+            // FIXED: Use exact contract logic for validation
+            const bidAmountWei = ethers.utils.parseEther(bidAmount);
+            const minBidWei = calculateMinBidWei(auctionStats.highestBid);
+            
+            if (bidAmountWei.lt(minBidWei)) {
+                const minBidEther = parseFloat(ethers.utils.formatEther(minBidWei));
+                showStatus(`Bid must be at least ${minBidEther.toFixed(2)} $ADRIAN`, "error");
+                return;
+            }
+            
             try {
                 document.getElementById('approveBtn').disabled = true;
-                
-                const amount = ethers.utils.parseEther(bidAmount);
                 showStatus(`Approving ${bidAmount} $ADRIAN tokens...`, "loading");
                 
                 // Use SIGNER provider for transactions (MetaMask)
@@ -971,7 +995,7 @@
                 const signer = signerProvider.getSigner();
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, signer);
                 
-                const tx = await tokenContract.approve(AUCTION_CONTRACT, amount);
+                const tx = await tokenContract.approve(AUCTION_CONTRACT, bidAmountWei);
                 await tx.wait();
                 
                 showStatus(`✅ ${bidAmount} $ADRIAN approved! Now you can place your bid.`, "success");
@@ -990,7 +1014,7 @@
             }
         }
 
-        // Place bid using SIGNER provider
+        // Place bid using SIGNER provider (FIXED - uses exact contract validation)
         async function placeBid() {
             if (!currentAccount) {
                 showStatus("Connect wallet first!", "error");
@@ -1003,12 +1027,13 @@
                 return;
             }
             
-            // Validate minimum bid
-            const currentBid = parseFloat(ethers.utils.formatEther(auctionStats.highestBid));
-            const minRequired = currentBid === 0 ? 0.01 : currentBid * 1.1;
+            // FIXED: Use exact contract logic for validation
+            const bidAmountWei = ethers.utils.parseEther(bidAmount);
+            const minBidWei = calculateMinBidWei(auctionStats.highestBid);
             
-            if (parseFloat(bidAmount) < minRequired) {
-                showStatus(`Bid must be at least ${minRequired.toFixed(2)} $ADRIAN`, "error");
+            if (bidAmountWei.lt(minBidWei)) {
+                const minBidEther = parseFloat(ethers.utils.formatEther(minBidWei));
+                showStatus(`Bid must be at least ${minBidEther.toFixed(2)} $ADRIAN`, "error");
                 return;
             }
             
@@ -1021,8 +1046,7 @@
                 const signer = signerProvider.getSigner();
                 const contract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, signer);
                 
-                const amount = ethers.utils.parseEther(bidAmount);
-                const tx = await contract.bid(amount);
+                const tx = await contract.bid(bidAmountWei);
                 
                 showStatus("Transaction sent! Waiting for confirmation...", "loading");
                 await tx.wait();
