@@ -127,6 +127,12 @@
             font-weight: bold;
         }
 
+        .last-update {
+            font-size: 0.9rem;
+            color: #cccccc;
+            margin: 5px 0;
+        }
+
         .refresh-btn {
             background: rgba(0, 255, 0, 0.2);
             border: 1px solid #00ff00;
@@ -136,7 +142,7 @@
             cursor: pointer;
             font-family: 'VT323', monospace;
             font-size: 1rem;
-            margin-top: 10px;
+            margin: 5px;
             transition: all 0.3s ease;
         }
 
@@ -426,7 +432,9 @@
             <div class="timer">
                 <div class="timer-title">Time Remaining</div>
                 <div class="timer-display" id="timeRemaining">Loading...</div>
+                <div class="last-update">Last update: <span id="lastUpdate">Never</span></div>
                 <button id="refreshBtn" class="refresh-btn" onclick="forceRefresh()">🔄 Refresh Data</button>
+                <button id="hardRefreshBtn" class="refresh-btn" onclick="hardRefresh()">💥 Hard Refresh</button>
             </div>
 
             <div class="auction-info">
@@ -511,17 +519,19 @@
         
         let currentRpcIndex = 0;
 
-        // Contract ABIs
+        // Contract ABIs - Using direct calls instead of getAuctionStats
         const AUCTION_ABI = [
             "function bid(uint256 amount)",
             "function bidWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)",
             "function getTimeRemaining() view returns (uint256)",
             "function getTop10Bidders() view returns (address[] memory topBidders, uint256[] memory topBids)",
             "function getBidderPosition(address bidder) view returns (uint256 position, uint256 bidAmount)",
-            "function getAuctionStats() view returns (uint256 _highestBid, address _highestBidder, uint256 _totalTokens, uint256 _bidderCount, uint256 _auctionEndTime)",
             "function bids(address) view returns (uint256)",
             "function highestBid() view returns (uint256)",
-            "function highestBidder() view returns (address)"
+            "function highestBidder() view returns (address)",
+            "function bidders(uint256) view returns (address)",
+            "function hasBid(address) view returns (bool)",
+            "function auctionEndTime() view returns (uint256)"
         ];
 
         const ERC20_ABI = [
@@ -545,10 +555,21 @@
                 return new ethers.providers.Web3Provider(window.ethereum);
             } else {
                 // Cycle through different RPC providers to avoid cache
-                const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
+                const baseRpcUrl = RPC_PROVIDERS[currentRpcIndex];
                 currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
-                console.log(`Using RPC: ${rpcUrl}`);
-                return new ethers.providers.JsonRpcProvider(rpcUrl);
+                
+                // Add cache busting timestamp
+                const cacheBuster = Date.now();
+                const rpcUrl = `${baseRpcUrl}?t=${cacheBuster}`;
+                
+                console.log(`🌐 Using RPC: ${baseRpcUrl} (cache buster: ${cacheBuster})`);
+                return new ethers.providers.JsonRpcProvider({
+                    url: rpcUrl,
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
             }
         }
 
@@ -645,92 +666,134 @@
             }
         }
 
-        // Load auction data with cache busting
+        // Load auction data using DIRECT contract calls (more reliable)
         async function loadAuctionData(forceRefresh = false) {
             try {
                 const now = Date.now();
                 
-                // Add timestamp for debugging
-                console.log(`Loading auction data at: ${new Date().toLocaleTimeString()}`);
+                console.log(`🔍 Loading auction data DIRECTLY from contract at: ${new Date().toLocaleTimeString()}`);
                 
                 const provider = getFreshProvider();
-                const contract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
+                const auctionContract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
+                const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, provider);
                 
-                // Force a fresh call by getting latest block first
+                // Force fresh calls
                 if (forceRefresh) {
                     try {
-                        await provider.getBlockNumber();
+                        const blockNumber = await provider.getBlockNumber();
+                        console.log(`📦 Latest block: ${blockNumber}`);
                     } catch (e) {
                         console.log("Block number fetch failed, continuing...");
                     }
                 }
                 
-                // Get auction stats with retry logic
-                let stats;
+                // Get ALL data using DIRECT calls (no getAuctionStats)
                 let attempts = 0;
                 const maxAttempts = 3;
                 
                 while (attempts < maxAttempts) {
                     try {
-                        stats = await contract.getAuctionStats();
+                        console.log("📞 Making DIRECT contract calls...");
+                        
+                        const [
+                            highestBid,
+                            highestBidder, 
+                            timeRemaining,
+                            contractTokenBalance,
+                            leaderboardData
+                        ] = await Promise.all([
+                            auctionContract.highestBid(),
+                            auctionContract.highestBidder(),
+                            auctionContract.getTimeRemaining(),
+                            tokenContract.balanceOf(AUCTION_CONTRACT),
+                            auctionContract.getTop10Bidders()
+                        ]);
+                        
+                        // Calculate bidder count from leaderboard
+                        const bidderCount = leaderboardData.topBidders.length;
+                        
+                        // Calculate auction end time
+                        const currentTime = Math.floor(Date.now() / 1000);
+                        const auctionEndTime = currentTime + timeRemaining.toNumber();
+                        
+                        console.log("🎯 DIRECT CONTRACT RESPONSES:");
+                        console.log("highestBid():", {
+                            raw: highestBid.toString(),
+                            formatted: ethers.utils.formatEther(highestBid),
+                            $ADRIAN: parseFloat(ethers.utils.formatEther(highestBid)).toFixed(2)
+                        });
+                        console.log("highestBidder():", highestBidder);
+                        console.log("timeRemaining():", timeRemaining.toString(), "seconds");
+                        console.log("Contract Token Balance:", ethers.utils.formatEther(contractTokenBalance));
+                        console.log("Bidder Count (from leaderboard):", bidderCount);
+                        
+                        const newAuctionStats = {
+                            highestBid: highestBid,
+                            highestBidder: highestBidder,
+                            totalTokens: contractTokenBalance,
+                            bidderCount: bidderCount,
+                            auctionEndTime: auctionEndTime,
+                            timeRemaining: timeRemaining.toNumber()
+                        };
+                        
+                        // Check if data actually changed
+                        const dataChanged = !auctionStats || 
+                            !newAuctionStats.highestBid.eq(auctionStats.highestBid) ||
+                            newAuctionStats.highestBidder !== auctionStats.highestBidder ||
+                            newAuctionStats.bidderCount !== auctionStats.bidderCount;
+                        
+                        if (dataChanged) {
+                            console.log("🔄 DATA CHANGED! New values:");
+                            console.log("- Highest Bid:", ethers.utils.formatEther(newAuctionStats.highestBid), "$ADRIAN");
+                            console.log("- Highest Bidder:", newAuctionStats.highestBidder);
+                            console.log("- Bidder Count:", newAuctionStats.bidderCount);
+                            console.log("- Total Tokens:", ethers.utils.formatEther(newAuctionStats.totalTokens), "$ADRIAN");
+                        } else {
+                            console.log("✅ No changes detected");
+                        }
+                        
+                        auctionStats = newAuctionStats;
+                        lastUpdateTime = now;
+                        
+                        // Update UI
+                        const highestBidFormatted = parseFloat(ethers.utils.formatEther(auctionStats.highestBid)).toFixed(1);
+                        document.getElementById('highestBidAmount').textContent = `${highestBidFormatted} $ADRIAN`;
+                        
+                        const bidderDisplay = auctionStats.highestBidder === ethers.constants.AddressZero 
+                            ? "None" 
+                            : `${auctionStats.highestBidder.slice(0,6)}...${auctionStats.highestBidder.slice(-4)}`;
+                        document.getElementById('highestBidder').textContent = bidderDisplay;
+                        
+                        document.getElementById('totalBidders').textContent = auctionStats.bidderCount;
+                        
+                        const totalTokensFormatted = parseFloat(ethers.utils.formatEther(auctionStats.totalTokens)).toFixed(1);
+                        document.getElementById('totalTokens').textContent = `${totalTokensFormatted} $ADRIAN`;
+                        
+                        // Update timer using direct time remaining
+                        updateTimerDirect();
+                        
+                        // Load leaderboard (we already have the data)
+                        updateLeaderboardFromData(leaderboardData);
+                        
+                        // Update minimum bid
+                        updateMinBid();
+                        
+                        // Show last update time
+                        console.log(`✅ UI Updated at: ${new Date().toLocaleTimeString()}`);
+                        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                        
                         break;
+                        
                     } catch (error) {
                         attempts++;
-                        console.log(`Attempt ${attempts} failed:`, error.message);
+                        console.log(`❌ Direct call attempt ${attempts} failed:`, error.message);
                         if (attempts === maxAttempts) throw error;
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 }
                 
-                const newAuctionStats = {
-                    highestBid: stats._highestBid,
-                    highestBidder: stats._highestBidder,
-                    totalTokens: stats._totalTokens,
-                    bidderCount: stats._bidderCount.toNumber(),
-                    auctionEndTime: stats._auctionEndTime.toNumber()
-                };
-                
-                // Check if data actually changed
-                const dataChanged = !auctionStats || 
-                    !newAuctionStats.highestBid.eq(auctionStats.highestBid) ||
-                    newAuctionStats.highestBidder !== auctionStats.highestBidder ||
-                    newAuctionStats.bidderCount !== auctionStats.bidderCount;
-                
-                if (dataChanged) {
-                    console.log("🔄 Auction data updated:", {
-                        highestBid: ethers.utils.formatEther(newAuctionStats.highestBid),
-                        bidderCount: newAuctionStats.bidderCount,
-                        bidder: newAuctionStats.highestBidder
-                    });
-                }
-                
-                auctionStats = newAuctionStats;
-                lastUpdateTime = now;
-                
-                // Update UI
-                document.getElementById('highestBidAmount').textContent = 
-                    `${ethers.utils.formatEther(auctionStats.highestBid)} $ADRIAN`;
-                
-                const bidderDisplay = auctionStats.highestBidder === ethers.constants.AddressZero 
-                    ? "None" 
-                    : `${auctionStats.highestBidder.slice(0,6)}...${auctionStats.highestBidder.slice(-4)}`;
-                document.getElementById('highestBidder').textContent = bidderDisplay;
-                
-                document.getElementById('totalBidders').textContent = auctionStats.bidderCount;
-                document.getElementById('totalTokens').textContent = 
-                    `${ethers.utils.formatEther(auctionStats.totalTokens)} $ADRIAN`;
-                
-                // Update timer
-                updateTimer();
-                
-                // Load leaderboard
-                await loadLeaderboard();
-                
-                // Update minimum bid
-                updateMinBid();
-                
             } catch (error) {
-                console.error("Error loading auction data:", error);
+                console.error("❌ Error loading auction data:", error);
                 showStatus("Error loading auction data - trying different RPC...", "error");
                 
                 // Try different RPC provider
@@ -738,16 +801,18 @@
             }
         }
 
-        // Load user data
+        // Load user data using DIRECT contract calls
         async function loadUserData() {
             if (!currentAccount) return;
             
             try {
+                console.log("👤 Loading user data for:", currentAccount);
+                
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const auctionContract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, provider);
                 
-                // Get user balance and bid data
+                // Get user balance and bid data using DIRECT calls
                 const [balance, bidData] = await Promise.all([
                     tokenContract.balanceOf(currentAccount),
                     auctionContract.getBidderPosition(currentAccount)
@@ -759,12 +824,18 @@
                     bidAmount: bidData.bidAmount
                 };
                 
-                // Update UI
-                document.getElementById('userBalance').textContent = 
-                    `${ethers.utils.formatEther(userBalance)} $ADRIAN`;
+                console.log("👤 User data loaded:", {
+                    balance: ethers.utils.formatEther(userBalance),
+                    bidAmount: ethers.utils.formatEther(userBidData.bidAmount),
+                    position: userBidData.position
+                });
                 
-                document.getElementById('userBid').textContent = 
-                    `${ethers.utils.formatEther(userBidData.bidAmount)} $ADRIAN`;
+                // Update UI
+                const balanceFormatted = parseFloat(ethers.utils.formatEther(userBalance)).toFixed(1);
+                document.getElementById('userBalance').textContent = `${balanceFormatted} $ADRIAN`;
+                
+                const bidFormatted = parseFloat(ethers.utils.formatEther(userBidData.bidAmount)).toFixed(1);
+                document.getElementById('userBid').textContent = `${bidFormatted} $ADRIAN`;
                 
                 document.getElementById('userPosition').textContent = 
                     userBidData.position === 0 ? "Not bidding" : `#${userBidData.position}`;
@@ -813,12 +884,14 @@
             }
         }
 
-        // Update timer
-        function updateTimer() {
-            if (!auctionStats) return;
+        // Update timer using direct time remaining data
+        function updateTimerDirect() {
+            if (!auctionStats || !auctionStats.timeRemaining) {
+                document.getElementById('timeRemaining').textContent = "Loading...";
+                return;
+            }
             
-            const now = Math.floor(Date.now() / 1000);
-            const timeLeft = auctionStats.auctionEndTime - now;
+            const timeLeft = auctionStats.timeRemaining;
             
             if (timeLeft <= 0) {
                 document.getElementById('timeRemaining').textContent = "AUCTION ENDED";
@@ -831,6 +904,48 @@
             
             document.getElementById('timeRemaining').textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update leaderboard from already fetched data
+        function updateLeaderboardFromData(leaderboardData) {
+            try {
+                const topBidders = leaderboardData.topBidders;
+                const topBids = leaderboardData.topBids;
+                
+                console.log("📊 Updating leaderboard with data:", topBidders.length, "bidders");
+                
+                const leaderboardDiv = document.getElementById('leaderboard');
+                leaderboardDiv.innerHTML = '';
+                
+                if (topBidders.length === 0) {
+                    leaderboardDiv.innerHTML = '<div class="leaderboard-item"><div>No bidders yet</div></div>';
+                    return;
+                }
+                
+                for (let i = 0; i < topBidders.length; i++) {
+                    const isUser = currentAccount && topBidders[i].toLowerCase() === currentAccount.toLowerCase();
+                    const itemClass = isUser ? 'leaderboard-item user' : 'leaderboard-item';
+                    
+                    const bidFormatted = parseFloat(ethers.utils.formatEther(topBids[i])).toFixed(1);
+                    
+                    const item = document.createElement('div');
+                    item.className = itemClass;
+                    item.innerHTML = `
+                        <div class="leaderboard-rank">#${i + 1}</div>
+                        <div class="leaderboard-address">${topBidders[i].slice(0,6)}...${topBidders[i].slice(-4)}</div>
+                        <div class="leaderboard-amount">${bidFormatted} $ADRIAN</div>
+                    `;
+                    leaderboardDiv.appendChild(item);
+                }
+                
+            } catch (error) {
+                console.error("Error updating leaderboard:", error);
+            }
+        }
+
+        // Update timer (legacy function for compatibility)
+        function updateTimer() {
+            updateTimerDirect();
         }
 
         // Update minimum bid based on current highest bid
@@ -953,6 +1068,23 @@
             }
         }
 
+        // Hard refresh function - clears all cache and reloads page
+        function hardRefresh() {
+            console.log("💥 HARD REFRESH - Clearing all cache and reloading");
+            
+            // Clear all intervals
+            if (updateInterval) clearInterval(updateInterval);
+            
+            // Clear localStorage if any
+            if (typeof(Storage) !== "undefined") {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+            
+            // Force reload with cache bypass
+            window.location.reload(true);
+        }
+
         // Force refresh function
         async function forceRefresh() {
             const refreshBtn = document.getElementById('refreshBtn');
@@ -981,24 +1113,28 @@
             }
         }
 
-        // Start auto-refresh interval with more aggressive timing
+        // Start auto-refresh interval using DIRECT calls
         function startUpdateInterval() {
             if (updateInterval) clearInterval(updateInterval);
             
             updateInterval = setInterval(async () => {
-                updateTimer();
+                // Update timer countdown every second
+                if (auctionStats && auctionStats.timeRemaining) {
+                    auctionStats.timeRemaining = Math.max(0, auctionStats.timeRemaining - 1);
+                    updateTimerDirect();
+                }
                 
-                // More frequent updates for active auctions
+                // Refresh data from blockchain every 3 seconds
                 const now = Date.now();
-                if (now - lastUpdateTime > 3000) { // Update every 3 seconds
-                    console.log("⏰ Auto-refresh triggered");
+                if (now - lastUpdateTime > 3000) {
+                    console.log("⏰ Auto-refresh triggered (DIRECT calls)");
                     await loadAuctionData(true);
                     
                     if (currentAccount) {
                         await loadUserData();
                     }
                 }
-            }, 1000); // Check every second, but load data every 3 seconds
+            }, 1000); // Check every second
         }
 
         // Show status
