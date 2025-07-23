@@ -549,28 +549,21 @@
         let updateInterval = null;
         let lastUpdateTime = 0;
 
-        // Get fresh provider to avoid cache issues
+        // Provider SOLO de lectura, siempre JSON-RPC público (sin caché de MetaMask)
         function getFreshProvider() {
-            if (window.ethereum && currentAccount) {
-                return new ethers.providers.Web3Provider(window.ethereum);
-            } else {
-                // Cycle through different RPC providers to avoid cache
-                const baseRpcUrl = RPC_PROVIDERS[currentRpcIndex];
-                currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
-                
-                // Add cache busting timestamp
-                const cacheBuster = Date.now();
-                const rpcUrl = `${baseRpcUrl}?t=${cacheBuster}`;
-                
-                console.log(`🌐 Using RPC: ${baseRpcUrl} (cache buster: ${cacheBuster})`);
-                return new ethers.providers.JsonRpcProvider({
-                    url: rpcUrl,
-                    headers: {
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
-                });
+            const rpcUrl = RPC_PROVIDERS[currentRpcIndex];
+            currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
+            console.log(`📡 Reading from: ${rpcUrl}`);
+            return new ethers.providers.JsonRpcProvider(rpcUrl, 'base');
+        }
+        
+        // Provider de firma SOLO para transacciones
+        function getSignerProvider() {
+            if (!window.ethereum || !currentAccount) {
+                throw new Error("Wallet not connected");
             }
+            console.log("✍️ Using MetaMask for signing");
+            return new ethers.providers.Web3Provider(window.ethereum);
         }
 
         // Initialize
@@ -666,18 +659,19 @@
             }
         }
 
-        // Load auction data using DIRECT contract calls (more reliable)
+        // Load auction data using DIRECT contract calls with FRESH RPC
         async function loadAuctionData(forceRefresh = false) {
             try {
                 const now = Date.now();
                 
-                console.log(`🔍 Loading auction data DIRECTLY from contract at: ${new Date().toLocaleTimeString()}`);
+                console.log(`🔍 Loading auction data DIRECTLY at: ${new Date().toLocaleTimeString()}`);
                 
+                // ALWAYS use fresh JSON-RPC provider for reading (no MetaMask cache)
                 const provider = getFreshProvider();
                 const auctionContract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, provider);
                 
-                // Force fresh calls
+                // Force fresh calls with latest block
                 if (forceRefresh) {
                     try {
                         const blockNumber = await provider.getBlockNumber();
@@ -687,14 +681,14 @@
                     }
                 }
                 
-                // Get ALL data using DIRECT calls (no getAuctionStats)
                 let attempts = 0;
                 const maxAttempts = 3;
                 
                 while (attempts < maxAttempts) {
                     try {
-                        console.log("📞 Making DIRECT contract calls...");
+                        console.log("📞 Making DIRECT contract calls with blockTag: 'latest'...");
                         
+                        // Use blockTag: 'latest' to force fresh data
                         const [
                             highestBid,
                             highestBidder, 
@@ -702,11 +696,11 @@
                             contractTokenBalance,
                             leaderboardData
                         ] = await Promise.all([
-                            auctionContract.highestBid(),
-                            auctionContract.highestBidder(),
-                            auctionContract.getTimeRemaining(),
-                            tokenContract.balanceOf(AUCTION_CONTRACT),
-                            auctionContract.getTop10Bidders()
+                            auctionContract.callStatic.highestBid({ blockTag: 'latest' }),
+                            auctionContract.callStatic.highestBidder({ blockTag: 'latest' }),
+                            auctionContract.callStatic.getTimeRemaining({ blockTag: 'latest' }),
+                            tokenContract.callStatic.balanceOf(AUCTION_CONTRACT, { blockTag: 'latest' }),
+                            auctionContract.callStatic.getTop10Bidders({ blockTag: 'latest' })
                         ]);
                         
                         // Calculate bidder count from leaderboard
@@ -716,7 +710,7 @@
                         const currentTime = Math.floor(Date.now() / 1000);
                         const auctionEndTime = currentTime + timeRemaining.toNumber();
                         
-                        console.log("🎯 DIRECT CONTRACT RESPONSES:");
+                        console.log("🎯 FRESH RPC DATA (NO METAMASK CACHE):");
                         console.log("highestBid():", {
                             raw: highestBid.toString(),
                             formatted: ethers.utils.formatEther(highestBid),
@@ -736,10 +730,10 @@
                             timeRemaining: timeRemaining.toNumber()
                         };
                         
-                        // Check if data actually changed
+                        // Check if data actually changed (case-insensitive address comparison)
                         const dataChanged = !auctionStats || 
                             !newAuctionStats.highestBid.eq(auctionStats.highestBid) ||
-                            newAuctionStats.highestBidder !== auctionStats.highestBidder ||
+                            newAuctionStats.highestBidder.toLowerCase() !== auctionStats.highestBidder.toLowerCase() ||
                             newAuctionStats.bidderCount !== auctionStats.bidderCount;
                         
                         if (dataChanged) {
@@ -786,7 +780,7 @@
                         
                     } catch (error) {
                         attempts++;
-                        console.log(`❌ Direct call attempt ${attempts} failed:`, error.message);
+                        console.log(`❌ Fresh RPC attempt ${attempts} failed:`, error.message);
                         if (attempts === maxAttempts) throw error;
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
@@ -801,21 +795,22 @@
             }
         }
 
-        // Load user data using DIRECT contract calls
+        // Load user data using FRESH RPC (no MetaMask cache)
         async function loadUserData() {
             if (!currentAccount) return;
             
             try {
                 console.log("👤 Loading user data for:", currentAccount);
                 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                // Use FRESH provider for reading user data (no MetaMask cache)
+                const provider = getFreshProvider();
                 const auctionContract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, provider);
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, provider);
                 
-                // Get user balance and bid data using DIRECT calls
+                // Get user balance and bid data using FRESH RPC with blockTag: 'latest'
                 const [balance, bidData] = await Promise.all([
-                    tokenContract.balanceOf(currentAccount),
-                    auctionContract.getBidderPosition(currentAccount)
+                    tokenContract.callStatic.balanceOf(currentAccount, { blockTag: 'latest' }),
+                    auctionContract.callStatic.getBidderPosition(currentAccount, { blockTag: 'latest' })
                 ]);
                 
                 userBalance = balance;
@@ -824,7 +819,7 @@
                     bidAmount: bidData.bidAmount
                 };
                 
-                console.log("👤 User data loaded:", {
+                console.log("👤 Fresh user data loaded:", {
                     balance: ethers.utils.formatEther(userBalance),
                     bidAmount: ethers.utils.formatEther(userBidData.bidAmount),
                     position: userBidData.position
@@ -967,7 +962,7 @@
             document.getElementById('bidAmount').placeholder = minBid.toFixed(2);
         }
 
-        // Approve tokens
+        // Approve tokens using SIGNER provider
         async function approveTokens() {
             if (!currentAccount) {
                 showStatus("Connect wallet first!", "error");
@@ -986,8 +981,9 @@
                 const amount = ethers.utils.parseEther(bidAmount);
                 showStatus(`Approving ${bidAmount} $ADRIAN tokens...`, "loading");
                 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
+                // Use SIGNER provider for transactions (MetaMask)
+                const signerProvider = getSignerProvider();
+                const signer = signerProvider.getSigner();
                 const tokenContract = new ethers.Contract(ADRIAN_TOKEN, ERC20_ABI, signer);
                 
                 const tx = await tokenContract.approve(AUCTION_CONTRACT, amount);
@@ -997,13 +993,19 @@
                 
             } catch (error) {
                 console.error("Approval error:", error);
-                showStatus("Approval failed: " + (error.message || "Unknown error"), "error");
+                let errorMsg = "Approval failed";
+                if (error.message.includes("denied") || error.code === 4001) {
+                    errorMsg = "Transaction cancelled by user";
+                } else if (error.message.includes("insufficient funds")) {
+                    errorMsg = "Insufficient funds for gas";
+                }
+                showStatus(errorMsg, "error");
             } finally {
                 document.getElementById('approveBtn').disabled = false;
             }
         }
 
-        // Place bid
+        // Place bid using SIGNER provider
         async function placeBid() {
             if (!currentAccount) {
                 showStatus("Connect wallet first!", "error");
@@ -1029,8 +1031,9 @@
                 document.getElementById('bidBtn').disabled = true;
                 showStatus(`Placing bid of ${bidAmount} $ADRIAN...`, "loading");
                 
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
+                // Use SIGNER provider for transactions (MetaMask)
+                const signerProvider = getSignerProvider();
+                const signer = signerProvider.getSigner();
                 const contract = new ethers.Contract(AUCTION_CONTRACT, AUCTION_ABI, signer);
                 
                 const amount = ethers.utils.parseEther(bidAmount);
@@ -1041,10 +1044,16 @@
                 
                 showStatus(`🎉 Successfully placed bid of ${bidAmount} $ADRIAN!`, "success");
                 
-                // Clear input and reload data
+                // Clear input and reload data immediately
                 document.getElementById('bidAmount').value = '';
-                await loadAuctionData(true);
-                await loadUserData();
+                
+                // Force immediate refresh with fresh RPC data
+                setTimeout(async () => {
+                    await loadAuctionData(true);
+                    if (currentAccount) {
+                        await loadUserData();
+                    }
+                }, 1000); // Wait 1 second for blockchain to update
                 
             } catch (error) {
                 console.error("Bid error:", error);
@@ -1054,8 +1063,8 @@
                     errorMsg = "Not enough $ADRIAN tokens";
                 } else if (error.message.includes("allowance")) {
                     errorMsg = "Need to approve $ADRIAN first";
-                } else if (error.message.includes("denied")) {
-                    errorMsg = "Transaction cancelled";
+                } else if (error.message.includes("denied") || error.code === 4001) {
+                    errorMsg = "Transaction cancelled by user";
                 } else if (error.message.includes("Auction ended")) {
                     errorMsg = "Auction has ended";
                 } else if (error.message.includes("10% higher")) {
@@ -1085,25 +1094,30 @@
             window.location.reload(true);
         }
 
-        // Force refresh function
+        // Force refresh function with provider cycling
         async function forceRefresh() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.disabled = true;
             refreshBtn.textContent = "🔄 Refreshing...";
             
-            console.log("🔄 Force refresh triggered");
-            showStatus("Refreshing data from blockchain...", "loading");
+            console.log("🔄 Force refresh triggered - cycling RPC providers");
+            showStatus("Refreshing data from fresh RPC...", "loading");
             
             try {
                 // Force refresh with different RPC
                 currentRpcIndex = (currentRpcIndex + 1) % RPC_PROVIDERS.length;
+                
+                // Restart block listener with new provider
+                startBlockListener();
+                
+                // Force immediate data refresh
                 await loadAuctionData(true);
                 
                 if (currentAccount) {
                     await loadUserData();
                 }
                 
-                showStatus("✅ Data refreshed successfully!", "success");
+                showStatus("✅ Data refreshed successfully with fresh RPC!", "success");
             } catch (error) {
                 console.error("Force refresh error:", error);
                 showStatus("Refresh failed, trying again...", "error");
@@ -1113,10 +1127,35 @@
             }
         }
 
-        // Start auto-refresh interval using DIRECT calls
-        function startUpdateInterval() {
-            if (updateInterval) clearInterval(updateInterval);
+        // Block-based refresh system (more efficient than setInterval)
+        let readProvider;
+        
+        function startBlockListener() {
+            // Clean up existing listener
+            if (readProvider) {
+                readProvider.removeAllListeners();
+            }
             
+            console.log("🎧 Starting block listener for real-time updates...");
+            readProvider = getFreshProvider();
+            
+            // Listen for new blocks and update data
+            readProvider.on('block', async (blockNumber) => {
+                console.log(`🆕 New block detected: ${blockNumber}`);
+                
+                try {
+                    await loadAuctionData();
+                    if (currentAccount) {
+                        await loadUserData();
+                    }
+                    updateTimerDirect();
+                } catch (error) {
+                    console.error("Error updating on new block:", error);
+                }
+            });
+            
+            // Fallback: still use interval but less frequent (every 10 seconds)
+            if (updateInterval) clearInterval(updateInterval);
             updateInterval = setInterval(async () => {
                 // Update timer countdown every second
                 if (auctionStats && auctionStats.timeRemaining) {
@@ -1124,17 +1163,21 @@
                     updateTimerDirect();
                 }
                 
-                // Refresh data from blockchain every 3 seconds
+                // Fallback refresh every 10 seconds in case block listener fails
                 const now = Date.now();
-                if (now - lastUpdateTime > 3000) {
-                    console.log("⏰ Auto-refresh triggered (DIRECT calls)");
+                if (now - lastUpdateTime > 10000) {
+                    console.log("⏰ Fallback refresh (block listener backup)");
                     await loadAuctionData(true);
-                    
                     if (currentAccount) {
                         await loadUserData();
                     }
                 }
-            }, 1000); // Check every second
+            }, 1000);
+        }
+
+        // Legacy function for compatibility (now uses block listener)
+        function startUpdateInterval() {
+            startBlockListener();
         }
 
         // Show status
