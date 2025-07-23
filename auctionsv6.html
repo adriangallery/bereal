@@ -509,10 +509,9 @@
         const AUCTION_CONTRACT = "0x020d68117a4909e9bf511a50cf1355dc6b0987c9";
         const ADRIAN_TOKEN = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
 
-        // Multiple RPC providers to avoid cache issues
+        // Multiple RPC providers (only CORS-friendly ones)
         const RPC_PROVIDERS = [
             'https://mainnet.base.org',
-            'https://base-mainnet.g.alchemy.com/v2/demo',
             'https://base.blockpi.network/v1/rpc/public',
             'https://1rpc.io/base'
         ];
@@ -691,13 +690,13 @@
                     try {
                         console.log("📞 Making DIRECT contract calls with blockTag: 'latest'...");
                         
-                        // Use blockTag: 'latest' to force fresh data
+                        // Get ALL data using DIRECT calls from MY CONTRACT
                         const [
                             highestBid,
                             highestBidder, 
                             timeRemaining,
                             contractTokenBalance,
-                            leaderboardData
+                            leaderboardResult
                         ] = await Promise.all([
                             auctionContract.callStatic.highestBid({ blockTag: 'latest' }),
                             auctionContract.callStatic.highestBidder({ blockTag: 'latest' }),
@@ -705,6 +704,12 @@
                             tokenContract.callStatic.balanceOf(AUCTION_CONTRACT, { blockTag: 'latest' }),
                             auctionContract.callStatic.getTop10Bidders({ blockTag: 'latest' })
                         ]);
+                        
+                        // getTop10Bidders returns [address[], uint256[]] as tuple
+                        const leaderboardData = {
+                            topBidders: leaderboardResult[0], // First element: addresses
+                            topBids: leaderboardResult[1]     // Second element: amounts
+                        };
                         
                         // Calculate bidder count from leaderboard
                         const bidderCount = leaderboardData.topBidders.length;
