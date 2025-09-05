@@ -374,11 +374,15 @@
   <script>
     // Global variables
     let provider, signer, auctionContract, tokenContract;
-    let userAccount = "";
-    
-    // Contract addresses
+    // Read-only provider/contracts to ensure data loads even without wallet or across browsers
+    let readProvider = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
     const auctionAddress = "0xafb4f0976f1c1d0d3baf064acc11bcb94bc990a5";
     const tokenAddress = "0x7E99075Ce287F1cF8cBCAaa6A1C7894e404fD7Ea";
+    let readOnlyAuction = null;
+    let readOnlyToken = null;
+    let userAccount = "";
+    
+    // Contract addresses defined above (kept for clarity)
     
     // Auction Contract ABI (adaptado al contrato V3)
     const auctionABI = [
@@ -394,6 +398,15 @@
     
     // Standard ERC20 ABI
     const tokenABI = [
+    function ensureReadOnlyContracts() {
+      if (!readOnlyAuction) {
+        readOnlyAuction = new ethers.Contract(auctionAddress, auctionABI, readProvider);
+      }
+      if (!readOnlyToken) {
+        readOnlyToken = new ethers.Contract(tokenAddress, tokenABI, readProvider);
+      }
+    }
+
       "function approve(address spender, uint256 amount) external returns (bool)",
       "function allowance(address owner, address spender) view returns (uint256)",
       "function balanceOf(address account) view returns (uint256)"
@@ -406,7 +419,9 @@
     // 1. Update current multiplier (real-time)
     async function updateCurrentMultiplier() {
       try {
-        const startTimeBN = await auctionContract.auctionStartTime();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const startTimeBN = await contract.auctionStartTime();
         const auctionStartTime = startTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         let multiplier = 100;
@@ -431,7 +446,9 @@
     async function updateUserBids() {
       if (!userAccount) return;
       try {
-        const bids = await auctionContract.getBidsOf(userAccount);
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const bids = await contract.getBidsOf(userAccount);
         let html = "";
         if (bids.length === 0) {
           html = "<p>No bids found.</p>";
@@ -480,7 +497,9 @@
     // 3. Update Final Ranking display
     async function updateRanking() {
       try {
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const [rankedUsers, totals] = await contract.getFinalRanking();
         let html = "";
         if (rankedUsers.length === 0) {
           html = "<p>No bids yet.</p>";
@@ -515,7 +534,9 @@
     // 4. Update Auction Stats: Time Remaining, Highest Bid, Total Tokens Deposited, y progress bar del tiempo
     async function updateAuctionStats() {
       try {
-        const auctionEndTimeBN = await auctionContract.auctionEndTime();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const auctionEndTimeBN = await contract.auctionEndTime();
         const auctionEndTime = auctionEndTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         const secondsRemaining = auctionEndTime > now ? auctionEndTime - now : 0;
@@ -530,7 +551,7 @@
         let timeDisplay = (days > 0) ? `${days}d ${hours}h ${minutes}m ${seconds}s` : `${hours}h ${minutes}m ${seconds}s`;
         document.getElementById("timeRemainingDisplay").innerText = "Time Remaining: " + timeDisplay;
         
-        const auctionStartTimeBN = await auctionContract.auctionStartTime();
+        const auctionStartTimeBN = await contract.auctionStartTime();
         const auctionStartTime = auctionStartTimeBN.toNumber();
         const totalDuration = auctionEndTime - auctionStartTime;
         const progressPercentage = (secondsRemaining / totalDuration) * 100;
@@ -547,7 +568,7 @@
         auctionTimeProgress.style.width = `${progressPercentage.toFixed(2)}%`;
         auctionTimeProgress.className = "progress-bar " + progressColor;
         
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        const [rankedUsers, totals] = await contract.getFinalRanking();
         if (rankedUsers.length > 0) {
           const highestEffective = parseFloat(ethers.utils.formatUnits(totals[0], 18));
           document.getElementById("highestBidDisplay").innerText = "Highest Bid (Effective): " + highestEffective.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
@@ -555,7 +576,8 @@
           document.getElementById("highestBidDisplay").innerText = "Highest Bid: N/A";
         }
         
-        const totalDepositedBN = await tokenContract.balanceOf(auctionAddress);
+        const token = tokenContract || (ensureReadOnlyContracts(), readOnlyToken);
+        const totalDepositedBN = await token.balanceOf(auctionAddress);
         const totalDeposited = parseFloat(ethers.utils.formatUnits(totalDepositedBN, 18));
         document.getElementById("totalDepositedDisplay").innerText = "Total Tokens Deposited: " + totalDeposited.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " $ADRIAN";
       } catch (error) {
@@ -566,7 +588,9 @@
     // 5. Update Boost Timer: muestra el boost activo y la cuenta regresiva para su finalización
     async function updateBoostTimer() {
       try {
-        const startTimeBN = await auctionContract.auctionStartTime();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const startTimeBN = await contract.auctionStartTime();
         const auctionStartTime = startTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         
@@ -611,12 +635,14 @@
     // 6. Update Winner Section: si la subasta terminó, mostrar el ganador (wallet abreviada)
     async function updateWinnerSection() {
       try {
-        const auctionEndTimeBN = await auctionContract.auctionEndTime();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const auctionEndTimeBN = await contract.auctionEndTime();
         const auctionEndTime = auctionEndTimeBN.toNumber();
         const now = Math.floor(Date.now() / 1000);
         const winnerSection = document.getElementById("winnerSection");
         if (now >= auctionEndTime) {
-          const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+          const [rankedUsers, totals] = await contract.getFinalRanking();
           if (rankedUsers.length > 0) {
             const winner = rankedUsers[0];
             const abbreviated = winner.substring(0,6) + "..." + winner.substring(winner.length - 4);
@@ -647,7 +673,9 @@
         return;
       }
       try {
-        const [rankedUsers, totals] = await auctionContract.getFinalRanking();
+        ensureReadOnlyContracts();
+        const contract = auctionContract || readOnlyAuction;
+        const [rankedUsers, totals] = await contract.getFinalRanking();
         let position = "N/A";
         rankedUsers.forEach((wallet, index) => {
           if (wallet.toLowerCase() === userAccount.toLowerCase()) {
@@ -823,6 +851,19 @@
     window.onMenuWalletDisconnected = function() {
       document.getElementById("accountDisplay").innerText = "";
     };
+
+    // Initialize read-only periodic updates so any browser sees live data without depending on wallet
+    (function initReadOnlyLoops() {
+      ensureReadOnlyContracts();
+      updateCurrentMultiplier();
+      updateAuctionStats();
+      updateBoostTimer();
+      updateRanking();
+      setInterval(updateCurrentMultiplier, 5000);
+      setInterval(updateAuctionStats, 15000);
+      setInterval(updateBoostTimer, 5000);
+      setInterval(updateRanking, 10000);
+    })();
   </script>
   
   <!-- Bootstrap JS Bundle -->
