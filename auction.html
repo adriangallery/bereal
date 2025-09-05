@@ -398,6 +398,11 @@
     
     // Standard ERC20 ABI
     const tokenABI = [
+      "function approve(address spender, uint256 amount) external returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)",
+      "function balanceOf(address account) view returns (uint256)"
+    ];
+
     function ensureReadOnlyContracts() {
       if (!readOnlyAuction) {
         readOnlyAuction = new ethers.Contract(auctionAddress, auctionABI, readProvider);
@@ -406,11 +411,6 @@
         readOnlyToken = new ethers.Contract(tokenAddress, tokenABI, readProvider);
       }
     }
-
-      "function approve(address spender, uint256 amount) external returns (bool)",
-      "function allowance(address owner, address spender) view returns (uint256)",
-      "function balanceOf(address account) view returns (uint256)"
-    ];
     
     // ----------------------------
     // UI Update Functions
